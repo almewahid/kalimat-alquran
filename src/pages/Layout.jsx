@@ -7,17 +7,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      cacheTime: 1000 * 60 * 30, // 30 minutes
+      staleTime: 1000 * 60 * 5,
+      cacheTime: 1000 * 60 * 30,
       refetchOnWindowFocus: false,
     },
   },
 });
 
-// Utility function to create page URLs
 const createPageUrl = (pageName) => `/${pageName}`;
 import { AudioProvider } from "@/components/common/AudioContext";
 import GlobalAudioPlayer from "../components/common/GlobalAudioPlayer";
+import DynamicLandingPage from "../components/common/DynamicLandingPage";
 import {
   Home,
   BookOpen,
@@ -90,6 +90,7 @@ const gamificationItems = [
 const systemItems = [
   { title: "وضع الأطفال", url: createPageUrl("KidsMode"), icon: Baby },
   { title: "الإشعارات", url: createPageUrl("Notifications"), icon: Bell },
+  { title: "ملاحظاتي", url: createPageUrl("ManageNotes"), icon: FileText },
   { title: "الملف الشخصي", url: createPageUrl("UserProfile"), icon: UserPlus },
   { title: "التقدم", url: createPageUrl("Progress"), icon: BarChart3 },
   { title: "التقارير الشاملة", url: createPageUrl("Reports"), icon: FileText },
@@ -97,17 +98,20 @@ const systemItems = [
   { title: "المساعدة", url: createPageUrl("Help"), icon: HelpCircle },
   { title: "الإعدادات", url: createPageUrl("Settings"), icon: SettingsIcon },
   { title: "ادعم التطبيق", url: createPageUrl("Support"), icon: Heart },
-  ];
+];
 
 const adminItems = [
   { title: "لوحة التحكم", url: createPageUrl("AdminPanel"), icon: Shield },
   { title: "التحليلات المتقدمة", url: createPageUrl("Analytics"), icon: LineChart },
+  { title: "إدارة المستخدمين", url: createPageUrl("ManageUsers"), icon: Users },
+  { title: "إدارة المجموعات", url: createPageUrl("ManageGroups"), icon: Users },
   { title: "توليد الكلمات", url: createPageUrl("GenerateWords"), icon: Zap },
   { title: "استيراد القرآن", url: createPageUrl("ImportQuran"), icon: BookMarked },
   { title: "إدارة القرآن", url: createPageUrl("ManageQuran"), icon: BookOpen },
   { title: "إدارة الصور", url: createPageUrl("ManageImages"), icon: Image },
-  { title: "إدارة الشهادات", url: createPageUrl("ManageCertificates"), icon: Award },
+  { title: "الدورات والشهادات", url: createPageUrl("ManageCertificates"), icon: BookOpen },
   { title: "إدارة الصوتيات", url: createPageUrl("ManageAudios"), icon: Music },
+  { title: "صفحات الهبوط", url: createPageUrl("ManageLandingPages"), icon: Zap },
   { title: "سجلات الأخطاء", url: createPageUrl("ErrorLogs"), icon: AlertTriangle },
   { title: "اختبار الصوت", url: createPageUrl("AudioTest"), icon: Volume2 },
 ];
@@ -251,6 +255,14 @@ export default function Layout({ children, currentPageName }) {
             background-clip: text;
           }
 
+          html, body, #root {
+            width: 100% !important;
+            max-width: 100vw !important;
+            overflow-x: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
           [data-sidebar="sidebar"] { right: 0; left: auto; }
           .sidebar-right { border-left: 1px solid hsl(var(--border)); }
 
@@ -295,18 +307,7 @@ export default function Layout({ children, currentPageName }) {
 
         <SidebarProvider defaultOpen={true}>
           <div className="min-h-screen flex w-full" dir="rtl">
-            <main className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out md:mr-[250px]">
-              <header className="bg-card/80 backdrop-blur-sm border-b border-border px-6 py-4 md:hidden sticky top-0 z-40">
-                <div className="flex items-center gap-4">
-                  <h1 className="text-xl font-bold gradient-text">كلمات القرآن</h1>
-                  <SidebarTrigger className="hover:bg-background-soft p-2 rounded-lg transition-colors duration-200 mr-auto" />
-                </div>
-              </header>
-
-              <div className="flex-1 w-full max-w-[100vw] overflow-x-hidden">{children}</div>
-            </main>
-
-            <Sidebar className="sidebar-right border-l border-border bg-card/95 backdrop-blur-md fixed right-0 top-0 bottom-0 z-50 shadow-xl" side="right" variant="sidebar" collapsible="icon">
+            <Sidebar className="sidebar-right border-l border-border bg-card/95 backdrop-blur-md" side="right" variant="sidebar" collapsible="icon">
               <SidebarHeader className="border-b border-border p-6">
                 <div className="text-center">
                   <img
@@ -315,12 +316,10 @@ export default function Layout({ children, currentPageName }) {
                     className="w-20 h-20 mx-auto mb-3"
                   />
                   <h2 className="text-xl font-bold gradient-text">كلمات القرآن</h2>
-                  <p className="text-sm text-primary/80 mt-1">تعلم واحفظ</p>
                 </div>
               </SidebarHeader>
 
               <SidebarContent className="p-4">
-                {/* القائمة الرئيسية */}
                 <SidebarGroup>
                   <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
                     القائمة الرئيسية
@@ -348,7 +347,6 @@ export default function Layout({ children, currentPageName }) {
                   </SidebarGroupContent>
                 </SidebarGroup>
 
-                {/* التفاعل الاجتماعي */}
                 <SidebarGroup className="mt-6">
                   <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
                     👥 التفاعل الاجتماعي
@@ -376,7 +374,6 @@ export default function Layout({ children, currentPageName }) {
                   </SidebarGroupContent>
                 </SidebarGroup>
 
-                {/* التحفيز والمكافآت */}
                 <SidebarGroup className="mt-6">
                   <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
                     🎮 التحفيز والمكافآت
@@ -404,7 +401,6 @@ export default function Layout({ children, currentPageName }) {
                   </SidebarGroupContent>
                 </SidebarGroup>
 
-                {/* النظام */}
                 <SidebarGroup className="mt-6">
                   <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
                     ⚙️ النظام
@@ -437,7 +433,6 @@ export default function Layout({ children, currentPageName }) {
                   </SidebarGroupContent>
                 </SidebarGroup>
 
-                {/* قسم المدير */}
                 {isAdmin && (
                   <SidebarGroup className="mt-6">
                     <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
@@ -468,10 +463,23 @@ export default function Layout({ children, currentPageName }) {
                 )}
               </SidebarContent>
             </Sidebar>
+
+            <main className="flex-1 overflow-auto bg-background">
+              <header className="bg-card/80 backdrop-blur-sm border-b border-border px-6 py-4 md:hidden sticky top-0 z-40">
+                <div className="flex items-center gap-4">
+                  <h1 className="text-xl font-bold gradient-text">كلمات القرآن</h1>
+                  <SidebarTrigger className="hover:bg-background-soft p-2 rounded-lg transition-colors duration-200 mr-auto" />
+                </div>
+              </header>
+
+              <div className="w-full">
+                <DynamicLandingPage />
+                {children}
+              </div>
+            </main>
           </div>
         </SidebarProvider>
 
-        {/* ✅ مشغل الصوت العالمي */}
         <GlobalAudioPlayer />
       </div>
     </AudioProvider>

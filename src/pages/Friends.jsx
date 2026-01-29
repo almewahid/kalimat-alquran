@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Users, UserCheck, UserX, Mail, Loader2, Trophy, Target, Search, Crown, TrendingUp } from "lucide-react";
+import { UserPlus, Users, UserCheck, UserX, Mail, Loader2, Trophy, Target, Crown, TrendingUp, Activity, BookOpen, Award, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -19,6 +19,8 @@ export default function Friends() {
   const [isLoading, setIsLoading] = useState(true);
   const [allUsers, setAllUsers] = useState([]);
   const [friendsProgress, setFriendsProgress] = useState(new Map());
+  const [friendsActivity, setFriendsActivity] = useState(new Map());
+  const [friendsLeaderboard, setFriendsLeaderboard] = useState([]);
 
   useEffect(() => {
     loadFriendsData();
@@ -44,24 +46,45 @@ export default function Friends() {
       const users = await base44.entities.User.list();
       setAllUsers(users);
 
-      // Load friends' progress
       const acceptedFriends = myFriendships.filter(f => f.status === "accepted");
       const friendsProgressMap = new Map();
+      const friendsActivityMap = new Map();
+      const leaderboardData = [];
       
       for (const friendship of acceptedFriends) {
         try {
-          const [progressList] = await base44.entities.UserProgress.filter({
-            created_by: friendship.friend_email
-          });
-          if (progressList) {
-            friendsProgressMap.set(friendship.friend_email, progressList);
+          const [progressList, recentActivity, courseProgress] = await Promise.all([
+            base44.entities.UserProgress.filter({ created_by: friendship.friend_email }),
+            base44.entities.ActivityLog.filter({ user_email: friendship.friend_email }, '-created_date', 5),
+            base44.entities.UserCourseProgress.filter({ user_email: friendship.friend_email })
+          ]);
+          
+          if (progressList && progressList.length > 0) {
+            friendsProgressMap.set(friendship.friend_email, progressList[0]);
+            
+            leaderboardData.push({
+              email: friendship.friend_email,
+              name: users.find(u => u.email === friendship.friend_email)?.full_name || friendship.friend_email,
+              total_xp: progressList[0].total_xp || 0,
+              words_learned: progressList[0].words_learned || 0,
+              level: progressList[0].current_level || 1,
+              quiz_streak: progressList[0].quiz_streak || 0
+            });
           }
+          
+          friendsActivityMap.set(friendship.friend_email, {
+            recentActions: recentActivity || [],
+            activeCourses: courseProgress?.filter(cp => !cp.is_completed) || [],
+            completedCourses: courseProgress?.filter(cp => cp.is_completed) || []
+          });
         } catch (error) {
-          console.error(`Error loading progress for ${friendship.friend_email}:`, error);
+          console.error(`Error loading data for ${friendship.friend_email}:`, error);
         }
       }
       
       setFriendsProgress(friendsProgressMap);
+      setFriendsActivity(friendsActivityMap);
+      setFriendsLeaderboard(leaderboardData.sort((a, b) => b.total_xp - a.total_xp));
 
     } catch (error) {
       console.error("Error loading friends data:", error);
@@ -72,43 +95,19 @@ export default function Friends() {
 
   const sendFriendRequest = async () => {
     if (!searchEmail.trim()) {
-      toast({
-        title: "⚠️ أدخل بريد إلكتروني",
-        description: "يجب إدخال البريد الإلكتروني للصديق",
-        variant: "destructive"
-      });
+      toast({ title: "⚠️ أدخل بريد إلكتروني", variant: "destructive" });
       return;
     }
 
     if (searchEmail === user.email) {
-      toast({
-        title: "⚠️ خطأ",
-        description: "لا يمكنك إضافة نفسك كصديق!",
-        variant: "destructive"
-      });
+      toast({ title: "⚠️ لا يمكنك إضافة نفسك", variant: "destructive" });
       return;
     }
 
     try {
-      const existing = friendships.find(
-        f => f.friend_email === searchEmail && f.status === "accepted"
-      );
+      const existing = friendships.find(f => f.friend_email === searchEmail && f.status === "accepted");
       if (existing) {
-        toast({
-          title: "ℹ️ بالفعل أصدقاء",
-          description: "أنت وهذا المستخدم أصدقاء بالفعل",
-        });
-        return;
-      }
-
-      const pendingRequest = friendships.find(
-        f => f.friend_email === searchEmail && f.status === "pending"
-      );
-      if (pendingRequest) {
-        toast({
-          title: "ℹ️ طلب معلق",
-          description: "لديك طلب صداقة معلق بالفعل لهذا المستخدم",
-        });
+        toast({ title: "ℹ️ بالفعل أصدقاء" });
         return;
       }
 
@@ -128,22 +127,11 @@ export default function Friends() {
         icon: "👥"
       });
 
-      toast({
-        title: "✅ تم إرسال الطلب",
-        description: "تم إرسال طلب الصداقة بنجاح",
-        className: "bg-green-100 text-green-800"
-      });
-
+      toast({ title: "✅ تم إرسال الطلب", className: "bg-green-100 text-green-800" });
       setSearchEmail("");
       loadFriendsData();
-
     } catch (error) {
-      console.error("Error sending friend request:", error);
-      toast({
-        title: "❌ فشل الإرسال",
-        description: "حدث خطأ، حاول مرة أخرى",
-        variant: "destructive"
-      });
+      toast({ title: "❌ فشل الإرسال", variant: "destructive" });
     }
   };
 
@@ -171,42 +159,20 @@ export default function Friends() {
         icon: "✅"
       });
 
-      toast({
-        title: "✅ تم قبول الطلب",
-        description: "أصبحتما أصدقاء الآن!",
-        className: "bg-green-100 text-green-800"
-      });
-
+      toast({ title: "✅ تم قبول الطلب", className: "bg-green-100 text-green-800" });
       loadFriendsData();
-
     } catch (error) {
-      console.error("Error accepting friend request:", error);
-      toast({
-        title: "❌ فشل القبول",
-        description: "حدث خطأ، حاول مرة أخرى",
-        variant: "destructive"
-      });
+      toast({ title: "❌ فشل القبول", variant: "destructive" });
     }
   };
 
   const rejectFriendRequest = async (friendship) => {
     try {
       await base44.entities.Friendship.delete(friendship.id);
-
-      toast({
-        title: "تم رفض الطلب",
-        description: "تم رفض طلب الصداقة"
-      });
-
+      toast({ title: "تم رفض الطلب" });
       loadFriendsData();
-
     } catch (error) {
-      console.error("Error rejecting friend request:", error);
-      toast({
-        title: "❌ فشل الرفض",
-        description: "حدث خطأ، حاول مرة أخرى",
-        variant: "destructive"
-      });
+      toast({ title: "❌ فشل الرفض", variant: "destructive" });
     }
   };
 
@@ -221,30 +187,15 @@ export default function Friends() {
         await base44.entities.Friendship.delete(reverseFriendship.id);
       }
 
-      toast({
-        title: "تمت الإزالة",
-        description: "تم حذف الصديق من قائمتك"
-      });
-
+      toast({ title: "تمت الإزالة" });
       loadFriendsData();
-
     } catch (error) {
-      console.error("Error removing friend:", error);
-      toast({
-        title: "❌ فشل الحذف",
-        description: "حدث خطأ، حاول مرة أخرى",
-        variant: "destructive"
-      });
+      toast({ title: "❌ فشل الحذف", variant: "destructive" });
     }
   };
 
-  const getFriendUser = (email) => {
-    return allUsers.find(u => u.email === email);
-  };
-
-  const getRequestUser = (email) => {
-    return allUsers.find(u => u.email === email);
-  };
+  const getFriendUser = (email) => allUsers.find(u => u.email === email);
+  const getRequestUser = (email) => allUsers.find(u => u.email === email);
 
   if (isLoading) {
     return (
@@ -295,10 +246,18 @@ export default function Friends() {
         </Card>
 
         <Tabs defaultValue="friends" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="friends" className="gap-2">
               <Users className="w-4 h-4" />
               أصدقائي ({acceptedFriends.length})
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="gap-2">
+              <Activity className="w-4 h-4" />
+              النشاط
+            </TabsTrigger>
+            <TabsTrigger value="leaderboard" className="gap-2">
+              <Trophy className="w-4 h-4" />
+              الترتيب
             </TabsTrigger>
             <TabsTrigger value="requests" className="gap-2">
               <UserCheck className="w-4 h-4" />
@@ -333,7 +292,9 @@ export default function Friends() {
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
                               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                <Users className="w-6 h-6 text-primary" />
+                                <span className="text-primary font-bold text-lg">
+                                  {friendUser?.full_name?.charAt(0) || friendship.friend_email.charAt(0).toUpperCase()}
+                                </span>
                               </div>
                               <div>
                                 <h3 className="font-bold text-foreground">{friendUser?.full_name || "مستخدم"}</h3>
@@ -391,6 +352,159 @@ export default function Friends() {
             )}
           </TabsContent>
 
+          <TabsContent value="activity">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-6 h-6 text-primary" />
+                  نشاط الأصدقاء
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {acceptedFriends.length === 0 ? (
+                  <div className="text-center py-8 text-foreground/70">
+                    لا يوجد أصدقاء لعرض نشاطهم
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {acceptedFriends.map(friendship => {
+                      const friendUser = getFriendUser(friendship.friend_email);
+                      const activity = friendsActivity.get(friendship.friend_email);
+                      if (!activity) return null;
+                      
+                      return (
+                        <Card key={friendship.friend_email} className="bg-background-soft">
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-4">
+                              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                                <span className="text-primary font-bold text-lg">
+                                  {friendUser?.full_name?.charAt(0) || friendship.friend_email.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-bold text-lg mb-2">{friendUser?.full_name || friendship.friend_email}</h3>
+                                
+                                {activity.activeCourses?.length > 0 && (
+                                  <div className="mb-3">
+                                    <p className="text-sm text-foreground/70 mb-1 flex items-center gap-2">
+                                      <BookOpen className="w-4 h-4" /> يدرس حالياً:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {activity.activeCourses.slice(0, 3).map((cp, idx) => (
+                                        <Badge key={idx} variant="secondary">
+                                          دورة ({cp.completed_words_count || 0} كلمة)
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {activity.completedCourses?.length > 0 && (
+                                  <div className="mb-3">
+                                    <p className="text-sm text-foreground/70 mb-1 flex items-center gap-2">
+                                      <Award className="w-4 h-4 text-green-600" /> أتم {activity.completedCourses.length} دورة
+                                    </p>
+                                  </div>
+                                )}
+                                
+                                {activity.recentActions?.length > 0 && (
+                                  <div>
+                                    <p className="text-sm text-foreground/70 mb-1">آخر النشاطات:</p>
+                                    <div className="space-y-1">
+                                      {activity.recentActions.map((action, idx) => (
+                                        <div key={idx} className="text-xs text-foreground/60">
+                                          • {action.description}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {(!activity.activeCourses?.length && !activity.completedCourses?.length && !activity.recentActions?.length) && (
+                                  <p className="text-sm text-foreground/50">لا يوجد نشاط حديث</p>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="leaderboard">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-6 h-6 text-primary" />
+                  ترتيب أصدقائي
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {friendsLeaderboard.length === 0 ? (
+                  <div className="text-center py-8 text-foreground/70">
+                    لا يوجد أصدقاء بعد
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {friendsLeaderboard.map((friend, idx) => {
+                      const isCurrentUser = friend.email === user?.email;
+                      
+                      return (
+                        <div
+                          key={friend.email}
+                          className={`flex items-center gap-4 p-4 rounded-lg ${
+                            isCurrentUser ? "bg-primary/10 border-2 border-primary" : "bg-background-soft"
+                          }`}
+                        >
+                          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
+                            {idx === 0 ? (
+                              <Crown className="w-6 h-6 text-yellow-500" />
+                            ) : idx === 1 ? (
+                              <Star className="w-6 h-6 text-gray-400" />
+                            ) : idx === 2 ? (
+                              <Star className="w-6 h-6 text-amber-700" />
+                            ) : (
+                              <span className="font-bold text-primary text-lg">#{idx + 1}</span>
+                            )}
+                          </div>
+
+                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                            <span className="text-primary font-bold">
+                              {friend.name?.charAt(0) || friend.email.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground">
+                              {friend.name}
+                              {isCurrentUser && <Badge variant="outline" className="mr-2 text-xs">أنت</Badge>}
+                            </p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <Badge variant="outline" className="text-xs">المستوى {friend.level}</Badge>
+                              <Badge variant="outline" className="text-xs">{friend.words_learned} كلمة</Badge>
+                              {friend.quiz_streak > 0 && (
+                                <Badge variant="outline" className="text-xs">🔥 {friend.quiz_streak}</Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="text-left">
+                            <p className="text-2xl font-bold text-primary">{friend.total_xp}</p>
+                            <p className="text-xs text-foreground/70">نقطة خبرة</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="requests">
             <div className="space-y-6">
               {friendRequests.length > 0 && (
@@ -414,7 +528,9 @@ export default function Friends() {
                             <CardContent className="p-6">
                               <div className="flex items-center gap-3 mb-4">
                                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                  <UserPlus className="w-6 h-6 text-primary" />
+                                  <span className="text-primary font-bold text-lg">
+                                    {requestUser?.full_name?.charAt(0) || request.user_email.charAt(0).toUpperCase()}
+                                  </span>
                                 </div>
                                 <div>
                                   <h3 className="font-bold text-foreground">{requestUser?.full_name || "مستخدم"}</h3>

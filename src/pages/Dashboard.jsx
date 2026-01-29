@@ -91,9 +91,15 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    if (data?.userProgress && data.userProgress.words_learned === 0) {
-      setShowTutorial(true);
-    }
+    const checkTutorial = async () => {
+      if (data?.user && data?.userProgress) {
+        const hasSeenTutorial = data.user.preferences?.showed_tutorial;
+        if (!hasSeenTutorial && data.userProgress.words_learned === 0) {
+          setShowTutorial(true);
+        }
+      }
+    };
+    checkTutorial();
   }, [data]);
 
   const { user, userProgress, learnedWords, recentQuizzes, dailyXPEarned } = data || {};
@@ -222,7 +228,19 @@ export default function Dashboard() {
         {/* الدليل التعليمي */}
         <TutorialModal
           isOpen={showTutorial}
-          onClose={() => setShowTutorial(false)}
+          onClose={async (settings) => {
+            setShowTutorial(false);
+            if (settings) {
+              await base44.auth.updateMe({
+                preferences: {
+                  ...user?.preferences,
+                  ...settings,
+                  showed_tutorial: true
+                }
+              });
+              refetch();
+            }
+          }}
         />
       </motion.div>
     </div>

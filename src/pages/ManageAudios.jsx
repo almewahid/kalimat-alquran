@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import {
   Copy,
   Play,
   Pause,
+  Download
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
@@ -395,12 +397,125 @@ export default function ManageAudios() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex flex-wrap justify-center gap-2 mb-6">
             <TabsTrigger value="الجميع">الجميع</TabsTrigger>
+            <TabsTrigger value="export">📥 تصدير الروابط</TabsTrigger>
             {categories.map((cat) => (
               <TabsTrigger key={cat.id} value={cat.name}>
                 {cat.name}
               </TabsTrigger>
             ))}
           </TabsList>
+
+          <TabsContent value="cloudinary-stats">
+            <Card>
+              <CardHeader>
+                <CardTitle>📊 إحصائيات الصوتيات</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid md:grid-cols-3 gap-6">
+                  <Card className="bg-blue-50 dark:bg-blue-900/20">
+                    <CardContent className="p-6 text-center">
+                      <div className="text-4xl font-bold text-blue-600">{audios.length}</div>
+                      <p className="text-sm text-blue-800 dark:text-blue-200 mt-2">إجمالي الملفات</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-purple-50 dark:bg-purple-900/20">
+                    <CardContent className="p-6 text-center">
+                      <div className="text-4xl font-bold text-purple-600">
+                        {(audios.reduce((sum, audio) => sum + (audio.file_size || 0), 0) / 1024 / 1024).toFixed(2)} MB
+                      </div>
+                      <p className="text-sm text-purple-800 dark:text-purple-200 mt-2">حجم التخزين</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-green-50 dark:bg-green-900/20">
+                    <CardContent className="p-6 text-center">
+                      <div className="text-4xl font-bold text-green-600">{categories.length}</div>
+                      <p className="text-sm text-green-800 dark:text-green-200 mt-2">عدد الفئات</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="export">
+            <Card>
+              <CardHeader>
+                <CardTitle>📥 تصدير الروابط والبيانات</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label>اختر الفئة للتصدير</Label>
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر الفئة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">جميع الفئات</SelectItem>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Button 
+                      onClick={async () => {
+                        const dataToExport = category === "all" ? audios : audios.filter(a => a.category === category);
+                        const csv = [
+                          ["العنوان", "الفئة", "الرابط", "الحجم (KB)", "المدة (ثانية)"],
+                          ...dataToExport.map(audio => [
+                            audio.title || "بدون عنوان",
+                            audio.category || "",
+                            audio.url || "",
+                            Math.round((audio.file_size || 0) / 1024),
+                            audio.duration || ""
+                          ])
+                        ].map(row => row.join(",")).join("\n");
+
+                        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement("a");
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `audios_export_${category}_${new Date().toISOString().split('T')[0]}.csv`;
+                        link.click();
+
+                        toast({ title: "✅ تم التصدير إلى CSV" });
+                      }}
+                      className="gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      تصدير CSV
+                    </Button>
+
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        const dataToExport = category === "all" ? audios : audios.filter(a => a.category === category);
+                        const urls = dataToExport.map(a => a.url).join("\n");
+                        navigator.clipboard.writeText(urls);
+                        toast({ title: `✅ تم نسخ ${dataToExport.length} رابط` });
+                      }}
+                      className="gap-2"
+                    >
+                      <Copy className="w-4 h-4" />
+                      نسخ جميع الروابط
+                    </Button>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      💡 سيتم تصدير البيانات التالية: العنوان، الفئة، الرابط، الحجم، المدة
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value={activeTab}>
             {filteredAudios.length === 0 ? (

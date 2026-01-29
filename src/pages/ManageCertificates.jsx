@@ -3,16 +3,23 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Award, Search, FileText, CheckCircle, Clock, XCircle, Printer, Eye, Plus, Trash2, Edit } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
+import { Loader2, Award, Search, Clock, Eye, Trash2, Edit, BookOpen, Plus, GripVertical } from "lucide-react";
 
 export default function ManageCertificates() {
   const { toast } = useToast();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const activeTabFromUrl = searchParams.get("tab") || "issued";
+  
   const [certificates, setCertificates] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,8 +27,28 @@ export default function ManageCertificates() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
+  
+  const [showCourseDialog, setShowCourseDialog] = useState(false);
+  const [availableWords, setAvailableWords] = useState([]);
+  const [selectedWords, setSelectedWords] = useState([]);
+  const [surahList, setSurahList] = useState([]);
+  const [selectedSurahToAdd, setSelectedSurahToAdd] = useState("");
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [courseFormData, setCourseFormData] = useState({
+    title: "",
+    description: "",
+    level: "beginner",
+    image_url: "",
+    is_active: true,
+    enable_certificate: true,
+    certificate_config: {
+      title: "شهادة إتمام",
+      body: "تشهد إدارة التطبيق بأن الطالب/ة قد أتم الدورة بنجاح",
+      signature: "إدارة كلمات القرآن",
+      template_style: "classic"
+    }
+  });
 
-  // Template Form State
   const [templateForm, setTemplateForm] = useState({
     title: "شهادة إتمام",
     body: "تشهد إدارة التطبيق بأن الطالب/ة قد أتم الدورة بنجاح",
@@ -40,12 +67,17 @@ export default function ManageCertificates() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [certsData, coursesData] = await Promise.all([
+      const [certsData, coursesData, wordsData] = await Promise.all([
         base44.entities.Certificate.list("-issue_date", 1000),
-        base44.entities.Course.list()
+        base44.entities.Course.list(),
+        base44.entities.QuranicWord.list("-created_date", 2000)
       ]);
       setCertificates(certsData);
       setCourses(coursesData);
+      setAvailableWords(wordsData);
+      
+      const surahs = [...new Set(wordsData.map(w => w.surah_name))].filter(Boolean).sort();
+      setSurahList(surahs);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({ title: "❌ خطأ في تحميل البيانات", variant: "destructive" });
@@ -60,8 +92,6 @@ export default function ManageCertificates() {
       cert.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cert.code?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Assuming status logic or adding a mock status for now since entity might not have it
-    // If entity has status, use it. If not, treat all as 'issued'
     const status = cert.status || 'issued'; 
     const matchesStatus = statusFilter === "all" || status === statusFilter;
 
@@ -79,7 +109,6 @@ export default function ManageCertificates() {
     }
   };
 
-  // Helper to update a course's template
   const handleUpdateTemplate = async () => {
     if (!editingTemplate) return;
     
@@ -102,7 +131,7 @@ export default function ManageCertificates() {
 
       toast({ title: "✅ تم تحديث قالب الشهادة للدورة" });
       setShowTemplateDialog(false);
-      fetchData(); // Refresh courses
+      fetchData();
     } catch (error) {
       console.error("Error updating template:", error);
       toast({ title: "❌ خطأ في التحديث", variant: "destructive" });
@@ -135,15 +164,16 @@ export default function ManageCertificates() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Award className="w-8 h-8 text-primary" />
-            إدارة الشهادات
+            الدورات والشهادات
           </h1>
-          <p className="text-muted-foreground">عرض وتتبع وإدارة الشهادات الصادرة وقوالبها</p>
+          <p className="text-muted-foreground">إدارة الدورات التعليمية والشهادات الصادرة</p>
         </div>
       </div>
 
-      <Tabs defaultValue="issued" className="w-full">
-        <TabsList className="grid w-full md:w-[400px] grid-cols-2">
+      <Tabs defaultValue={activeTabFromUrl} className="w-full">
+        <TabsList className="grid w-full md:w-[600px] grid-cols-3">
           <TabsTrigger value="issued">الشهادات الصادرة</TabsTrigger>
+          <TabsTrigger value="courses">إدارة الدورات</TabsTrigger>
           <TabsTrigger value="templates">قوالب الشهادات</TabsTrigger>
         </TabsList>
 
@@ -160,7 +190,6 @@ export default function ManageCertificates() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                {/* Status Filter (Mock functionality as example) */}
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="الحالة" />
@@ -230,6 +259,100 @@ export default function ManageCertificates() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="courses" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">الدورات التعليمية</h2>
+            <Button onClick={() => {
+              setCourseFormData({
+                title: "",
+                description: "",
+                level: "beginner",
+                image_url: "",
+                is_active: true,
+                enable_certificate: true,
+                certificate_config: {
+                  title: "شهادة إتمام",
+                  body: "تشهد إدارة التطبيق بأن الطالب/ة قد أتم الدورة بنجاح",
+                  signature: "إدارة كلمات القرآن",
+                  template_style: "classic"
+                }
+              });
+              setSelectedWords([]);
+              setEditingCourse(null);
+              setShowCourseDialog(true);
+            }}>
+              <Plus className="w-4 h-4 ml-2" /> دورة جديدة
+            </Button>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map(course => (
+              <Card key={course.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <div className="h-32 bg-gray-100 relative">
+                  {course.image_url ? (
+                    <img src={course.image_url} alt={course.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary">
+                      <BookOpen className="w-12 h-12 opacity-50" />
+                    </div>
+                  )}
+                  {!course.is_active && (
+                    <Badge variant="destructive" className="absolute top-2 right-2">غير نشطة</Badge>
+                  )}
+                </div>
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-start text-base">
+                    <span className="truncate">{course.title}</span>
+                    <Badge variant="outline">{course.level}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-500 line-clamp-2 mb-4">{course.description}</p>
+                  <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                    <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {course.words_ids?.length || 0} كلمة</span>
+                    {course.enable_certificate && <span className="flex items-center gap-1 text-green-600"><Award className="w-3 h-3" /> شهادة</span>}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => {
+                    setEditingCourse(course);
+                    setCourseFormData({
+                      title: course.title,
+                      description: course.description,
+                      level: course.level || "beginner",
+                      image_url: course.image_url || "",
+                      is_active: course.is_active,
+                      enable_certificate: course.enable_certificate,
+                      certificate_config: course.certificate_config || {
+                        title: "شهادة إتمام",
+                        body: "تشهد إدارة التطبيق بأن الطالب/ة قد أتم الدورة بنجاح",
+                        signature: "إدارة كلمات القرآن",
+                        template_style: "classic"
+                      }
+                    });
+                    setSelectedWords(course.words_ids || []);
+                    setShowCourseDialog(true);
+                  }}>
+                    <Edit className="w-4 h-4 ml-2" /> تعديل
+                  </Button>
+                  <Button variant="destructive" size="icon" onClick={async () => {
+                    if (!confirm("هل أنت متأكد من حذف هذه الدورة؟")) return;
+                    try {
+                      await base44.entities.Course.delete(course.id);
+                      toast({ title: "✅ تم الحذف" });
+                      fetchData();
+                    } catch (error) {
+                      toast({ title: "❌ خطأ في الحذف", variant: "destructive" });
+                    }
+                  }}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
         <TabsContent value="templates" className="space-y-6">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map(course => (
@@ -265,6 +388,104 @@ export default function ManageCertificates() {
         </TabsContent>
       </Tabs>
 
+      {/* Course Dialog */}
+      <Dialog open={showCourseDialog} onOpenChange={setShowCourseDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingCourse ? "تعديل الدورة" : "إنشاء دورة جديدة"}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid md:grid-cols-2 gap-6 py-4">
+            <div className="space-y-4">
+              <Input value={courseFormData.title} onChange={e => setCourseFormData({...courseFormData, title: e.target.value})} placeholder="عنوان الدورة" />
+              <Textarea value={courseFormData.description} onChange={e => setCourseFormData({...courseFormData, description: e.target.value})} placeholder="الوصف" />
+              <div className="grid grid-cols-2 gap-4">
+                <Select value={courseFormData.level} onValueChange={v => setCourseFormData({...courseFormData, level: v})}>
+                  <SelectTrigger><SelectValue placeholder="المستوى" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">مبتدئ</SelectItem>
+                    <SelectItem value="intermediate">متوسط</SelectItem>
+                    <SelectItem value="advanced">متقدم</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input value={courseFormData.image_url} onChange={e => setCourseFormData({...courseFormData, image_url: e.target.value})} placeholder="رابط الصورة" />
+              </div>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={courseFormData.is_active} onChange={e => setCourseFormData({...courseFormData, is_active: e.target.checked})} />
+                  نشطة
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={courseFormData.enable_certificate} onChange={e => setCourseFormData({...courseFormData, enable_certificate: e.target.checked})} />
+                  شهادات
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-sm font-medium">الكلمات ({selectedWords.length})</label>
+              {selectedWords.length > 0 && (
+                <div className="border rounded h-[150px] overflow-y-auto p-2 bg-gray-50">
+                  {selectedWords.map((wordId, idx) => {
+                    const word = availableWords.find(w => w.id === wordId);
+                    return word ? (
+                      <div key={wordId} className="p-2 bg-white border rounded mb-1 text-sm flex justify-between">
+                        <span>{word.word}</span>
+                        <button onClick={() => setSelectedWords(prev => prev.filter(id => id !== wordId))} className="text-red-500">✕</button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <Select value={selectedSurahToAdd} onValueChange={setSelectedSurahToAdd}>
+                  <SelectTrigger><SelectValue placeholder="إضافة سورة" /></SelectTrigger>
+                  <SelectContent>
+                    {surahList.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button onClick={() => {
+                  if (!selectedSurahToAdd) return;
+                  const wordsToAdd = availableWords.filter(w => w.surah_name === selectedSurahToAdd && !selectedWords.includes(w.id)).map(w => w.id);
+                  setSelectedWords(prev => [...prev, ...wordsToAdd]);
+                  setSelectedSurahToAdd("");
+                }}>إضافة</Button>
+              </div>
+              
+              <div className="border rounded h-[200px] overflow-y-auto p-2 bg-white">
+                {availableWords.filter(w => !selectedWords.includes(w.id)).slice(0, 100).map(word => (
+                  <div key={word.id} onClick={() => setSelectedWords(prev => [...prev, word.id])} className="p-2 text-sm cursor-pointer hover:bg-gray-100 rounded">
+                    {word.word} - {word.surah_name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCourseDialog(false)}>إلغاء</Button>
+            <Button onClick={async () => {
+              if (!courseFormData.title) return toast({ title: "⚠️ يرجى إدخال عنوان" });
+              try {
+                const payload = { ...courseFormData, words_ids: selectedWords };
+                if (editingCourse) {
+                  await base44.entities.Course.update(editingCourse.id, payload);
+                  toast({ title: "✅ تم التحديث" });
+                } else {
+                  await base44.entities.Course.create(payload);
+                  toast({ title: "✅ تم الإنشاء" });
+                }
+                setShowCourseDialog(false);
+                fetchData();
+              } catch (error) {
+                toast({ title: "❌ خطأ", variant: "destructive" });
+              }
+            }}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Template Dialog */}
       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
@@ -272,98 +493,21 @@ export default function ManageCertificates() {
             <DialogTitle>تخصيص قالب الشهادة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">عنوان الشهادة</label>
-              <Input 
-                value={templateForm.title} 
-                onChange={e => setTemplateForm({...templateForm, title: e.target.value})} 
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">نص الشهادة</label>
-              <Input 
-                value={templateForm.body} 
-                onChange={e => setTemplateForm({...templateForm, body: e.target.value})} 
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">التوقيع</label>
-              <Input 
-                value={templateForm.signature} 
-                onChange={e => setTemplateForm({...templateForm, signature: e.target.value})} 
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">النمط</label>
-              <Select 
-                value={templateForm.style} 
-                onValueChange={v => setTemplateForm({...templateForm, style: v})}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="classic">كلاسيكي</SelectItem>
-                  <SelectItem value="modern">عصري</SelectItem>
-                  <SelectItem value="islamic">زخرفة إسلامية</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-sm font-medium">لون الحدود</label>
-                    <div className="flex gap-2">
-                        <Input 
-                            type="color" 
-                            className="w-12 p-1 h-10"
-                            value={templateForm.borderColor} 
-                            onChange={e => setTemplateForm({...templateForm, borderColor: e.target.value})} 
-                        />
-                        <Input 
-                            value={templateForm.borderColor} 
-                            onChange={e => setTemplateForm({...templateForm, borderColor: e.target.value})} 
-                        />
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <label className="text-sm font-medium">لون النص</label>
-                    <div className="flex gap-2">
-                        <Input 
-                            type="color" 
-                            className="w-12 p-1 h-10"
-                            value={templateForm.textColor} 
-                            onChange={e => setTemplateForm({...templateForm, textColor: e.target.value})} 
-                        />
-                        <Input 
-                            value={templateForm.textColor} 
-                            onChange={e => setTemplateForm({...templateForm, textColor: e.target.value})} 
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">صورة الخلفية (رابط)</label>
-              <Input 
-                value={templateForm.backgroundImage} 
-                onChange={e => setTemplateForm({...templateForm, backgroundImage: e.target.value})} 
-                placeholder="https://example.com/bg.png"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">رابط الشعار (Logo)</label>
-              <Input 
-                value={templateForm.logoUrl} 
-                onChange={e => setTemplateForm({...templateForm, logoUrl: e.target.value})} 
-                placeholder="https://example.com/logo.png"
-              />
-            </div>
+            <Input value={templateForm.title} onChange={e => setTemplateForm({...templateForm, title: e.target.value})} placeholder="عنوان الشهادة" />
+            <Textarea value={templateForm.body} onChange={e => setTemplateForm({...templateForm, body: e.target.value})} placeholder="نص الشهادة" />
+            <Input value={templateForm.signature} onChange={e => setTemplateForm({...templateForm, signature: e.target.value})} placeholder="التوقيع" />
+            <Select value={templateForm.style} onValueChange={v => setTemplateForm({...templateForm, style: v})}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="classic">كلاسيكي</SelectItem>
+                <SelectItem value="modern">عصري</SelectItem>
+                <SelectItem value="islamic">زخرفة إسلامية</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowTemplateDialog(false)}>إلغاء</Button>
-            <Button onClick={handleUpdateTemplate}>حفظ التغييرات</Button>
+            <Button onClick={handleUpdateTemplate}>حفظ</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

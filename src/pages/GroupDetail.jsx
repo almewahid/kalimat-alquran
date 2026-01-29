@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Crown, Users, Trophy, Plus, Calendar, Target, Loader2, Copy, Check, ArrowLeft, Brain, BarChart3, Medal } from "lucide-react";
+import { Crown, Users, Trophy, Plus, Calendar, Target, Loader2, Copy, Check, ArrowLeft, Brain, BarChart3, Medal, Trash2, LogOut, UserX } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -67,7 +67,20 @@ export default function GroupDetail() {
       // Load member details
       const allUsers = await base44.entities.User.list();
       const groupMembers = allUsers.filter(u => currentGroup.members?.includes(u.email));
-      setMembers(groupMembers);
+      
+      const membersWithProgress = await Promise.all(
+        groupMembers.map(async (member) => {
+          const [progress] = await base44.entities.UserProgress.filter({ 
+            created_by: member.email 
+          });
+          return {
+            ...member,
+            progress: progress || { total_xp: 0, words_learned: 0 }
+          };
+        })
+      );
+      
+      setMembers(membersWithProgress);
 
       // Load Leaderboard Data
       const challengeIds = groupChallenges.map(c => c.id);
@@ -146,6 +159,64 @@ export default function GroupDetail() {
     }
   };
 
+  const handleRemoveMember = async (memberEmail) => {
+    if (!group || group.leader_email !== user?.email) return;
+    if (memberEmail === user.email) {
+      toast({ title: "⚠️ لا يمكنك حذف نفسك", variant: "destructive" });
+      return;
+    }
+    
+    if (!confirm(`هل تريد إزالة ${memberEmail} من المجموعة؟`)) return;
+    
+    try {
+      const updatedMembers = group.members.filter(m => m !== memberEmail);
+      await base44.entities.Group.update(group.id, { members: updatedMembers });
+      toast({ title: "✅ تم إزالة العضو" });
+      loadGroupData();
+    } catch (error) {
+      toast({ title: "❌ فشل الإزالة", variant: "destructive" });
+    }
+  };
+
+  const handleBanMember = async (memberEmail) => {
+    if (!group || group.leader_email !== user?.email) return;
+    
+    if (!confirm(`هل تريد حظر ${memberEmail} ومنعه من الانضمام مستقبلاً؟`)) return;
+    
+    try {
+      const updatedMembers = group.members.filter(m => m !== memberEmail);
+      const bannedList = [...(group.banned_members || []), memberEmail];
+      await base44.entities.Group.update(group.id, { 
+        members: updatedMembers,
+        banned_members: bannedList
+      });
+      toast({ title: "✅ تم حظر العضو" });
+      loadGroupData();
+    } catch (error) {
+      toast({ title: "❌ فشل الحظر", variant: "destructive" });
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!group || !user) return;
+    
+    if (group.leader_email === user.email) {
+      toast({ title: "⚠️ لا يمكن للقائد مغادرة المجموعة", description: "قم بنقل القيادة أو حذف المجموعة", variant: "destructive" });
+      return;
+    }
+    
+    if (!confirm("هل تريد مغادرة المجموعة؟")) return;
+    
+    try {
+      const updatedMembers = group.members.filter(m => m !== user.email);
+      await base44.entities.Group.update(group.id, { members: updatedMembers });
+      toast({ title: "✅ تم مغادرة المجموعة" });
+      window.location.href = createPageUrl("Groups");
+    } catch (error) {
+      toast({ title: "❌ فشل المغادرة", variant: "destructive" });
+    }
+  };
+
   const handleCreateQuiz = async () => {
     try {
         await base44.entities.GroupChallenge.create({
@@ -220,6 +291,12 @@ export default function GroupDetail() {
                 >
                     {isSendingNotification ? <Loader2 className="w-4 h-4 animate-spin"/> : "🔔 إرسال تنبيه"}
                 </Button>
+            )}
+            {!isLeader && (
+              <Button onClick={handleLeaveGroup} variant="outline" className="gap-2 text-red-600">
+                <LogOut className="w-4 h-4" />
+                مغادرة المجموعة
+              </Button>
             )}
             <Button
                 onClick={copyJoinCode}
@@ -327,6 +404,43 @@ export default function GroupDetail() {
 
             <TabsContent value="members">
                 <div className="grid gap-6">
+                {isLeader && group.banned_members && group.banned_members.length > 0 && (
+                  <Card className="bg-red-50 dark:bg-red-900/20 border-red-200">
+                    <CardHeader>
+                      <CardTitle className="text-red-700 flex items-center gap-2">
+                        <UserX className="w-5 h-5" />
+                        المستخدمون المحظورون ({group.banned_members.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {group.banned_members.map((email) => (
+                          <div key={email} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border">
+                            <span className="text-sm">{email}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                if (!confirm(`هل تريد إلغاء حظر ${email}؟`)) return;
+                                try {
+                                  const updatedBanned = group.banned_members.filter(e => e !== email);
+                                  await base44.entities.Group.update(group.id, { banned_members: updatedBanned });
+                                  toast({ title: "✅ تم إلغاء الحظر" });
+                                  loadGroupData();
+                                } catch (error) {
+                                  toast({ title: "❌ فشل الإلغاء", variant: "destructive" });
+                                }
+                              }}
+                            >
+                              إلغاء الحظر
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
                 <Card className="bg-card shadow-md">
                   <CardHeader>
                     <CardTitle className="text-primary flex items-center gap-2">
@@ -342,22 +456,54 @@ export default function GroupDetail() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.05 }}
-                          className="flex items-center gap-3 p-4 bg-background-soft rounded-lg"
+                          className="p-4 bg-background-soft rounded-lg border"
                         >
-                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                            <span className="text-primary font-bold">
-                              {member.full_name?.charAt(0) || member.email.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate">{member.full_name || member.email}</p>
-                            {member.email === group.leader_email && (
-                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                                <Crown className="w-3 h-3 ml-1" />
-                                رئيس
-                              </Badge>
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                <span className="text-primary font-bold">
+                                  {member.full_name?.charAt(0) || member.email.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">{member.full_name || member.email}</p>
+                                {member.email === group.leader_email && (
+                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                                    <Crown className="w-3 h-3 ml-1" />
+                                    رئيس
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            {isLeader && member.email !== user.email && (
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-red-500 hover:bg-red-50"
+                                  onClick={() => handleRemoveMember(member.email)}
+                                  title="إزالة"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-orange-600 hover:bg-orange-50"
+                                  onClick={() => handleBanMember(member.email)}
+                                  title="حظر"
+                                >
+                                  <UserX className="w-4 h-4" />
+                                </Button>
+                              </div>
                             )}
                           </div>
+                          {member.progress && (
+                            <div className="flex gap-2 text-xs">
+                              <Badge variant="secondary">{member.progress.words_learned || 0} كلمة</Badge>
+                              <Badge variant="outline">{member.progress.total_xp || 0} XP</Badge>
+                            </div>
+                          )}
                         </motion.div>
                       ))}
                     </div>

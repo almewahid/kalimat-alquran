@@ -16,6 +16,7 @@ import {
   BarChart3, Settings, Package, Clock, Zap, Play, BookOpen, Award, ExternalLink // Added Award, ExternalLink
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import { SmartNotificationSystem } from "../components/notifications/SmartNotificationSystem"; // Added SmartNotificationSystem import
@@ -513,61 +514,76 @@ const CertificatesList = () => {
 
         {/* Stats Overview */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-              <div className="text-3xl font-bold">{totalUsers}</div>
-              <p className="text-sm text-foreground/70">مستخدم</p>
-            </CardContent>
-          </Card>
+          <Link to={createPageUrl("ManageUsers")}>
+            <Card className="hover:shadow-md transition-all cursor-pointer h-full">
+              <CardContent className="p-6 text-center">
+                <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                <div className="text-3xl font-bold">{totalUsers}</div>
+                <p className="text-sm text-foreground/70">مستخدم</p>
+                <Badge className="mt-2" variant="outline">إدارة &larr;</Badge>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Package className="w-8 h-8 text-green-500 mx-auto mb-2" />
-              <div className="text-3xl font-bold">{totalWords}</div>
-              <p className="text-sm text-foreground/70">كلمة</p>
-            </CardContent>
-          </Card>
+          <Link to={createPageUrl("GenerateWords")}>
+            <Card className="hover:shadow-md transition-all cursor-pointer h-full">
+              <CardContent className="p-6 text-center">
+                <Package className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                <div className="text-3xl font-bold">{totalWords}</div>
+                <p className="text-sm text-foreground/70">كلمة</p>
+                <Badge className="mt-2" variant="outline">إدارة &larr;</Badge>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Trophy className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-              <div className="text-3xl font-bold">{totalChallenges}</div>
-              <p className="text-sm text-foreground/70">تحدي</p>
-            </CardContent>
-          </Card>
+          <Link to={createPageUrl("AdminPanel") + "?tab=challenges"}>
+            <Card className="hover:shadow-md transition-all cursor-pointer h-full">
+              <CardContent className="p-6 text-center">
+                <Trophy className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                <div className="text-3xl font-bold">{totalChallenges}</div>
+                <p className="text-sm text-foreground/70">تحدي</p>
+                <Badge className="mt-2" variant="outline">إدارة &larr;</Badge>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Users className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-              <div className="text-3xl font-bold">{totalGroups}</div>
-              <p className="text-sm text-foreground/70">مجموعة</p>
-            </CardContent>
-          </Card>
+          <Link to={createPageUrl("ManageGroups")}>
+            <Card className="hover:shadow-md transition-all cursor-pointer h-full">
+              <CardContent className="p-6 text-center">
+                <Users className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                <div className="text-3xl font-bold">{totalGroups}</div>
+                <p className="text-sm text-foreground/70">مجموعة</p>
+                <Badge className="mt-2" variant="outline">إدارة &larr;</Badge>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Award className="w-8 h-8 text-amber-600 mx-auto mb-2" />
-              <div className="text-3xl font-bold">{totalCertificates}</div>
-              <p className="text-sm text-foreground/70">شهادة</p>
-            </CardContent>
-          </Card>
+          <Link to={createPageUrl("ManageCertificates")}>
+            <Card className="hover:shadow-md transition-all cursor-pointer h-full">
+              <CardContent className="p-6 text-center">
+                <Award className="w-8 h-8 text-amber-600 mx-auto mb-2" />
+                <div className="text-3xl font-bold">{totalCertificates}</div>
+                <p className="text-sm text-foreground/70">شهادة</p>
+                <Badge className="mt-2" variant="outline">إدارة &larr;</Badge>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Link to="/AdminCourses">
-            <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full">
+          <Link to={createPageUrl("ManageCertificates") + "?tab=courses"}>
+            <Card className="hover:shadow-md transition-all cursor-pointer h-full">
               <CardContent className="p-6 text-center">
                 <BookOpen className="w-8 h-8 text-indigo-500 mx-auto mb-2" />
                 <div className="text-3xl font-bold">{totalCourses}</div>
                 <p className="text-sm text-foreground/70">دورة تعليمية</p>
-                <Badge className="mt-2" variant="outline">إدارة الدورات &larr;</Badge>
+                <Badge className="mt-2" variant="outline">إدارة &larr;</Badge>
               </CardContent>
             </Card>
           </Link>
         </div>
 
         {/* Tabs: Reordered and updated with new structure */}
-        <Tabs defaultValue="smart-notifications" className="w-full"> {/* Changed default value */}
-          <TabsList className="grid w-full grid-cols-6"> {/* Adjusted for 6 tabs */}
+        <Tabs defaultValue="smart-notifications" className="w-full">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="manual-notifications">
               <Send className="w-4 h-4 ml-2" />
               إرسال إشعار
@@ -789,9 +805,9 @@ const CertificatesList = () => {
                   </Button>
                 </div>
 
-                <Alert className="bg-amber-50 border-amber-200">
-                  <AlertDescription className="text-amber-800 text-xs">
-                    💡 <strong>ملاحظة هامة:</strong> لجدولة الإشعارات التلقائية للتشغيل اليومي، تحتاج لإعداد Cron Job على السيرفر يقوم باستدعاء نقطة نهاية (API endpoint) مخصصة لتشغيل هذا الفحص بشكل دوري. زر "تشغيل الفحص الآن" هو للاختبار اليدوي.
+                <Alert className="bg-green-50 border-green-200">
+                  <AlertDescription className="text-green-800 text-xs">
+                    ✅ <strong>تم التفعيل:</strong> يتم إرسال الإشعارات الذكية تلقائياً كل يوم الساعة 6 صباحاً عبر نظام Automations. زر "تشغيل الفحص الآن" للاختبار اليدوي فوري.
                   </AlertDescription>
                 </Alert>
               </CardContent>
@@ -799,20 +815,10 @@ const CertificatesList = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>سجل الإشعارات المرسلة مؤخراً (وهمي)</CardTitle>
+                <CardTitle>سجل الإشعارات المرسلة مؤخراً</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex justify-between items-center p-3 bg-background-soft rounded-lg border">
-                      <div>
-                        <p className="font-medium text-sm">تذكير بالمراجعة لمجموعة من المستخدمين</p>
-                        <p className="text-xs text-foreground/70">تم إرسال {10 + i * 5} إشعار</p>
-                      </div>
-                      <Badge variant="outline">قبل {i + 1} ساعة</Badge>
-                    </div>
-                  ))}
-                </div>
+                <RecentNotificationsLog />
               </CardContent>
             </Card>
           </TabsContent>
@@ -921,7 +927,7 @@ const CertificatesList = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {challenges.slice(0, 10).map((challenge) => (
+                  {challenges.map((challenge) => (
                     <div key={challenge.id} className="flex items-center justify-between p-4 bg-background-soft rounded-lg border">
                       <div>
                         <h4 className="font-bold">{challenge.challenge_title}</h4>
@@ -943,11 +949,6 @@ const CertificatesList = () => {
                       </Button>
                     </div>
                   ))}
-                  {challenges.length > 10 && (
-                    <p className="text-center text-sm text-foreground/70 mt-4">
-                      و {challenges.length - 10} تحديات أخرى... (يتم عرض أول 10 تحديات فقط)
-                    </p>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1033,55 +1034,162 @@ const CertificatesList = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-foreground/70 mb-4">
-                  إحصائيات تفصيلية عن النشاط والمستخدمين. (هذه البيانات وهمية لأغراض العرض).
+                  إحصائيات تفصيلية حقيقية عن النشاط والمستخدمين.
                 </p>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-background-soft rounded-lg border">
-                    <h4 className="font-bold mb-2">معدل النشاط اليومي</h4>
-                    <div className="text-3xl font-bold text-primary">
-                      {Math.round(totalUsers * 0.35)}
-                    </div>
-                    <p className="text-sm text-foreground/70">مستخدم نشط يومياً</p>
-                  </div>
-
-                  <div className="p-4 bg-background-soft rounded-lg border">
-                    <h4 className="font-bold mb-2">معدل الإكمال</h4>
-                    <div className="text-3xl font-bold text-green-600">67%</div>
-                    <p className="text-sm text-foreground/70">من الاختبارات تم إكمالها</p>
-                  </div>
-
-                  <div className="p-4 bg-background-soft rounded-lg border">
-                    <h4 className="font-bold mb-2">الكلمات الأكثر صعوبة</h4>
-                    <div className="text-sm space-y-1">
-                      <div>1. يعظكم - 45% خطأ</div>
-                      <div>2. صرط - 38% خطأ</div>
-                      <div>3. أنلزمكموها - 42% خطأ</div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-background-soft rounded-lg border">
-                    <h4 className="font-bold mb-2">أوقات الذروة</h4>
-                    <div className="text-sm space-y-1">
-                      <div>🌙 8-10 مساءً: 40%</div>
-                      <div>☀️ 2-4 عصراً: 25%</div>
-                      <div>🌅 9-11 صباحاً: 20%</div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-background-soft rounded-lg border col-span-2">
-                    <h4 className="font-bold mb-2">أحدث التسجيلات</h4>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                        <li>مستخدم جديد 'محمد أ' سجل قبل يومين</li>
-                        <li>مستخدم جديد 'فاطمة س' سجلت اليوم</li>
-                        <li>مستخدم جديد 'أحمد ب' سجل قبل ساعة</li>
-                    </ul>
-                  </div>
-                </div>
+                <AnalyticsView totalUsers={totalUsers} allUsers={allUsers} />
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </motion.div>
+    </div>
+  );
+}
+
+function RecentNotificationsLog() {
+  const [recentNotifications, setRecentNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadRecentNotifications();
+  }, []);
+
+  const loadRecentNotifications = async () => {
+    try {
+      const notifications = await base44.entities.Notification.list("-created_date", 100);
+      
+      const grouped = {};
+      notifications.forEach(notif => {
+        const key = `${notif.notification_type}_${notif.title}`;
+        if (!grouped[key]) {
+          grouped[key] = {
+            type: notif.notification_type,
+            title: notif.title,
+            count: 0,
+            lastSent: notif.created_date
+          };
+        }
+        grouped[key].count++;
+        if (new Date(notif.created_date) > new Date(grouped[key].lastSent)) {
+          grouped[key].lastSent = notif.created_date;
+        }
+      });
+
+      const sortedGroups = Object.values(grouped).sort((a, b) => 
+        new Date(b.lastSent) - new Date(a.lastSent)
+      ).slice(0, 10);
+
+      setRecentNotifications(sortedGroups);
+    } catch (error) {
+      console.error("Error loading recent notifications:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTimeAgo = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 60) return `قبل ${diffMins} دقيقة`;
+    if (diffHours < 24) return `قبل ${diffHours} ساعة`;
+    return `قبل ${diffDays} يوم`;
+  };
+
+  if (loading) return <Loader2 className="w-6 h-6 animate-spin mx-auto" />;
+
+  return (
+    <div className="space-y-2">
+      {recentNotifications.length === 0 ? (
+        <p className="text-center text-muted-foreground py-4">لا توجد إشعارات مرسلة بعد.</p>
+      ) : (
+        recentNotifications.map((notif, i) => (
+          <div key={i} className="flex justify-between items-center p-3 bg-background-soft rounded-lg border">
+            <div>
+              <p className="font-medium text-sm">{notif.title}</p>
+              <p className="text-xs text-foreground/70">تم إرسال {notif.count} إشعار</p>
+            </div>
+            <Badge variant="outline">{getTimeAgo(notif.lastSent)}</Badge>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function AnalyticsView({ totalUsers, allUsers }) {
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadRealAnalytics();
+  }, []);
+
+  const loadRealAnalytics = async () => {
+    try {
+      const [progressRecords, quizSessions, activityLogs] = await Promise.all([
+        base44.entities.UserProgress.list(),
+        base44.entities.QuizSession.list("-created_date", 1000),
+        base44.entities.ActivityLog.list("-created_date", 1000)
+      ]);
+
+      const today = new Date().toISOString().split('T')[0];
+      const activeToday = new Set(activityLogs.filter(log => 
+        log.created_date?.startsWith(today)
+      ).map(log => log.user_email));
+
+      const completedQuizzes = quizSessions.filter(q => q.total_questions > 0);
+      const completionRate = completedQuizzes.length > 0 
+        ? ((completedQuizzes.reduce((sum, q) => sum + q.correct_answers, 0) / 
+            completedQuizzes.reduce((sum, q) => sum + q.total_questions, 0)) * 100).toFixed(0)
+        : 0;
+
+      const recentUsers = allUsers
+        .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+        .slice(0, 5);
+
+      setAnalytics({
+        activeToday: activeToday.size,
+        completionRate,
+        recentUsers
+      });
+    } catch (error) {
+      console.error("Error loading analytics:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <Loader2 className="w-6 h-6 animate-spin mx-auto" />;
+
+  return (
+    <div className="grid md:grid-cols-2 gap-4">
+      <div className="p-4 bg-background-soft rounded-lg border">
+        <h4 className="font-bold mb-2">المستخدمون النشطون اليوم</h4>
+        <div className="text-3xl font-bold text-primary">
+          {analytics.activeToday}
+        </div>
+        <p className="text-sm text-foreground/70">من أصل {totalUsers} مستخدم</p>
+      </div>
+
+      <div className="p-4 bg-background-soft rounded-lg border">
+        <h4 className="font-bold mb-2">معدل النجاح في الاختبارات</h4>
+        <div className="text-3xl font-bold text-green-600">{analytics.completionRate}%</div>
+        <p className="text-sm text-foreground/70">متوسط الإجابات الصحيحة</p>
+      </div>
+
+      <div className="p-4 bg-background-soft rounded-lg border md:col-span-2">
+        <h4 className="font-bold mb-2">أحدث التسجيلات</h4>
+        <ul className="list-disc list-inside text-sm space-y-1">
+          {analytics.recentUsers.map((u, i) => (
+            <li key={i}>{u.full_name || u.email.split('@')[0]} - {new Date(u.created_date).toLocaleDateString('ar-SA')}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

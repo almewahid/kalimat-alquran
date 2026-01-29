@@ -105,17 +105,13 @@ export default function CourseDetail() {
         let certificateId = progress?.certificate_id;
 
         if (isCompleted && !progress?.is_completed && course.enable_certificate) {
-          const cert = await base44.entities.Certificate.create({
-            user_email: user.email,
-            user_name: user.full_name,
-            course_id: course.id,
-            course_title: course.title,
-            issue_date: new Date().toISOString(),
-            code: `CERT-${Date.now()}`
-          });
-          certificateId = cert.id;
-          triggerConfetti("achievement");
-          toast({ title: "🎉 مبروك! أتممت الدورة وحصلت على الشهادة" });
+          const { issueCertificate } = await import('@/api/functions');
+          const result = await issueCertificate({ courseId: course.id });
+          if (result.data?.certificate) {
+            certificateId = result.data.certificate.id;
+            triggerConfetti("achievement");
+            toast({ title: "🎉 مبروك! أتممت الدورة وحصلت على الشهادة" });
+          }
         }
 
         const payload = {

@@ -148,12 +148,20 @@ const SURAHS = [
 ];
 
 const RECITERS = [
-  { id: "Husary_128kbps", name: "محمود خليل الحصري" }
+  { id: "Husary_128kbps", name: "محمود خليل الحصري" },
+  { id: "Abdul_Basit_Murattal_192kbps", name: "عبد الباسط عبد الصمد" },
+  { id: "Minshawy_Murattal_128kbps", name: "محمد صديق المنشاوي" },
+  { id: "Alafasy_128kbps", name: "مشاري العفاسي" },
+  { id: "Ghamadi_40kbps", name: "سعد الغامدي" }
 ];
 
 const TAFSIR_OPTIONS = [
   { id: "none", name: "بدون تفسير" },
-  { id: "الجلالين", name: "الجلالين" }
+  { id: "ar-tafseer-al-jalalayn", name: "الجلالين" },
+  { id: "ar-tafseer-al-qurtubi", name: "القرطبي" },
+  { id: "ar-tafseer-ibn-katheer", name: "ابن كثير" },
+  { id: "ar-tafseer-al-sa-dee", name: "السعدي" },
+  { id: "ar-tafseer-al-muyassar", name: "الميسر" }
 ];
 
 // دالة لإزالة التشكيل من النص العربي
@@ -291,6 +299,8 @@ export default function QuranReader() {
 
   const loadTafsir = async (surahNumber, tafsirName, index) => {
     try {
+      if (tafsirName === "none") return;
+      
       const tafsirs = await base44.entities.QuranTafsir.filter({
         surah_number: surahNumber,
         tafsir_name: tafsirName

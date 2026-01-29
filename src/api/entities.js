@@ -73,6 +73,8 @@ export const Certificate = base44.entities.Certificate;
 
 export const PersonalChallenge = base44.entities.PersonalChallenge;
 
+export const LandingPage = base44.entities.LandingPage;
+
 
 
 // auth sdk:

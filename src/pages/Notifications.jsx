@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
-import Link from 'next/link'; // Assuming Next.js for the Link component
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 /**
  * 🔔 صفحة الإشعارات (Notifications)
@@ -229,9 +229,11 @@ export default function NotificationsPage() { // Changed component name to Notif
                             {notification.message}
                           </p>
                           {notification.isStatic && notification.link && (
-                            <Button asChild variant="link" className="px-0 mt-2 h-auto text-primary">
-                              <Link href={notification.link}>عرض التفاصيل &larr;</Link>
-                            </Button>
+                            <Link to={createPageUrl(notification.link)}>
+                              <Button variant="link" className="px-0 mt-2 h-auto text-primary">
+                                عرض التفاصيل &larr;
+                              </Button>
+                            </Link>
                           )}
                         </div>
 

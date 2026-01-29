@@ -109,6 +109,11 @@ export default function Groups() {
 
       const group = foundGroup[0];
       
+      if (group.banned_members && group.banned_members.includes(user.email)) {
+        toast({ title: "⛔ تم حظرك من هذه المجموعة", variant: "destructive" });
+        return;
+      }
+      
       if (group.members && group.members.includes(user.email)) {
         toast({ title: "ℹ️ أنت عضو بالفعل في هذه المجموعة" });
         return;

@@ -86,8 +86,6 @@ import ErrorLogs from "./ErrorLogs";
 
 import Support from "./Support";
 
-import AdminCourses from "./AdminCourses";
-
 import Courses from "./Courses";
 
 import CourseDetail from "./CourseDetail";
@@ -101,6 +99,14 @@ import UserProfile from "./UserProfile";
 import Reports from "./Reports";
 
 import CreateCustomChallenge from "./CreateCustomChallenge";
+
+import ManageLandingPages from "./ManageLandingPages";
+
+import ManageUsers from "./ManageUsers";
+
+import ManageGroups from "./ManageGroups";
+
+import ManageNotes from "./ManageNotes";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -192,8 +198,6 @@ const PAGES = {
     
     Support: Support,
     
-    AdminCourses: AdminCourses,
-    
     Courses: Courses,
     
     CourseDetail: CourseDetail,
@@ -207,6 +211,14 @@ const PAGES = {
     Reports: Reports,
     
     CreateCustomChallenge: CreateCustomChallenge,
+    
+    ManageLandingPages: ManageLandingPages,
+    
+    ManageUsers: ManageUsers,
+    
+    ManageGroups: ManageGroups,
+    
+    ManageNotes: ManageNotes,
     
 }
 
@@ -321,8 +333,6 @@ function PagesContent() {
                 
                 <Route path="/Support" element={<Support />} />
                 
-                <Route path="/AdminCourses" element={<AdminCourses />} />
-                
                 <Route path="/Courses" element={<Courses />} />
                 
                 <Route path="/CourseDetail" element={<CourseDetail />} />
@@ -336,6 +346,14 @@ function PagesContent() {
                 <Route path="/Reports" element={<Reports />} />
                 
                 <Route path="/CreateCustomChallenge" element={<CreateCustomChallenge />} />
+                
+                <Route path="/ManageLandingPages" element={<ManageLandingPages />} />
+                
+                <Route path="/ManageUsers" element={<ManageUsers />} />
+                
+                <Route path="/ManageGroups" element={<ManageGroups />} />
+                
+                <Route path="/ManageNotes" element={<ManageNotes />} />
                 
             </Routes>
         </Layout>

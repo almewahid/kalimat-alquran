@@ -137,14 +137,20 @@ export default function Settings() {
     const handleSaveChanges = async () => {
         if (!user) return;
         try {
-            await base44.auth.updateMe({ preferences });
-            
+            await base44.auth.updateMe({ 
+                preferences,
+                phone_number: user.phone_number,
+                country: user.country,
+                affiliation_type: user.affiliation_type,
+                affiliation: user.affiliation
+            });
+
             toast({
                 title: isArabic ? "تم الحفظ!" : "Saved!",
                 description: isArabic ? "تم حفظ تفضيلاتك بنجاح." : "Your preferences have been saved successfully.",
                 className: "bg-green-100 text-green-800"
             });
-            
+
             setTimeout(() => window.location.reload(), 500);
         } catch (error) {
             console.error("Failed to save preferences:", error);
@@ -192,10 +198,57 @@ export default function Settings() {
                             <Label htmlFor="email">{isArabic ? "البريد الإلكتروني" : "Email"}</Label>
                             <Input id="email" type="email" value={user?.email || ''} disabled />
                         </div>
-                         <CardDescription>
+                        <div>
+                            <Label htmlFor="phone">{isArabic ? "رقم الهاتف" : "Phone Number"}</Label>
+                            <Input 
+                                id="phone" 
+                                type="tel" 
+                                value={user?.phone_number || ''} 
+                                onChange={(e) => setUser({...user, phone_number: e.target.value})}
+                                placeholder={isArabic ? "أدخل رقم الهاتف" : "Enter phone number"}
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="country">{isArabic ? "البلد" : "Country"}</Label>
+                            <Input 
+                                id="country" 
+                                value={user?.country || ''} 
+                                onChange={(e) => setUser({...user, country: e.target.value})}
+                                placeholder={isArabic ? "أدخل البلد" : "Enter country"}
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="affiliation_type">{isArabic ? "نوع الانتماء" : "Affiliation Type"}</Label>
+                            <Select
+                                value={user?.affiliation_type || ""}
+                                onValueChange={(value) => setUser({...user, affiliation_type: value})}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder={isArabic ? "اختر النوع" : "Select Type"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="nursery">{isArabic ? "حضانة" : "Nursery"}</SelectItem>
+                                    <SelectItem value="school">{isArabic ? "مدرسة" : "School"}</SelectItem>
+                                    <SelectItem value="institute">{isArabic ? "معهد" : "Institute"}</SelectItem>
+                                    <SelectItem value="organization">{isArabic ? "مؤسسة" : "Organization"}</SelectItem>
+                                    <SelectItem value="association">{isArabic ? "جمعية" : "Association"}</SelectItem>
+                                    <SelectItem value="individual">{isArabic ? "فردي" : "Individual"}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="affiliation">{isArabic ? "اسم الانتماء" : "Affiliation Name"}</Label>
+                            <Input 
+                                id="affiliation" 
+                                value={user?.affiliation || ''} 
+                                onChange={(e) => setUser({...user, affiliation: e.target.value})}
+                                placeholder={isArabic ? "اسم المدرسة/الجامعة/المؤسسة" : "Name of school/university/organization"}
+                            />
+                        </div>
+                        <CardDescription>
                             {isArabic 
-                                ? "لا يمكن تعديل معلومات الحساب الأساسية من هنا. تتم إدارتها عبر منصة base44."
-                                : "Basic account information cannot be edited here. It is managed through the base44 platform."
+                                ? "معلومات الحساب الأساسية (الاسم والبريد) لا يمكن تعديلها. البيانات الأخرى يمكن تحديثها وسيتم حفظها عند الضغط على زر الحفظ في الأسفل."
+                                : "Basic account info (name and email) cannot be edited. Other data can be updated and will be saved when you click Save Changes below."
                             }
                         </CardDescription>
                     </CardContent>
@@ -756,13 +809,13 @@ export default function Settings() {
     }
 
     const tabs = [
-      { id: 'account', label: isArabic ? 'الحساب' : 'Account', icon: UserIcon },
-      { id: 'appearance', label: isArabic ? 'المظهر' : 'Appearance', icon: Palette },
-      { id: 'learning', label: isArabic ? 'التعلم' : 'Learning', icon: Bell },
-      { id: 'notifications', label: isArabic ? 'الإشعارات' : 'Notifications', icon: Bell },
-      { id: 'source', label: isArabic ? 'مصدر الكلمات' : 'Word Source', icon: Shield },
-      { id: 'card-elements', label: isArabic ? 'عناصر البطاقة' : 'Card Elements', icon: HelpCircle },
-      { id: 'tafsir', label: isArabic ? 'إدارة التفاسير' : 'Tafsir Management', icon: BookMarked },
+      { id: 'account', label: 'الحساب', icon: UserIcon },
+      { id: 'appearance', label: 'المظهر', icon: Palette },
+      { id: 'learning', label: 'التعلم', icon: Bell },
+      { id: 'notifications', label: 'الإشعارات', icon: Bell },
+      { id: 'source', label: 'مصدر الكلمات', icon: Shield },
+      { id: 'card-elements', label: 'عناصر البطاقة', icon: HelpCircle },
+      { id: 'tafsir', label: 'إدارة التفاسير', icon: BookMarked },
     ];
 
     return (

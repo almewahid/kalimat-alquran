@@ -23,7 +23,7 @@ import {
   Upload,
   FolderTree,
   PlusCircle,
-  Wrench, // Added Wrench icon
+  Wrench,
   RefreshCw,
   CheckSquare,
   Square,
@@ -32,8 +32,11 @@ import {
   Scissors,
   Layers,
   Wand2,
-  AlertTriangle
+  AlertTriangle,
+  Download,
+  Copy
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -149,7 +152,7 @@ export default function ManageImages() {
         .replace(/ة/g, "ه");
     };
 
-    if (activeTab !== "الجميع") {
+    if (activeTab !== "الجميع" && activeTab !== "cloudinary-stats" && activeTab !== "export") {
       const targetCat = normalize(activeTab);
       filtered = filtered.filter((img) => {
         const imgCat = normalize(img.category);
@@ -784,12 +787,174 @@ export default function ManageImages() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex flex-wrap justify-center gap-2 mb-6">
             <TabsTrigger value="الجميع">الجميع</TabsTrigger>
+            <TabsTrigger value="cloudinary-stats">📊 إحصائيات Cloudinary</TabsTrigger>
+            <TabsTrigger value="export">📥 تصدير الروابط</TabsTrigger>
             {categories.map((cat) => (
               <TabsTrigger key={cat.id} value={cat.name}>
                 {cat.name}
               </TabsTrigger>
             ))}
           </TabsList>
+
+          <TabsContent value="cloudinary-stats">
+            <Card>
+              <CardHeader>
+                <CardTitle>📊 إحصائيات استخدام Cloudinary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="mb-4">
+                  <Label>فلتر الفئة</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger className="w-full md:w-1/3">
+                      <SelectValue placeholder="اختر الفئة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الفئات</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid md:grid-cols-3 gap-6">
+                  <Card className="bg-blue-50 dark:bg-blue-900/20">
+                    <CardContent className="p-6 text-center">
+                      <div className="text-4xl font-bold text-blue-600">
+                        {category === "all" ? images.length : images.filter(img => img.category === category).length}
+                      </div>
+                      <p className="text-sm text-blue-800 dark:text-blue-200 mt-2">إجمالي الصور</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-purple-50 dark:bg-purple-900/20">
+                    <CardContent className="p-6 text-center">
+                      <div className="text-4xl font-bold text-purple-600">
+                        {(
+                          (category === "all" ? images : images.filter(img => img.category === category))
+                          .reduce((sum, img) => sum + (img.file_size || 0), 0) / 1024 / 1024
+                        ).toFixed(2)} MB
+                      </div>
+                      <p className="text-sm text-purple-800 dark:text-purple-200 mt-2">حجم التخزين</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-green-50 dark:bg-green-900/20">
+                    <CardContent className="p-6 text-center">
+                      <div className="text-4xl font-bold text-green-600">{categories.length}</div>
+                      <p className="text-sm text-green-800 dark:text-green-200 mt-2">عدد الفئات</p>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">التوزيع حسب الفئات</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {categories.map(cat => {
+                        const count = images.filter(img => img.category === cat.name).length;
+                        const percentage = images.length > 0 ? ((count / images.length) * 100).toFixed(1) : 0;
+                        return (
+                          <div key={cat.id} className="flex items-center justify-between">
+                            <span className="font-medium">{cat.name}</span>
+                            <div className="flex items-center gap-3">
+                              <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary" style={{ width: `${percentage}%` }}></div>
+                              </div>
+                              <span className="text-sm text-foreground/70">{count} ({percentage}%)</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="export">
+            <Card>
+              <CardHeader>
+                <CardTitle>📥 تصدير الروابط والبيانات</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label>اختر الفئة للتصدير</Label>
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر الفئة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">جميع الفئات</SelectItem>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Button 
+                      onClick={async () => {
+                        const dataToExport = category === "all" ? images : images.filter(img => img.category === category);
+                        const csv = [
+                          ["العنوان", "الفئة", "الرابط", "الحجم (KB)", "العرض", "الارتفاع"],
+                          ...dataToExport.map(img => [
+                            img.title || "بدون عنوان",
+                            img.category || "",
+                            img.url || "",
+                            Math.round((img.file_size || 0) / 1024),
+                            img.width || "",
+                            img.height || ""
+                          ])
+                        ].map(row => row.join(",")).join("\n");
+                        
+                        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement("a");
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `images_export_${category}_${new Date().toISOString().split('T')[0]}.csv`;
+                        link.click();
+                        
+                        toast({ title: "✅ تم التصدير إلى CSV" });
+                      }}
+                      className="gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      تصدير CSV
+                    </Button>
+                    
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        const dataToExport = category === "all" ? images : images.filter(img => img.category === category);
+                        const urls = dataToExport.map(img => img.url).join("\n");
+                        navigator.clipboard.writeText(urls);
+                        toast({ title: `✅ تم نسخ ${dataToExport.length} رابط` });
+                      }}
+                      className="gap-2"
+                    >
+                      <Copy className="w-4 h-4" />
+                      نسخ جميع الروابط
+                    </Button>
+                  </div>
+                  
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      💡 سيتم تصدير البيانات التالية: العنوان، الفئة، الرابط، الحجم، الأبعاد
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value={activeTab}>
             {filteredImages.length === 0 ? (
