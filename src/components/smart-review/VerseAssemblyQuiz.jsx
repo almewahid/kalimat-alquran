@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, TouchSensor } from '@hello-pangea/dnd';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@hello-pangea/dnd';
-import { CSS } from '@hello-pangea/dnd';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, TouchSensor } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -45,19 +45,15 @@ export default function VerseAssemblyQuiz({ word, onAnswer }) {
   );
 
   useEffect(() => {
-    // Prepare verse parts
     const text = word.aya_text || word.example_usage || "";
-    // Clean and split
     const cleanText = text.trim();
     if (!cleanText) return;
 
     const words = cleanText.split(/\s+/).filter(w => w);
-    // Create items with unique IDs
     const initialItems = words.map((w, i) => ({ id: `word-${i}`, text: w }));
     
-    setCorrectOrder(initialItems.map(i => i.text)); // Store correct text sequence
+    setCorrectOrder(initialItems.map(i => i.text));
     
-    // Shuffle
     const shuffled = [...initialItems].sort(() => 0.5 - Math.random());
     setItems(shuffled);
     setIsCorrect(null);
@@ -82,10 +78,7 @@ export default function VerseAssemblyQuiz({ word, onAnswer }) {
     setIsCorrect(isOrderCorrect);
     
     if (isOrderCorrect) {
-      // Pass something to indicate success
        onAnswer({ isCorrect: true });
-    } else {
-        // Maybe visual feedback first?
     }
   };
 
