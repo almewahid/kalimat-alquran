@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DndContext, useSensor, useSensors, PointerSensor, TouchSensor, useDraggable, useDroppable } from '@hello-pangea/dnd';
+import { DndContext, useSensor, useSensors, PointerSensor, TouchSensor, useDraggable, useDroppable } from '@dnd-kit/core';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Volume2 } from "lucide-react";
@@ -73,16 +73,14 @@ export default function FillInTheBlankQuiz({ word, options, onAnswer }) {
   );
 
   useEffect(() => {
-    // Prepare verse and choices
     const text = word.aya_text || word.example_usage || "مثال غير متوفر";
     
     const wordsArray = text.split(/\s+/);
     const targetWordClean = word.word.replace(/[^\u0621-\u064A]/g, ''); 
     
-    // Find index of word that matches target
     let targetIndex = wordsArray.findIndex(w => w.includes(word.word) || w.replace(/[^\u0621-\u064A]/g, '').includes(targetWordClean));
     
-    if (targetIndex === -1) targetIndex = Math.floor(wordsArray.length / 2); // Fallback to middle
+    if (targetIndex === -1) targetIndex = Math.floor(wordsArray.length / 2);
 
     const parts = wordsArray.map((w, i) => ({
       text: w,
@@ -92,7 +90,6 @@ export default function FillInTheBlankQuiz({ word, options, onAnswer }) {
 
     setVerseParts(parts);
 
-    // Prepare draggable choices
     const distractors = options.filter(o => o.id !== word.id).slice(0, 3).map(o => o.word);
     const allChoices = [word.word, ...distractors]
       .sort(() => 0.5 - Math.random())
@@ -110,7 +107,6 @@ export default function FillInTheBlankQuiz({ word, options, onAnswer }) {
       const choice = choices.find(c => c.id === active.id);
       if (choice) {
         setDroppedItem(choice);
-        // Check answer immediately
         const selectedOption = options.find(o => o.word === choice.text) || { word: choice.text, id: 'unknown' };
         onAnswer(selectedOption); 
       }
