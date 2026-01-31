@@ -108,6 +108,16 @@ import ManageGroups from "./ManageGroups";
 
 import ManageNotes from "./ManageNotes";
 
+import DashboardSupabase from "./DashboardSupabase";
+
+import LearnSupabase from "./LearnSupabase";
+
+import ProgressSupabase from "./ProgressSupabase";
+
+import FavoritesSupabase from "./FavoritesSupabase";
+
+import TestRLS from "./TestRLS";
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
@@ -219,6 +229,16 @@ const PAGES = {
     ManageGroups: ManageGroups,
     
     ManageNotes: ManageNotes,
+    
+    DashboardSupabase: DashboardSupabase,
+    
+    LearnSupabase: LearnSupabase,
+    
+    ProgressSupabase: ProgressSupabase,
+    
+    FavoritesSupabase: FavoritesSupabase,
+    
+    TestRLS: TestRLS,
     
 }
 
@@ -354,6 +374,16 @@ function PagesContent() {
                 <Route path="/ManageGroups" element={<ManageGroups />} />
                 
                 <Route path="/ManageNotes" element={<ManageNotes />} />
+                
+                <Route path="/DashboardSupabase" element={<DashboardSupabase />} />
+                
+                <Route path="/LearnSupabase" element={<LearnSupabase />} />
+                
+                <Route path="/ProgressSupabase" element={<ProgressSupabase />} />
+                
+                <Route path="/FavoritesSupabase" element={<FavoritesSupabase />} />
+                
+                <Route path="/TestRLS" element={<TestRLS />} />
                 
             </Routes>
         </Layout>

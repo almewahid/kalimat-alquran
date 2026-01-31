@@ -1,27 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, TouchSensor } from '@hello-pangea/dnd';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@hello-pangea/dnd';
+import { CSS } from '@hello-pangea/dnd';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-const SortableWord = ({ id, text, index }) => {
+const SortableWord = ({ id, text }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
-    <Draggable draggableId={id} index={index}>
-      {(provided, snapshot) => (
-        <div 
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-          className={`inline-block m-1 ${snapshot.isDragging ? 'opacity-50 z-50' : ''}`}
-        >
-          <Badge 
-            variant="secondary" 
-            className="text-lg py-3 px-5 cursor-grab active:cursor-grabbing hover:bg-secondary/80 select-none"
-          >
-            {text}
-          </Badge>
-        </div>
-      )}
-    </Draggable>
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...listeners} 
+      className={`inline-block m-1 touch-none ${isDragging ? 'opacity-50 z-50' : ''}`}
+    >
+      <Badge 
+        variant="secondary" 
+        className="text-lg py-3 px-5 cursor-grab active:cursor-grabbing hover:bg-secondary/80 select-none"
+      >
+        {text}
+      </Badge>
+    </div>
   );
 };
 
@@ -29,6 +35,14 @@ export default function VerseAssemblyQuiz({ word, onAnswer }) {
   const [items, setItems] = useState([]);
   const [correctOrder, setCorrectOrder] = useState([]);
   const [isCorrect, setIsCorrect] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     // Prepare verse parts
@@ -50,14 +64,16 @@ export default function VerseAssemblyQuiz({ word, onAnswer }) {
 
   }, [word]);
 
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
 
-    const newItems = Array.from(items);
-    const [removed] = newItems.splice(result.source.index, 1);
-    newItems.splice(result.destination.index, 0, removed);
-
-    setItems(newItems);
+    if (active.id !== over.id) {
+      setItems((items) => {
+        const oldIndex = items.findIndex(i => i.id === active.id);
+        const newIndex = items.findIndex(i => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
   };
 
   const checkOrder = () => {
@@ -80,22 +96,22 @@ export default function VerseAssemblyQuiz({ word, onAnswer }) {
          <p className="text-sm font-bold text-primary">{word.surah_name} - آية {word.ayah_number}</p>
        </div>
 
-       <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="words-list" direction="horizontal">
-            {(provided) => (
-              <div 
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="flex flex-wrap justify-center gap-2 p-6 bg-muted/20 rounded-xl min-h-[150px] items-center"
-              >
-                {items.map((item, index) => (
-                  <SortableWord key={item.id} id={item.id} text={item.text} index={index} />
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-       </DragDropContext>
+       <DndContext 
+          sensors={sensors} 
+          collisionDetection={closestCenter} 
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext 
+            items={items} 
+            strategy={rectSortingStrategy}
+          >
+            <div className="flex flex-wrap justify-center gap-2 p-6 bg-muted/20 rounded-xl min-h-[150px] items-center">
+              {items.map((item) => (
+                <SortableWord key={item.id} id={item.id} text={item.text} />
+              ))}
+            </div>
+          </SortableContext>
+       </DndContext>
 
        <div className="flex justify-center">
          <Button 

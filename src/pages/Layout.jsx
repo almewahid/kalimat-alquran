@@ -47,7 +47,8 @@ import {
   BookText,
   Volume2,
   Music,
-  AlertTriangle
+  AlertTriangle,
+  LogOut
 } from "lucide-react";
 import {
   Sidebar,
@@ -62,6 +63,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 
 const navigationItems = [
   { title: "الرئيسية", url: createPageUrl("Dashboard"), icon: Home },
@@ -98,6 +100,14 @@ const systemItems = [
   { title: "المساعدة", url: createPageUrl("Help"), icon: HelpCircle },
   { title: "الإعدادات", url: createPageUrl("Settings"), icon: SettingsIcon },
   { title: "ادعم التطبيق", url: createPageUrl("Support"), icon: Heart },
+];
+
+const supabaseTestItems = [
+  { title: "🧪 Dashboard (Supabase)", url: createPageUrl("DashboardSupabase"), icon: Home },
+  { title: "🧪 التعلم (Supabase)", url: createPageUrl("LearnSupabase"), icon: BookOpen },
+  { title: "🧪 التقدم (Supabase)", url: createPageUrl("ProgressSupabase"), icon: BarChart3 },
+  { title: "🧪 المفضلة (Supabase)", url: createPageUrl("FavoritesSupabase"), icon: Heart },
+  { title: "🧪 اختبار RLS", url: createPageUrl("TestRLS"), icon: Shield },
 ];
 
 const adminItems = [
@@ -461,6 +471,52 @@ export default function Layout({ children, currentPageName }) {
                     </SidebarGroupContent>
                   </SidebarGroup>
                 )}
+
+                {/* Supabase Test Pages */}
+                <SidebarGroup className="mt-6">
+                  <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
+                    🧪 Supabase Test
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="space-y-2">
+                      {supabaseTestItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton
+                            asChild
+                            className={`rounded-xl transition-all duration-300 ${
+                              location.pathname === item.url
+                                ? "bg-green-100 text-green-700 shadow-sm dark:bg-green-900/30"
+                                : "hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/20"
+                            }`}
+                          >
+                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
+                              <item.icon className="w-5 h-5" />
+                              <span className="font-medium">{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Logout Button */}
+                <SidebarGroup className="mt-6 border-t pt-4">
+                  <SidebarGroupContent>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      onClick={async () => {
+                        if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                          await base44.auth.logout();
+                        }
+                      }}
+                    >
+                      <LogOut className="w-5 h-5 ml-2" />
+                      تسجيل الخروج
+                    </Button>
+                  </SidebarGroupContent>
+                </SidebarGroup>
               </SidebarContent>
             </Sidebar>
 

@@ -301,15 +301,40 @@ export default function QuranReader() {
     try {
       if (tafsirName === "none") return;
       
-      const tafsirs = await base44.entities.QuranTafsir.filter({
+      // محاولة التحميل من قاعدة البيانات المحلية أولاً
+      const localTafsirs = await base44.entities.QuranTafsir.filter({
         surah_number: surahNumber,
         tafsir_name: tafsirName
       });
 
-      const tafsirMap = {};
-      tafsirs.forEach(t => {
-        tafsirMap[t.ayah_number] = t.tafsir_text;
-      });
+      let tafsirMap = {};
+      
+      if (localTafsirs && localTafsirs.length > 0) {
+        // التفسير موجود محلياً
+        localTafsirs.forEach(t => {
+          tafsirMap[t.ayah_number] = t.tafsir_text;
+        });
+      } else {
+        // التحميل من API خارجية كبديل
+        try {
+          const tafsirId = tafsirName.replace('ar-tafseer-', '');
+          const response = await fetch(
+            `https://api.quran.com/api/v4/quran/tafsirs/${tafsirId}`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            data.tafsirs?.forEach(t => {
+              const verseKey = t.verse_key.split(':');
+              if (parseInt(verseKey[0]) === surahNumber) {
+                tafsirMap[parseInt(verseKey[1])] = t.text;
+              }
+            });
+          }
+        } catch (apiError) {
+          console.error("Error loading from API:", apiError);
+        }
+      }
 
       setTafsirData(prev => {
         const newData = [...prev];
@@ -439,14 +464,11 @@ export default function QuranReader() {
   const playWordByWord = async (ayahNumber, surahNumber) => {
     setIsWordByWordMode(true);
     setCurrentPlayingAyah(ayahNumber);
-    setCurrentWordIndex(-1);
+    setCurrentWordIndex(0);
     
-    const ayah = ayahs.find(a => a.ayah_number === ayahNumber) || allAyahs.find(a => a.ayah_number === ayahNumber && a.surah_number === surahNumber);
-    if (!ayah) return;
-
     try {
       const response = await fetch(
-        `https://api.quran.com/api/v4/verses/by_key/${surahNumber}:${ayahNumber}?words=true&translations=131&fields=text_uthmani&word_fields=text_uthmani,audio_url`
+        `https://api.quran.com/api/v4/verses/by_key/${surahNumber}:${ayahNumber}?words=true&word_fields=text_uthmani,audio_url`
       );
       
       if (!response.ok) {
@@ -463,16 +485,19 @@ export default function QuranReader() {
           variant: "destructive"
         });
         setIsWordByWordMode(false);
+        setCurrentPlayingAyah(null);
         return;
       }
       
       for (let i = 0; i < words.length; i++) {
+        if (!isWordByWordMode) break; // للسماح بالإيقاف
+        
         const word = words[i];
         setCurrentWordIndex(i);
         
         if (word.audio_url) {
           await playWordAudio(word.audio_url);
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 400));
         }
       }
       
@@ -484,7 +509,7 @@ export default function QuranReader() {
       console.error("Error in word-by-word playback:", error);
       toast({
         title: "خطأ",
-        description: "فشل تشغيل الصوت كلمة تلو كلمة",
+        description: "فشل تشغيل الصوت كلمة تلو كلمة. تأكد من اتصال الإنترنت.",
         variant: "destructive"
       });
       setIsWordByWordMode(false);
@@ -930,10 +955,10 @@ export default function QuranReader() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={stopWordByWord}
-                                  className="text-blue-600"
+                                  className="text-red-600 hover:bg-red-50"
                                   title="إيقاف التشغيل كلمة تلو كلمة"
                                 >
-                                  <Pause className="w-4 h-4" />
+                                  <VolumeX className="w-4 h-4" />
                                 </Button>
                               ) : (
                                 <Button
@@ -942,8 +967,9 @@ export default function QuranReader() {
                                   onClick={() => playWordByWord(ayah.ayah_number, ayah.surah_number || selectedSurah)}
                                   title="تشغيل كلمة تلو كلمة"
                                   disabled={isWordByWordMode}
+                                  className="hover:bg-blue-50 hover:text-blue-600"
                                 >
-                                  <Sparkles className="w-4 h-4" />
+                                  <Type className="w-4 h-4" />
                                 </Button>
                               )}
                               
@@ -977,8 +1003,8 @@ export default function QuranReader() {
                               {showTafsir && (
                                 <div className="space-y-3 border-t lg:border-t-0 lg:border-r lg:pr-6 pt-4 lg:pt-0">
                                   {selectedTafsirs.map((tafsir, idx) => {
-                                // Only load tafsir for the currently selected surah, even if viewing global search results
-                                if (tafsir === "none" || ayah.surah_number !== selectedSurah || !tafsirData[idx][ayah.ayah_number]) return null;
+                                const currentAyahSurah = searchScope === "all" ? ayah.surah_number : selectedSurah;
+                                if (tafsir === "none" || !tafsirData[idx] || !tafsirData[idx][ayah.ayah_number]) return null;
                                 
                                 const colors = [
                                   { bg: "bg-blue-50 dark:bg-blue-900/20", border: "border-blue-200 dark:border-blue-800", text: "text-blue-700 dark:text-blue-300", content: "text-blue-900 dark:text-blue-200" },
