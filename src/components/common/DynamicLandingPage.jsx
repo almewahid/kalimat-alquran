@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -22,7 +22,7 @@ export default function DynamicLandingPage() {
       const currentPage = location.pathname.replace('/', '') || 'Dashboard';
       const now = new Date().toISOString();
       
-      const pages = await base44.entities.LandingPage.list("-priority", 10);
+      const pages = await supabaseClient.entities.LandingPage.list("-priority", 10);
       const activePage = pages.find(page => 
         page.is_active &&
         page.target_pages?.includes(currentPage) &&
@@ -32,11 +32,19 @@ export default function DynamicLandingPage() {
 
       if (activePage) {
         setActivePage(activePage);
+        
+        // تحسين المنطق للنافذة المنبثقة
         if (activePage.position === "modal") {
-          const hasSeenModal = sessionStorage.getItem(`landing_${activePage.id}`);
-          if (!hasSeenModal) {
+          // إذا كانت show_once = true، تظهر مرة واحدة فقط
+          if (activePage.show_once) {
+            const hasSeenModal = sessionStorage.getItem(`landing_${activePage.id}`);
+            if (!hasSeenModal) {
+              setShowModal(true);
+              sessionStorage.setItem(`landing_${activePage.id}`, "true");
+            }
+          } else {
+            // إذا كانت show_once = false، تظهر دائمًا
             setShowModal(true);
-            sessionStorage.setItem(`landing_${activePage.id}`, "true");
           }
         }
       } else {

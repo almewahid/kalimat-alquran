@@ -159,8 +159,8 @@ export default function Layout({ children, currentPageName }) {
         setUnreadNotifications(notifications?.length || 0);
       } catch (error) {
         console.log("User not logged in or error fetching preferences.", error);
-        // توجيه للصفحة الرئيسية إذا لم يكن مسجل دخول
-        if (window.location.pathname !== '/') {
+        // توجيه لصفحة Login إذا لم يكن مسجل دخول
+        if (window.location.pathname !== '/' && window.location.pathname !== '/LoginSupabase') {
           window.location.href = '/LoginSupabase';
         }
       }
