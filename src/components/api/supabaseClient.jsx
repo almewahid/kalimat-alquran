@@ -52,7 +52,6 @@ const supabaseFetch = async (endpoint, options = {}) => {
 // ✅ Base44 Context Helper - Sets user context for RLS policies
 const setBase44Context = async (userId, email) => {
   try {
-    // ⚠️ استخدم /rest/v1/rpc/ وليس /rpc/
     const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/set_user_context`, {
       method: 'POST',
       headers: {
@@ -75,7 +74,43 @@ const setBase44Context = async (userId, email) => {
     console.log('✅ Context set:', { userId, email });
   } catch (error) {
     console.error('⚠️ Context error:', error.message);
-    // لا تُوقف التنفيذ - استمر
+  }
+};
+
+// ✅ ربط حساب Supabase مع Base44
+export const linkSupabaseUser = async () => {
+  try {
+    // 1. الحصول على مستخدم Supabase
+    const supabaseUser = await supabaseFetch('/auth/v1/user');
+    if (!supabaseUser || !supabaseUser.id) {
+      console.log('No Supabase user found');
+      return null;
+    }
+
+    // 2. الحصول على مستخدم Base44
+    const base44 = await import('@/api/base44Client');
+    const base44User = await base44.base44.auth.me();
+    if (!base44User) {
+      console.log('No Base44 user found');
+      return null;
+    }
+
+    // 3. ربط الحسابين (مرة واحدة فقط)
+    const result = await supabaseFetch(
+      `/rest/v1/user_profiles?user_id=eq.${base44User.id}&is.supabase_user_id=null`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ supabase_user_id: supabaseUser.id }),
+        headers: { 'Prefer': 'return=representation' }
+      }
+    );
+
+    console.log('✅ Accounts linked:', { base44: base44User.id, supabase: supabaseUser.id });
+    return supabaseUser.id;
+
+  } catch (error) {
+    console.error('Error linking accounts:', error);
+    throw error;
   }
 };
 
@@ -83,7 +118,7 @@ export const supabaseAuth = {
   // الحصول على المستخدم الحالي
   me: async () => {
     try {
-      // ⚠️ Temporary: Use Base44 auth as fallback since Supabase auth not set up yet
+      // محاولة Supabase أولاً
       try {
         const userData = await supabaseFetch('/auth/v1/user');
         if (!userData || !userData.id) throw new Error('No Supabase user');
@@ -106,19 +141,17 @@ export const supabaseAuth = {
           created_date: profile?.created_date,
         };
 
-        // Set context for RLS
         await setBase44Context(user.id, user.email);
-        
         return user;
+
       } catch (supabaseError) {
-        // Fallback to Base44 auth for testing
+        // Fallback إلى Base44
         const base44 = await import('@/api/base44Client');
         const base44User = await base44.base44.auth.me();
         if (!base44User) return null;
         
-        console.warn('⚠️ Using Base44 auth as fallback - Supabase auth not configured');
+        console.warn('⚠️ Using Base44 auth as fallback');
         
-        // Set context for RLS with Base44 user
         await setBase44Context(base44User.id, base44User.email);
         
         return {
@@ -182,7 +215,6 @@ export const supabaseAuth = {
 const createEntityWrapper = (tableName) => ({
   // List all
   list: async (sortField = '-created_date', limit = 50) => {
-    // ✅ FIX: Handle empty or invalid sortField
     if (!sortField || sortField.trim() === '') {
       sortField = '-created_date';
     }
@@ -190,9 +222,7 @@ const createEntityWrapper = (tableName) => ({
     const orderField = sortField.startsWith('-') ? sortField.slice(1) : sortField;
     const ascending = !sortField.startsWith('-');
     
-    // ✅ FIX: Validate orderField is not empty
     if (!orderField || orderField.trim() === '') {
-      // Fallback to created_date if invalid
       const data = await supabaseFetch(
         `/rest/v1/${tableName}?select=*&limit=${limit}`
       );
@@ -208,7 +238,6 @@ const createEntityWrapper = (tableName) => ({
 
   // Filter with conditions
   filter: async (conditions = {}, sortField = '-created_date', limit = 50) => {
-    // ✅ Set context BEFORE filtering (for RLS to work)
     const user = await supabaseAuth.me();
     if (user) {
       await setBase44Context(user.id, user.email);
@@ -232,7 +261,6 @@ const createEntityWrapper = (tableName) => ({
       }
     });
 
-    // ✅ FIX: Handle empty or invalid sortField
     if (!sortField || sortField.trim() === '') {
       sortField = '-created_date';
     }
@@ -242,7 +270,6 @@ const createEntityWrapper = (tableName) => ({
     
     const filterQuery = filters.length > 0 ? `&${filters.join('&')}` : '';
     
-    // ✅ FIX: Validate orderField is not empty
     if (!orderField || orderField.trim() === '') {
       const data = await supabaseFetch(
         `/rest/v1/${tableName}?select=*${filterQuery}&limit=${limit}`
@@ -261,13 +288,10 @@ const createEntityWrapper = (tableName) => ({
   create: async (data) => {
     const user = await supabaseAuth.me();
     
-    // ✅ Set context BEFORE creating (for RLS to work)
     if (user) {
       await setBase44Context(user.id, user.email);
     }
     
-    // Add user identification (support both Supabase and Base44)
-    // ⚠️ CRITICAL: Only add user_id if it's a real Supabase UUID, NOT Base44 ID
     const enrichedData = {
       ...data,
       user_id: !user?._usingBase44Fallback && user?.id ? user.id : undefined,
@@ -276,7 +300,6 @@ const createEntityWrapper = (tableName) => ({
       created_date: new Date().toISOString(),
     };
 
-    // Remove undefined fields
     Object.keys(enrichedData).forEach(key => 
       enrichedData[key] === undefined && delete enrichedData[key]
     );
@@ -294,7 +317,6 @@ const createEntityWrapper = (tableName) => ({
   bulkCreate: async (items) => {
     const user = await supabaseAuth.me();
     
-    // ✅ Set context BEFORE creating (for RLS to work)
     if (user) {
       await setBase44Context(user.id, user.email);
     }
@@ -308,7 +330,6 @@ const createEntityWrapper = (tableName) => ({
         created_date: new Date().toISOString(),
       };
       
-      // Remove undefined fields
       Object.keys(enriched).forEach(key => 
         enriched[key] === undefined && delete enriched[key]
       );
@@ -327,7 +348,6 @@ const createEntityWrapper = (tableName) => ({
 
   // Update
   update: async (id, data) => {
-    // ✅ Set context BEFORE updating (for RLS to work)
     const user = await supabaseAuth.me();
     if (user) {
       await setBase44Context(user.id, user.email);
@@ -344,7 +364,6 @@ const createEntityWrapper = (tableName) => ({
 
   // Delete
   delete: async (id) => {
-    // ✅ Set context BEFORE deleting (for RLS to work)
     const user = await supabaseAuth.me();
     if (user) {
       await setBase44Context(user.id, user.email);
@@ -357,21 +376,20 @@ const createEntityWrapper = (tableName) => ({
     return { success: true };
   },
 
-  // Get schema (placeholder - يمكن تحسينه لاحقاً)
+  // Get schema
   schema: async () => {
     return {};
   },
 
-  // Subscribe to changes (Realtime) - Placeholder
+  // Subscribe to changes
   subscribe: (callback) => {
     console.warn('Realtime subscriptions not implemented with fetch API');
-    // Placeholder - would need WebSocket implementation
     return () => {};
   },
 });
 
 // ================================================
-// 🗂️ All Entities (نفس أسماء Base44)
+// 🗂️ All Entities
 // ================================================
 
 export const supabaseEntities = {
@@ -433,7 +451,7 @@ export const supabaseEntities = {
 };
 
 // ================================================
-// 🎯 Main Client (متوافق 100% مع Base44)
+// 🎯 Main Client
 // ================================================
 
 export const supabaseClient = {
@@ -444,14 +462,12 @@ export const supabaseClient = {
   analytics: {
     track: async ({ eventName, properties }) => {
       console.log('Analytics tracked:', eventName, properties);
-      // يمكن إضافة تكامل مع PostHog أو Mixpanel لاحقاً
     },
   },
 
   // Users management
   users: {
     inviteUser: async (email, role = 'user') => {
-      // يتطلب Supabase Admin API
       console.warn('inviteUser requires admin setup - implement via Edge Function');
       throw new Error('Not implemented yet - use Supabase Dashboard to invite users');
     },
