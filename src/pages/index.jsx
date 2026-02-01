@@ -118,6 +118,8 @@ import FavoritesSupabase from "./FavoritesSupabase";
 
 import TestRLS from "./TestRLS";
 
+import LoginSupabase from "./LoginSupabase";
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
@@ -240,6 +242,8 @@ const PAGES = {
     
     TestRLS: TestRLS,
     
+    LoginSupabase: LoginSupabase,
+    
 }
 
 function _getCurrentPage(url) {
@@ -264,7 +268,7 @@ function PagesContent() {
         <Layout currentPageName={currentPage}>
             <Routes>            
                 
-                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/" element={<LoginSupabase />} />
                 
                 
                 <Route path="/Dashboard" element={<Dashboard />} />
@@ -384,6 +388,8 @@ function PagesContent() {
                 <Route path="/FavoritesSupabase" element={<FavoritesSupabase />} />
                 
                 <Route path="/TestRLS" element={<TestRLS />} />
+                
+                <Route path="/LoginSupabase" element={<LoginSupabase />} />
                 
             </Routes>
         </Layout>

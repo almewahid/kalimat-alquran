@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient({
@@ -136,18 +135,34 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     const fetchUserPreferences = async () => {
       try {
-        const user = await base44.auth.me();
-        setTheme(user?.preferences?.theme || "light");
-        setColorScheme(user?.preferences?.color_scheme || "default");
-        setIsAdmin(user?.role === 'admin');
+        const { data: { user }, error } = await supabaseClient.supabase.auth.getUser();
+        if (error || !user) throw error;
         
-        const notifications = await base44.entities.Notification.filter({
-          user_email: user.email,
-          is_read: false
-        });
-        setUnreadNotifications(notifications.length);
+        // جلب بيانات المستخدم من user_profiles
+        const { data: profile } = await supabaseClient.supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        setTheme(profile?.preferences?.theme || "light");
+        setColorScheme(profile?.preferences?.color_scheme || "default");
+        setIsAdmin(profile?.role === 'admin');
+        
+        // جلب الإشعارات غير المقروءة
+        const { data: notifications } = await supabaseClient.supabase
+          .from('user_notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_read', false);
+        
+        setUnreadNotifications(notifications?.length || 0);
       } catch (error) {
         console.log("User not logged in or error fetching preferences.", error);
+        // توجيه للصفحة الرئيسية إذا لم يكن مسجل دخول
+        if (window.location.pathname !== '/') {
+          window.location.href = '/LoginSupabase';
+        }
       }
     };
     fetchUserPreferences();
@@ -508,7 +523,8 @@ export default function Layout({ children, currentPageName }) {
                       className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                       onClick={async () => {
                         if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-                          await base44.auth.logout();
+                          await supabaseClient.supabase.auth.signOut();
+                          window.location.href = '/LoginSupabase';
                         }
                       }}
                     >
