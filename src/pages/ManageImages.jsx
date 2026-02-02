@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client"; // ✅ نحتفظ بالاتصال الأصلي
+import { supabaseClient } from "@/components/api/supabaseClient"; // ✅ نحتفظ بالاتصال الأصلي
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,7 +101,7 @@ export default function ManageImages() {
 
   const checkAdminAndLoadAll = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       setIsAdmin(user.role === "admin");
 
       if (user.role !== "admin") {
@@ -123,14 +123,14 @@ export default function ManageImages() {
   };
 
   const loadImages = async () => {
-    const res = await base44.entities.images.list("-created_date", 1000);
+    const res = await supabaseClient.entities.images.list("-created_date", 1000);
     setImages(res);
   };
 
   const loadCategories = async () => {
     try {
       // ✅ جلب الفئات (صور أو غير محدد)
-      const res = await base44.entities.categories.list("-created_date", 1000);
+      const res = await supabaseClient.entities.categories.list("-created_date", 1000);
       // ✅ تصفية الفئات: الصور فقط
       setCategories(res.filter(c => c.type === 'image'));
     } catch (error) {
@@ -236,14 +236,14 @@ export default function ManageImages() {
                 // Skip if broken link (can't analyze)
                 if (brokenImageIds.has(img.id) || !img.url) continue;
 
-                const res = await base44.integrations.Core.InvokeLLM({
+                const res = await supabaseClient.integrations.Core.InvokeLLM({
                     prompt: "Analyze this image and provide 5-8 relevant tags in Arabic as a simple JSON array of strings. Example: [\"قرآن\", \"طبيعة\"]. Do not include explanation.",
                     file_urls: [img.url], // Pass image URL for analysis
                     response_json_schema: { type: "object", properties: { tags: { type: "array", items: { type: "string" } } } }
                 });
 
                 if (res && res.tags) {
-                    await base44.entities.images.update(img.id, { tags: res.tags });
+                    await supabaseClient.entities.images.update(img.id, { tags: res.tags });
                     successCount++;
                 }
             } catch (e) {
@@ -271,7 +271,7 @@ export default function ManageImages() {
           if (Object.keys(updates).length === 0) return;
 
           const promises = Array.from(selectedIds).map(id => 
-              base44.entities.images.update(id, updates)
+              supabaseClient.entities.images.update(id, updates)
           );
           
           await Promise.all(promises);
@@ -308,7 +308,7 @@ export default function ManageImages() {
               const potentialUrl = `${CLOUD_BASE}${finalPath}${fileName}`;
               
               if (await checkUrlExists(potentialUrl)) {
-                  await base44.entities.images.update(img.id, { url: potentialUrl });
+                  await supabaseClient.entities.images.update(img.id, { url: potentialUrl });
                   fixedCount++;
               }
           }
@@ -384,7 +384,7 @@ export default function ManageImages() {
         const data = await res.json();
 
         if (data.secure_url) {
-          await base44.entities.images.create({
+          await supabaseClient.entities.images.create({
             url: data.secure_url,
             title: file.name,
             description: "",
@@ -537,7 +537,7 @@ export default function ManageImages() {
              }
 
              if (foundUrl) {
-                 await base44.entities.images.update(img.id, { url: foundUrl });
+                 await supabaseClient.entities.images.update(img.id, { url: foundUrl });
                  updatedCount++;
              }
         }
@@ -564,7 +564,7 @@ export default function ManageImages() {
 
   const handleSaveEdit = async () => {
     try {
-      await base44.entities.images.update(editingImage.id, {
+      await supabaseClient.entities.images.update(editingImage.id, {
         title: editingImage.title,
         description: editingImage.description,
         category: editingImage.category,
@@ -583,7 +583,7 @@ export default function ManageImages() {
   const handleDelete = async (imageId) => {
     if (!confirm("هل أنت متأكد من حذف هذه الصورة؟")) return;
     try {
-      await base44.entities.images.delete(imageId);
+      await supabaseClient.entities.images.delete(imageId);
       toast({ title: "✅ تم حذف الصورة" });
       checkAdminAndLoadAll();
     } catch (error) {
@@ -605,7 +605,7 @@ export default function ManageImages() {
       return;
     }
     try {
-      await base44.entities.categories.create({
+      await supabaseClient.entities.categories.create({
         name: newCategory.name.trim(),
         description: newCategory.description.trim(),
         type: 'image', // ✅ تحديد النوع كصورة
@@ -622,7 +622,7 @@ export default function ManageImages() {
   const handleDeleteCategory = async (id) => {
     if (!confirm("هل تريد حذف هذه الفئة؟")) return;
     try {
-      await base44.entities.categories.delete(id);
+      await supabaseClient.entities.categories.delete(id);
       toast({ title: "✅ تم حذف الفئة" });
       loadCategories();
     } catch (error) {

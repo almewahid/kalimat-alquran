@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 
 const AudioContext = createContext();
 
@@ -36,11 +36,11 @@ const logErrorToBackend = async (context, message, details) => {
   try {
     let userEmail = "anonymous";
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       if (user) userEmail = user.email;
     } catch (e) { /* ignore auth error */ }
 
-    await base44.functions.invoke("logAppError", {
+    await supabaseClient.functions.invoke("logAppError", {
       error_message: message,
       error_details: typeof details === 'object' ? JSON.stringify(details) : String(details),
       context: context,

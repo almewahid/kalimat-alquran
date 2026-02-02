@@ -33,9 +33,7 @@ export default function DynamicLandingPage() {
       if (activePage) {
         setActivePage(activePage);
         
-        // تحسين المنطق للنافذة المنبثقة
         if (activePage.position === "modal") {
-          // إذا كانت show_once = true، تظهر مرة واحدة فقط
           if (activePage.show_once) {
             const hasSeenModal = sessionStorage.getItem(`landing_${activePage.id}`);
             if (!hasSeenModal) {
@@ -43,7 +41,6 @@ export default function DynamicLandingPage() {
               sessionStorage.setItem(`landing_${activePage.id}`, "true");
             }
           } else {
-            // إذا كانت show_once = false، تظهر دائمًا
             setShowModal(true);
           }
         }

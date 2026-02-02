@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +37,7 @@ export default function NotificationsPage() { // Changed component name to Notif
         type: "support",
         date: new Date().toISOString(), // Use date for static
         read: false, // Use read for static
-        link: "/Support"
+        link: "Support"
       }
     ]);
 
@@ -46,10 +46,10 @@ export default function NotificationsPage() { // Changed component name to Notif
 
   const loadNotifications = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
-      const allDynamicNotifications = await base44.entities.Notification.filter({
+      const allDynamicNotifications = await supabaseClient.entities.Notification.filter({
         user_email: currentUser.email
       });
 
@@ -65,7 +65,7 @@ export default function NotificationsPage() { // Changed component name to Notif
   const markAsRead = async (notificationId) => {
     try {
       // Only mark dynamic notifications as read
-      await base44.entities.Notification.update(notificationId, { is_read: true });
+      await supabaseClient.entities.Notification.update(notificationId, { is_read: true });
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       );
@@ -78,14 +78,10 @@ export default function NotificationsPage() { // Changed component name to Notif
     try {
       const unreadDynamicNotifications = notifications.filter(n => !n.is_read);
       for (const notification of unreadDynamicNotifications) {
-        await base44.entities.Notification.update(notification.id, { is_read: true });
+        await supabaseClient.entities.Notification.update(notification.id, { is_read: true });
       }
 
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-
-      // If static notifications should also be marked as read, add logic here
-      // For now, only dynamic are affected by markAllAsRead
-      // setStaticNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
       toast({
         title: "✅ تم",
@@ -100,7 +96,7 @@ export default function NotificationsPage() { // Changed component name to Notif
   const deleteNotification = async (notificationId) => {
     try {
       // Only delete dynamic notifications
-      await base44.entities.Notification.delete(notificationId);
+      await supabaseClient.entities.Notification.delete(notificationId);
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
 
       toast({

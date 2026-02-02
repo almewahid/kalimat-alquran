@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -30,14 +30,14 @@ export default function PrivacySettings() {
 
   const loadPrivacyData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       
       if (currentUser.privacy_settings) {
         setPrivacySettings(prev => ({ ...prev, ...currentUser.privacy_settings }));
       }
       
-      const logs = await base44.entities.ActivityLog.filter({ 
+      const logs = await supabaseClient.entities.ActivityLog.filter({ 
         user_email: currentUser.email 
       }, '-created_date', 20);
       setActivityLog(logs);
@@ -50,7 +50,7 @@ export default function PrivacySettings() {
 
   const handleSaveSettings = async () => {
     try {
-      await base44.auth.updateMe({
+      await supabaseClient.auth.updateMe({
         privacy_settings: privacySettings
       });
       
@@ -72,10 +72,10 @@ export default function PrivacySettings() {
   const handleExportData = async () => {
     try {
       const [progress, quizzes, notes, favorites] = await Promise.all([
-        base44.entities.UserProgress.filter({ created_by: user.email }),
-        base44.entities.QuizSession.filter({ created_by: user.email }),
-        base44.entities.UserNote.filter({ created_by: user.email }),
-        base44.entities.FavoriteWord.filter({ created_by: user.email })
+        supabaseClient.entities.UserProgress.filter({ created_by: user.email }),
+        supabaseClient.entities.QuizSession.filter({ created_by: user.email }),
+        supabaseClient.entities.UserNote.filter({ created_by: user.email }),
+        supabaseClient.entities.FavoriteWord.filter({ created_by: user.email })
       ]);
       
       const userData = {
@@ -106,7 +106,7 @@ export default function PrivacySettings() {
         className: "bg-green-100 text-green-800"
       });
       
-      await base44.entities.ActivityLog.create({
+      await supabaseClient.entities.ActivityLog.create({
         user_email: user.email,
         activity_type: "data_export",
         description: "تم تصدير البيانات الشخصية",
@@ -137,19 +137,19 @@ export default function PrivacySettings() {
     
     try {
       const [progress, quizzes, notes, favorites, flashcards] = await Promise.all([
-        base44.entities.UserProgress.filter({ created_by: user.email }),
-        base44.entities.QuizSession.filter({ created_by: user.email }),
-        base44.entities.UserNote.filter({ created_by: user.email }),
-        base44.entities.FavoriteWord.filter({ created_by: user.email }),
-        base44.entities.FlashCard.filter({ created_by: user.email })
+        supabaseClient.entities.UserProgress.filter({ created_by: user.email }),
+        supabaseClient.entities.QuizSession.filter({ created_by: user.email }),
+        supabaseClient.entities.UserNote.filter({ created_by: user.email }),
+        supabaseClient.entities.FavoriteWord.filter({ created_by: user.email }),
+        supabaseClient.entities.FlashCard.filter({ created_by: user.email })
       ]);
       
       await Promise.all([
-        ...progress.map(p => base44.entities.UserProgress.delete(p.id)),
-        ...quizzes.map(q => base44.entities.QuizSession.delete(q.id)),
-        ...notes.map(n => base44.entities.UserNote.delete(n.id)),
-        ...favorites.map(f => base44.entities.FavoriteWord.delete(f.id)),
-        ...flashcards.map(f => base44.entities.FlashCard.delete(f.id))
+        ...progress.map(p => supabaseClient.entities.UserProgress.delete(p.id)),
+        ...quizzes.map(q => supabaseClient.entities.QuizSession.delete(q.id)),
+        ...notes.map(n => supabaseClient.entities.UserNote.delete(n.id)),
+        ...favorites.map(f => supabaseClient.entities.FavoriteWord.delete(f.id)),
+        ...flashcards.map(f => supabaseClient.entities.FlashCard.delete(f.id))
       ]);
       
       toast({
@@ -159,7 +159,7 @@ export default function PrivacySettings() {
       });
       
       setTimeout(() => {
-        base44.auth.logout();
+        supabaseClient.auth.logout();
       }, 2000);
     } catch (error) {
       console.error("Error deleting account:", error);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,16 +34,16 @@ export default function ReferralSystem() {
 
   const loadReferralData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
       // Check if user has referral code
-      let [referral] = await base44.entities.ReferralCode.filter({ user_email: currentUser.email });
+      let [referral] = await supabaseClient.entities.ReferralCode.filter({ user_email: currentUser.email });
 
       if (!referral) {
         // Create referral code
         const code = generateReferralCode();
-        referral = await base44.entities.ReferralCode.create({
+        referral = await supabaseClient.entities.ReferralCode.create({
           user_email: currentUser.email,
           referral_code: code
         });

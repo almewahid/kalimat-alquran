@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,10 +38,10 @@ export default function ChallengeDetail() {
 
   const loadChallengeData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
-      const challengeData = await base44.entities.GroupChallenge.filter({ id: challengeId });
+      const challengeData = await supabaseClient.entities.GroupChallenge.filter({ id: challengeId });
       if (challengeData.length === 0) {
         toast({ title: "❌ التحدي غير موجود", variant: "destructive" });
         return;
@@ -50,12 +50,12 @@ export default function ChallengeDetail() {
       const currentChallenge = challengeData[0];
       setChallenge(currentChallenge);
 
-      const groupData = await base44.entities.Group.filter({ id: currentChallenge.group_id });
+      const groupData = await supabaseClient.entities.Group.filter({ id: currentChallenge.group_id });
       if (groupData.length > 0) {
         setGroup(groupData[0]);
       }
 
-      const userProgress = await base44.entities.ChallengeProgress.filter({
+      const userProgress = await supabaseClient.entities.ChallengeProgress.filter({
         challenge_id: challengeId,
         user_email: currentUser.email
       });
@@ -65,10 +65,10 @@ export default function ChallengeDetail() {
       }
 
       // Load leaderboard
-      const allProgress = await base44.entities.ChallengeProgress.filter({ challenge_id: challengeId });
+      const allProgress = await supabaseClient.entities.ChallengeProgress.filter({ challenge_id: challengeId });
       const sortedProgress = allProgress.sort((a, b) => b.progress_value - a.progress_value);
       
-      const allUsers = await base44.entities.User.list();
+      const allUsers = await supabaseClient.entities.User.list();
       const leaderboardData = sortedProgress.map((prog, index) => {
         const userInfo = allUsers.find(u => u.email === prog.user_email);
         return {
@@ -92,7 +92,7 @@ export default function ChallengeDetail() {
     if (!challenge || !user) return;
 
     try {
-      const userProgressData = await base44.entities.UserProgress.filter({ created_by: user.email });
+      const userProgressData = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
       if (userProgressData.length === 0) return;
 
       const userProg = userProgressData[0];
@@ -104,11 +104,11 @@ export default function ChallengeDetail() {
           break;
         case "review_words":
           // Count reviews from quiz sessions
-          const sessions = await base44.entities.QuizSession.filter({ created_by: user.email });
+          const sessions = await supabaseClient.entities.QuizSession.filter({ created_by: user.email });
           newProgressValue = sessions.length;
           break;
         case "complete_quizzes":
-          const quizSessions = await base44.entities.QuizSession.filter({ created_by: user.email });
+          const quizSessions = await supabaseClient.entities.QuizSession.filter({ created_by: user.email });
           newProgressValue = quizSessions.length;
           break;
         case "maintain_streak":
@@ -128,7 +128,7 @@ export default function ChallengeDetail() {
           updateData.completion_date = new Date().toISOString();
           
           // Award badge
-          await base44.entities.UserBadge.create({
+          await supabaseClient.entities.UserBadge.create({
             user_email: user.email,
             badge_name: challenge.reward_badge,
             badge_icon: "🏆",
@@ -139,7 +139,7 @@ export default function ChallengeDetail() {
 
           // Award XP
           const newTotalXP = (userProg.total_xp || 0) + challenge.reward_xp;
-          await base44.entities.UserProgress.update(userProg.id, {
+          await supabaseClient.entities.UserProgress.update(userProg.id, {
             total_xp: newTotalXP,
             current_level: Math.floor(newTotalXP / 100) + 1
           });
@@ -151,7 +151,7 @@ export default function ChallengeDetail() {
           });
         }
 
-        await base44.entities.ChallengeProgress.update(progress.id, updateData);
+        await supabaseClient.entities.ChallengeProgress.update(progress.id, updateData);
         loadChallengeData();
       }
     } catch (error) {

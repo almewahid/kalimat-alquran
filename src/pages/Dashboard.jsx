@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -22,16 +22,16 @@ export default function Dashboard() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboardData"],
     queryFn: async () => {
-      const currentUser = await base44.auth.me();
-      
-      const [progressData] = await base44.entities.UserProgress.filter({ 
+      const currentUser = await supabaseClient.auth.me();
+
+      const [progressData] = await supabaseClient.entities.UserProgress.filter({ 
         created_by: currentUser.email 
       });
 
       let finalProgress = progressData;
 
       if (!progressData) {
-        finalProgress = await base44.entities.UserProgress.create({
+        finalProgress = await supabaseClient.entities.UserProgress.create({
           created_by: currentUser.email,
           total_xp: 0,
           current_level: 1,
@@ -45,17 +45,17 @@ export default function Dashboard() {
         // تحديث تسجيل الدخول اليومي
         const today = new Date().toISOString().split('T')[0];
         const lastLogin = progressData.last_login_date;
-        
+
         if (lastLogin !== today) {
           const yesterday = new Date();
           yesterday.setDate(yesterday.getDate() - 1);
           const yesterdayStr = yesterday.toISOString().split('T')[0];
-          
+
           const newConsecutiveDays = lastLogin === yesterdayStr 
             ? (progressData.consecutive_login_days || 0) + 1 
             : 1;
-          
-          await base44.entities.UserProgress.update(progressData.id, {
+
+          await supabaseClient.entities.UserProgress.update(progressData.id, {
             last_login_date: today,
             consecutive_login_days: newConsecutiveDays
           });
@@ -65,8 +65,8 @@ export default function Dashboard() {
 
       // جلب الكلمات والاختبارات بالتوازي
       const [allWords, quizSessions] = await Promise.all([
-        base44.entities.QuranicWord.list(), // يمكن تحسين هذا بفلترة الكلمات المطلوبة فقط مستقبلاً
-        base44.entities.QuizSession.filter({ created_by: currentUser.email })
+        supabaseClient.entities.QuranicWord.list(), // يمكن تحسين هذا بفلترة الكلمات المطلوبة فقط مستقبلاً
+        supabaseClient.entities.QuizSession.filter({ created_by: currentUser.email })
       ]);
 
       const learnedWordIds = finalProgress?.learned_words || [];
@@ -231,7 +231,7 @@ export default function Dashboard() {
           onClose={async (settings) => {
             setShowTutorial(false);
             if (settings) {
-              await base44.auth.updateMe({
+              await supabaseClient.auth.updateMe({
                 preferences: {
                   ...user?.preferences,
                   ...settings,

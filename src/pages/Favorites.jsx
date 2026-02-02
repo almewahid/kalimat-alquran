@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import WordCard from "../components/learn/WordCard";
 import KidsWordCard from "../components/kids/KidsWordCard";
 import { Star, Frown, Loader2, Filter } from "lucide-react";
@@ -19,15 +19,15 @@ export default function FavoritesPage() {
   const loadFavorites = useCallback(async () => {
     setIsLoading(true);
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       const level = user?.preferences?.learning_level || "متوسط";
       setUserLevel(level);
 
-      const favoriteRecords = await base44.entities.FavoriteWord.filter({ created_by: user.email });
+      const favoriteRecords = await supabaseClient.entities.FavoriteWord.filter({ created_by: user.email });
       const wordIds = favoriteRecords.map(f => f.word_id);
 
       if (wordIds.length > 0) {
-        const allWords = await base44.entities.QuranicWord.list();
+        const allWords = await supabaseClient.entities.QuranicWord.list();
         const words = allWords.filter(w => wordIds.includes(w.id));
         const orderedWords = wordIds.map(id => words.find(w => w.id === id)).filter(Boolean).reverse();
         setFavoriteWords(orderedWords);
@@ -51,14 +51,14 @@ export default function FavoritesPage() {
 
   const handleRemoveFavorite = async (wordId) => {
     try {
-      const user = await base44.auth.me();
-      const favoriteRecords = await base44.entities.FavoriteWord.filter({
+      const user = await supabaseClient.auth.me();
+      const favoriteRecords = await supabaseClient.entities.FavoriteWord.filter({
         word_id: wordId,
         created_by: user.email
       });
 
       if (favoriteRecords.length > 0) {
-        await base44.entities.FavoriteWord.delete(favoriteRecords[0].id);
+        await supabaseClient.entities.FavoriteWord.delete(favoriteRecords[0].id);
         loadFavorites();
       }
     } catch (error) {

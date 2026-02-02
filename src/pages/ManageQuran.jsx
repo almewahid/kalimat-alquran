@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +61,7 @@ export default function ManageQuran() {
 
   const checkAdminAndLoadData = useCallback(async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       setIsAdmin(user.role === 'admin');
       
       if (user.role !== 'admin') {
@@ -71,8 +70,8 @@ export default function ManageQuran() {
       }
 
       const [allAyahsData, allWordsData] = await Promise.all([
-        base44.entities.QuranAyah.list('-id', 10000),
-        base44.entities.QuranicWord.list('-id', 10000)
+        supabaseClient.entities.QuranAyah.list('-id', 10000),
+        supabaseClient.entities.QuranicWord.list('-id', 10000)
       ]);
 
       setAyahs(allAyahsData);
@@ -772,4 +771,3 @@ export default function ManageQuran() {
     </div>
   );
 }
-

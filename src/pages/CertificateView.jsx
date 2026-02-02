@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Loader2, Download, Share2, ArrowRight, Printer, Award } from "lucide-react";
 import { motion } from "framer-motion";
@@ -39,7 +39,7 @@ export default function CertificateView() {
         if (courseId) {
             try {
                 // استخدام list مع فلتر بدل filter لتجنب الأخطاء إذا كان المعرف غير صالح
-                const courseData = await base44.entities.Course.filter({ id: courseId });
+                const courseData = await supabaseClient.entities.Course.filter({ id: courseId });
                 if (courseData && courseData.length > 0) {
                     setCourse(courseData[0]);
                 } else {
@@ -66,11 +66,11 @@ export default function CertificateView() {
       }
 
       // الوضع العادي (جلب من قاعدة البيانات)
-      const certData = await base44.entities.Certificate.filter({ id });
+      const certData = await supabaseClient.entities.Certificate.filter({ id });
       if (!certData.length) throw new Error("Certificate not found");
       setCertificate(certData[0]);
 
-      const courseData = await base44.entities.Course.filter({ id: certData[0].course_id });
+      const courseData = await supabaseClient.entities.Course.filter({ id: certData[0].course_id });
       if (courseData.length) {
         setCourse(courseData[0]);
       } else {

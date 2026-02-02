@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { base44 } from "@/api/base44Client"; // استيراد base44 SDK
+import { supabaseClient } from "@/components/api/supabaseClient"; // استيراد base44 SDK
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,7 +48,7 @@ export default function UploadImage() {
 
       // 🟢 حفظ الرابط في جدول Base44 (جدول اسمه images)
       try {
-        await base44.entities.images.create({ url: imageUrl });
+        await supabaseClient.entities.images.create({ url: imageUrl });
         setSaved(true);
       } catch (dbError) {
         setError("تم رفع الصورة، لكن لم تُحفظ في قاعدة البيانات: " + dbError.message);

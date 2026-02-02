@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Sparkles, CheckCircle, XCircle, Trophy, BarChart, ArrowRight } from "lucide-react";
 import { useAudio } from "@/components/common/AudioContext";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { triggerConfetti } from "@/components/common/Confetti";
 
 import FillInTheBlankQuiz from './FillInTheBlankQuiz';
@@ -154,16 +154,16 @@ export default function SmartQuizSession({ words, onComplete, preferences = { mu
 
       // Save XP to UserProgress
       try {
-          const user = await base44.auth.me();
-          const [progress] = await base44.entities.UserProgress.filter({ created_by: user.email });
+          const user = await supabaseClient.auth.me();
+          const [progress] = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
           
           if (progress) {
-              await base44.entities.UserProgress.update(progress.id, {
+              await supabaseClient.entities.UserProgress.update(progress.id, {
                   total_xp: (progress.total_xp || 0) + totalXP,
                   quiz_streak: (progress.quiz_streak || 0) + 1
               });
           } else {
-              await base44.entities.UserProgress.create({
+              await supabaseClient.entities.UserProgress.create({
                   created_by: user.email,
                   total_xp: totalXP,
                   quiz_streak: 1,
@@ -172,7 +172,7 @@ export default function SmartQuizSession({ words, onComplete, preferences = { mu
           }
           
           // Log Quiz Session
-          await base44.entities.QuizSession.create({
+          await supabaseClient.entities.QuizSession.create({
               score: correctCount,
               total_questions: totalWords,
               correct_answers: correctCount,

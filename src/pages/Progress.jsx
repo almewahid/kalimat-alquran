@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress as ProgressBar } from "@/components/ui/progress";
@@ -18,7 +18,7 @@ import { ar } from "date-fns/locale";
 
 import WeeklyChart from "../components/progress/WeeklyChart";
 import { QuizPerformanceChart, DifficultyDistributionChart, ReviewStatusChart } from "../components/progress/ProgressCharts";
-import { FlashCard } from "@/api/entities"; // Assuming you have this exported, or use base44.entities.FlashCard
+import { FlashCard } from "@/api/entities"; // Assuming you have this exported, or use supabaseClient.entities.FlashCard
 
 export default function Progress() {
   const [userProgress, setUserProgress] = useState(null);
@@ -38,7 +38,7 @@ export default function Progress() {
 
   const loadProgressData = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       if (!user?.email) {
         console.warn("User email not found");
         setIsLoading(false);
@@ -46,7 +46,7 @@ export default function Progress() {
       }
 
       // 1. Load User Progress
-      const progressList = await base44.entities.UserProgress.filter({ created_by: user.email });
+      const progressList = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
       const progress = progressList[0] || {
         total_xp: 0,
         current_level: 1,
@@ -57,13 +57,13 @@ export default function Progress() {
       setUserProgress(progress);
 
       // 2. Load Quiz Sessions
-      const sessions = await base44.entities.QuizSession.filter({ created_by: user.email }, '-created_date');
+      const sessions = await supabaseClient.entities.QuizSession.filter({ created_by: user.email }, '-created_date');
       const validSessions = sessions.filter(session => session && typeof session === 'object');
       setQuizSessions(validSessions);
 
       // 3. Load All Words & FlashCards
-      const words = await base44.entities.QuranicWord.list();
-      const flashcards = await base44.entities.FlashCard.filter({ created_by: user.email });
+      const words = await supabaseClient.entities.QuranicWord.list();
+      const flashcards = await supabaseClient.entities.FlashCard.filter({ created_by: user.email });
       
       setTotalWords(Array.isArray(words) ? words.length : 0);
 

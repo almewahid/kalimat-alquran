@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,10 +36,10 @@ export default function ManageNotes() {
 
   const loadNotes = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       const [userNotes, allWords] = await Promise.all([
-        base44.entities.UserNote.filter({ created_by: user.email }),
-        base44.entities.QuranicWord.list()
+        supabaseClient.entities.UserNote.filter({ created_by: user.email }),
+        supabaseClient.entities.QuranicWord.list()
       ]);
       
       setNotes(userNotes);
@@ -89,7 +89,7 @@ export default function ManageNotes() {
     }
 
     try {
-      await base44.entities.UserNote.update(editingNote.id, { content: editContent });
+      await supabaseClient.entities.UserNote.update(editingNote.id, { content: editContent });
       toast({ title: "✅ تم التحديث" });
       setShowEditDialog(false);
       loadNotes();
@@ -102,7 +102,7 @@ export default function ManageNotes() {
     if (!confirm("هل تريد حذف هذه الملاحظة؟")) return;
     
     try {
-      await base44.entities.UserNote.delete(id);
+      await supabaseClient.entities.UserNote.delete(id);
       toast({ title: "✅ تم الحذف" });
       loadNotes();
     } catch (error) {

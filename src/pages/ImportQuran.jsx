@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -227,7 +227,7 @@ export default function ImportQuran() {
       setStatus(checkMessage);
       setLogs(prev => [...prev, checkMessage]);
       
-      const existingAyahs = await base44.entities.QuranAyah.filter({ 
+      const existingAyahs = await supabaseClient.entities.QuranAyah.filter({ 
         surah_number: { '$in': selectedSurahs } 
       });
       
@@ -314,7 +314,7 @@ export default function ImportQuran() {
               juz_number: surah.juz
             };
             
-            await base44.entities.QuranAyah.create(ayahData);
+            await supabaseClient.entities.QuranAyah.create(ayahData);
             totalImported++;
           }
           

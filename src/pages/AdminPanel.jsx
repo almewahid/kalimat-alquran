@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,7 +94,7 @@ export default function AdminPanel() {
 
   const checkAdminAndLoadData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
       if (currentUser.role !== 'admin') {
@@ -108,10 +108,10 @@ export default function AdminPanel() {
       // Load all data
       // تحميل البيانات الأساسية
       const [users, words, dailyChallenges, groups] = await Promise.all([
-        base44.entities.User.list(),
-        base44.entities.QuranicWord.list(),
-        base44.entities.DailyChallenge.list(),
-        base44.entities.Group.list()
+        supabaseClient.entities.User.list(),
+        supabaseClient.entities.QuranicWord.list(),
+        supabaseClient.entities.DailyChallenge.list(),
+        supabaseClient.entities.Group.list()
       ]);
 
       setTotalUsers(users.length);
@@ -121,12 +121,12 @@ export default function AdminPanel() {
 
       // تحميل الدورات والشهادات بشكل منفصل
       try {
-        const courses = await base44.entities.Course.list();
+        const courses = await supabaseClient.entities.Course.list();
         setTotalCourses(courses.length);
       } catch (courseError) { console.warn("Could not load courses:", courseError); }
 
       try {
-        const certs = await base44.entities.Certificate.list();
+        const certs = await supabaseClient.entities.Certificate.list();
         setTotalCertificates(certs.length);
       } catch (certError) { console.warn("Could not load certificates:", certError); }
 
@@ -196,7 +196,7 @@ export default function AdminPanel() {
             });
             return;
           }
-          const progressList = await base44.entities.UserProgress.list();
+          const progressList = await supabaseClient.entities.UserProgress.list();
           targetUserEmails = progressList
             .filter(p => p.current_level >= level && existingUserEmails.has(p.created_by))
             .map(p => p.created_by);
@@ -210,7 +210,7 @@ export default function AdminPanel() {
             });
             return;
           }
-          const groups = await base44.entities.Group.filter({ id: notificationForm.target_value });
+          const groups = await supabaseClient.entities.Group.filter({ id: notificationForm.target_value });
           const targetGroup = groups.length > 0 ? groups[0] : null;
 
           if (targetGroup && targetGroup.members) {
@@ -244,7 +244,7 @@ export default function AdminPanel() {
 
       // Send notifications concurrently
       await Promise.all(targetUserEmails.map(userEmail =>
-        base44.entities.Notification.create({
+        supabaseClient.entities.Notification.create({
           user_email: userEmail,
           notification_type: notificationForm.notification_type,
           title: notificationForm.title,
@@ -293,7 +293,7 @@ export default function AdminPanel() {
     }
 
     try {
-      await base44.entities.DailyChallenge.create(challengeForm);
+      await supabaseClient.entities.DailyChallenge.create(challengeForm);
 
       toast({
         title: "✅ تم الإنشاء!",
@@ -326,7 +326,7 @@ export default function AdminPanel() {
 
   const deleteChallenge = async (challengeId) => {
     try {
-      await base44.entities.DailyChallenge.delete(challengeId);
+      await supabaseClient.entities.DailyChallenge.delete(challengeId);
       toast({
         title: "✅ تم الحذف",
         description: "تم حذف التحدي بنجاح.",
@@ -359,7 +359,7 @@ export default function AdminPanel() {
   // NEW: Function to save Smart Notification Scheduler settings
   const handleSaveNotificationSchedule = async () => {
     try {
-      await base44.auth.updateMe({
+      await supabaseClient.auth.updateMe({
         admin_notification_scheduler: notificationSchedule
       });
 
@@ -386,7 +386,7 @@ const CertificatesList = () => {
   useEffect(() => {
     const loadCerts = async () => {
       try {
-        const data = await base44.entities.Certificate.list("-issue_date", 50);
+        const data = await supabaseClient.entities.Certificate.list("-issue_date", 50);
         setCertificates(data);
       } catch (e) {
         console.error(e);
@@ -400,7 +400,7 @@ const CertificatesList = () => {
   const handleDeleteCert = async (id) => {
     if (!confirm("هل أنت متأكد من حذف هذه الشهادة؟")) return;
     try {
-      await base44.entities.Certificate.delete(id);
+      await supabaseClient.entities.Certificate.delete(id);
       setCertificates(prev => prev.filter(c => c.id !== id));
       toast({ title: "تم الحذف بنجاح" });
     } catch (e) {
@@ -1056,7 +1056,7 @@ function RecentNotificationsLog() {
 
   const loadRecentNotifications = async () => {
     try {
-      const notifications = await base44.entities.Notification.list("-created_date", 100);
+      const notifications = await supabaseClient.entities.Notification.list("-created_date", 100);
       
       const grouped = {};
       notifications.forEach(notif => {
@@ -1132,9 +1132,9 @@ function AnalyticsView({ totalUsers, allUsers }) {
   const loadRealAnalytics = async () => {
     try {
       const [progressRecords, quizSessions, activityLogs] = await Promise.all([
-        base44.entities.UserProgress.list(),
-        base44.entities.QuizSession.list("-created_date", 1000),
-        base44.entities.ActivityLog.list("-created_date", 1000)
+        supabaseClient.entities.UserProgress.list(),
+        supabaseClient.entities.QuizSession.list("-created_date", 1000),
+        supabaseClient.entities.ActivityLog.list("-created_date", 1000)
       ]);
 
       const today = new Date().toISOString().split('T')[0];

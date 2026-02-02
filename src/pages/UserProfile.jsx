@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +36,7 @@ export default function UserProfile() {
 
   const fetchUserData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       
       // Initialize form with existing data (custom fields are flattened on user object by Base44 SDK usually, 
@@ -48,12 +48,12 @@ export default function UserProfile() {
         affiliation_type: currentUser.affiliation_type || "individual"
       });
 
-      const [progressData] = await base44.entities.UserProgress.filter({ 
+      const [progressData] = await supabaseClient.entities.UserProgress.filter({ 
         created_by: currentUser.email 
       });
       setUserProgress(progressData);
 
-      const certs = await base44.entities.Certificate.filter({
+      const certs = await supabaseClient.entities.Certificate.filter({
         user_email: currentUser.email
       });
       setCertificates(certs);
@@ -67,7 +67,7 @@ export default function UserProfile() {
 
   const handleUpdateProfile = async () => {
     try {
-      await base44.auth.updateMe(profileForm);
+      await supabaseClient.auth.updateMe(profileForm);
       toast({ title: "✅ تم تحديث الملف الشخصي بنجاح" });
       setIsEditing(false);
       // Refresh user data locally

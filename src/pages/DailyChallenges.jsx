@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +24,12 @@ export default function DailyChallenges() {
 
   const loadDailyChallenges = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
       const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-      let challenges = await base44.entities.DailyChallenge.filter({
+      let challenges = await supabaseClient.entities.DailyChallenge.filter({
         challenge_date: todayStr
       });
 
@@ -65,17 +65,17 @@ export default function DailyChallenges() {
         ];
 
         for (const challenge of defaultChallenges) {
-          await base44.entities.DailyChallenge.create(challenge);
+          await supabaseClient.entities.DailyChallenge.create(challenge);
         }
 
-        challenges = await base44.entities.DailyChallenge.filter({
+        challenges = await supabaseClient.entities.DailyChallenge.filter({
           challenge_date: todayStr
         });
       }
 
       setTodayChallenges(challenges);
 
-      const progressList = await base44.entities.DailyChallengeProgress.filter({
+      const progressList = await supabaseClient.entities.DailyChallengeProgress.filter({
         user_email: currentUser.email
       });
 

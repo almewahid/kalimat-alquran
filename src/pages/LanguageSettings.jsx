@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Globe, Check } from "lucide-react";
@@ -60,7 +60,7 @@ export default function LanguageSettings() {
 
   const loadLanguage = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       const lang = currentUser?.preferences?.language || "ar";
       setCurrentLanguage(lang);
@@ -81,7 +81,7 @@ export default function LanguageSettings() {
         language: langCode
       };
 
-      await base44.auth.updateMe({ preferences: updatedPreferences });
+      await supabaseClient.auth.updateMe({ preferences: updatedPreferences });
       
       setCurrentLanguage(langCode);
       document.documentElement.dir = LANGUAGES[langCode].dir;

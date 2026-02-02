@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,21 +81,21 @@ export default function LearningPaths() {
 
   const loadPathsData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
-      let allPaths = await base44.entities.LearningPath.list();
+      let allPaths = await supabaseClient.entities.LearningPath.list();
       
       if (allPaths.length === 0) {
         for (const pathData of DEFAULT_PATHS) {
-          await base44.entities.LearningPath.create(pathData);
+          await supabaseClient.entities.LearningPath.create(pathData);
         }
-        allPaths = await base44.entities.LearningPath.list();
+        allPaths = await supabaseClient.entities.LearningPath.list();
       }
       
       setPaths(allPaths);
 
-      const enrolled = await base44.entities.UserLearningPath.filter({ user_email: currentUser.email });
+      const enrolled = await supabaseClient.entities.UserLearningPath.filter({ user_email: currentUser.email });
       setUserPaths(enrolled);
 
     } catch (error) {
@@ -115,7 +115,7 @@ export default function LearningPaths() {
 
   const handleEnroll = async (path) => {
     try {
-      await base44.entities.UserLearningPath.create({
+      await supabaseClient.entities.UserLearningPath.create({
         user_email: user.email,
         path_id: path.id,
         start_date: new Date().toISOString(),

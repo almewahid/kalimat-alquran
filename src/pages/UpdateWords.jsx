@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -60,7 +60,7 @@ export default function UpdateWords() {
     setProgress("🔄 بدء تحديث الكلمات...");
     
     try {
-      const allWords = await base44.asServiceRole.entities.QuranicWord.list();
+      const allWords = await supabaseClient.asServiceRole.entities.QuranicWord.list();
       
       const logMsg = `📊 تم تحميل ${allWords.length} كلمة`;
       setLogs(prev => [...prev, logMsg]);
@@ -81,7 +81,7 @@ export default function UpdateWords() {
         const surahInfo = SURAH_DATA.find(s => s.name === word.surah_name);
         
         if (surahInfo) {
-          await base44.asServiceRole.entities.QuranicWord.update(word.id, {
+          await supabaseClient.asServiceRole.entities.QuranicWord.update(word.id, {
             surah_number: surahInfo.number
           });
           

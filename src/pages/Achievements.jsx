@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -57,13 +57,13 @@ export default function Achievements() {
 
   const loadAchievementsData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
       const [achievements, progressList, gemsList] = await Promise.all([
-        base44.entities.Achievement.filter({ user_email: currentUser.email }),
-        base44.entities.UserProgress.filter({ created_by: currentUser.email }),
-        base44.entities.UserGems.filter({ user_email: currentUser.email })
+        supabaseClient.entities.Achievement.filter({ user_email: currentUser.email }),
+        supabaseClient.entities.UserProgress.filter({ created_by: currentUser.email }),
+        supabaseClient.entities.UserGems.filter({ user_email: currentUser.email })
       ]);
 
       setUserAchievements(achievements);
@@ -97,11 +97,11 @@ export default function Achievements() {
           shouldAward = (progress.words_learned || 0) >= achievement.value;
           break;
         case "quiz_master":
-          const sessions = await base44.entities.QuizSession.filter({ created_by: userEmail });
+          const sessions = await supabaseClient.entities.QuizSession.filter({ created_by: userEmail });
           shouldAward = sessions.length >= achievement.value;
           break;
         case "perfect_score":
-          const perfectSessions = await base44.entities.QuizSession.filter({ 
+          const perfectSessions = await supabaseClient.entities.QuizSession.filter({ 
             created_by: userEmail,
             score: 100 
           });
@@ -126,7 +126,7 @@ export default function Achievements() {
   const awardAchievement = async (userEmail, achievement) => {
     try {
       // Create achievement record
-      await base44.entities.Achievement.create({
+      await supabaseClient.entities.Achievement.create({
         user_email: userEmail,
         achievement_type: achievement.type,
         achievement_name: achievement.name,
@@ -140,26 +140,26 @@ export default function Achievements() {
       });
 
       // Award XP
-      const progressList = await base44.entities.UserProgress.filter({ created_by: userEmail });
+      const progressList = await supabaseClient.entities.UserProgress.filter({ created_by: userEmail });
       if (progressList.length > 0) {
         const progress = progressList[0];
         const newTotalXP = (progress.total_xp || 0) + achievement.xp;
-        await base44.entities.UserProgress.update(progress.id, {
+        await supabaseClient.entities.UserProgress.update(progress.id, {
           total_xp: newTotalXP,
           current_level: Math.floor(newTotalXP / 100) + 1
         });
       }
 
       // Award Gems
-      const gemsList = await base44.entities.UserGems.filter({ user_email: userEmail });
+      const gemsList = await supabaseClient.entities.UserGems.filter({ user_email: userEmail });
       if (gemsList.length > 0) {
         const gems = gemsList[0];
-        await base44.entities.UserGems.update(gems.id, {
+        await supabaseClient.entities.UserGems.update(gems.id, {
           total_gems: (gems.total_gems || 0) + achievement.gems,
           current_gems: (gems.current_gems || 0) + achievement.gems
         });
       } else {
-        await base44.entities.UserGems.create({
+        await supabaseClient.entities.UserGems.create({
           user_email: userEmail,
           total_gems: achievement.gems,
           current_gems: achievement.gems

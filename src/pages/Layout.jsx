@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabaseClient } from "@/components/api/supabaseClient";
@@ -101,13 +102,7 @@ const systemItems = [
   { title: "ادعم التطبيق", url: createPageUrl("Support"), icon: Heart },
 ];
 
-const supabaseTestItems = [
-  { title: "🧪 Dashboard (Supabase)", url: createPageUrl("DashboardSupabase"), icon: Home },
-  { title: "🧪 التعلم (Supabase)", url: createPageUrl("LearnSupabase"), icon: BookOpen },
-  { title: "🧪 التقدم (Supabase)", url: createPageUrl("ProgressSupabase"), icon: BarChart3 },
-  { title: "🧪 المفضلة (Supabase)", url: createPageUrl("FavoritesSupabase"), icon: Heart },
-  { title: "🧪 اختبار RLS", url: createPageUrl("TestRLS"), icon: Shield },
-];
+
 
 const adminItems = [
   { title: "لوحة التحكم", url: createPageUrl("AdminPanel"), icon: Shield },
@@ -135,34 +130,18 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     const fetchUserPreferences = async () => {
       try {
-        const { data: { user }, error } = await supabaseClient.supabase.auth.getUser();
-        if (error || !user) throw error;
+        const user = await supabaseClient.auth.me();
+        setTheme(user?.preferences?.theme || "light");
+        setColorScheme(user?.preferences?.color_scheme || "default");
+        setIsAdmin(user?.role === 'admin');
         
-        // جلب بيانات المستخدم من user_profiles
-        const { data: profile } = await supabaseClient.supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        
-        setTheme(profile?.preferences?.theme || "light");
-        setColorScheme(profile?.preferences?.color_scheme || "default");
-        setIsAdmin(profile?.role === 'admin');
-        
-        // جلب الإشعارات غير المقروءة
-        const { data: notifications } = await supabaseClient.supabase
-          .from('user_notifications')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_read', false);
-        
-        setUnreadNotifications(notifications?.length || 0);
+        const notifications = await supabaseClient.entities.Notification.filter({
+          user_email: user.email,
+          is_read: false
+        });
+        setUnreadNotifications(notifications.length);
       } catch (error) {
         console.log("User not logged in or error fetching preferences.", error);
-        // توجيه لصفحة Login إذا لم يكن مسجل دخول
-        if (window.location.pathname !== '/' && window.location.pathname !== '/LoginSupabase') {
-          window.location.href = '/LoginSupabase';
-        }
       }
     };
     fetchUserPreferences();
@@ -482,38 +461,27 @@ export default function Layout({ children, currentPageName }) {
                             </SidebarMenuButton>
                           </SidebarMenuItem>
                         ))}
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            className={`rounded-xl transition-all duration-300 ${
+                              location.pathname === createPageUrl("StoreDetails")
+                                ? "bg-red-100 text-red-700 shadow-sm dark:bg-red-900/30"
+                                : "hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+                            }`}
+                          >
+                            <Link to={createPageUrl("StoreDetails")} className="flex items-center gap-3 px-4 py-3">
+                              <ShoppingBag className="w-5 h-5" />
+                              <span className="font-medium">بيانات المتاجر</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
                       </SidebarMenu>
                     </SidebarGroupContent>
                   </SidebarGroup>
                 )}
 
-                {/* Supabase Test Pages */}
-                <SidebarGroup className="mt-6">
-                  <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
-                    🧪 Supabase Test
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu className="space-y-2">
-                      {supabaseTestItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
-                            asChild
-                            className={`rounded-xl transition-all duration-300 ${
-                              location.pathname === item.url
-                                ? "bg-green-100 text-green-700 shadow-sm dark:bg-green-900/30"
-                                : "hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/20"
-                            }`}
-                          >
-                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
-                              <item.icon className="w-5 h-5" />
-                              <span className="font-medium">{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
+
 
                 {/* Logout Button */}
                 <SidebarGroup className="mt-6 border-t pt-4">
@@ -523,8 +491,7 @@ export default function Layout({ children, currentPageName }) {
                       className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                       onClick={async () => {
                         if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-                          await supabaseClient.supabase.auth.signOut();
-                          window.location.href = '/LoginSupabase';
+                          await supabaseClient.auth.logout();
                         }
                       }}
                     >

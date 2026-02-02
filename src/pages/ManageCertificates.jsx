@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,9 +68,9 @@ export default function ManageCertificates() {
     setLoading(true);
     try {
       const [certsData, coursesData, wordsData] = await Promise.all([
-        base44.entities.Certificate.list("-issue_date", 1000),
-        base44.entities.Course.list(),
-        base44.entities.QuranicWord.list("-created_date", 2000)
+        supabaseClient.entities.Certificate.list("-issue_date", 1000),
+        supabaseClient.entities.Course.list(),
+        supabaseClient.entities.QuranicWord.list("-created_date", 2000)
       ]);
       setCertificates(certsData);
       setCourses(coursesData);
@@ -101,7 +101,7 @@ export default function ManageCertificates() {
   const handleDelete = async (id) => {
     if (!confirm("هل أنت متأكد من حذف هذه الشهادة؟")) return;
     try {
-      await base44.entities.Certificate.delete(id);
+      await supabaseClient.entities.Certificate.delete(id);
       setCertificates(prev => prev.filter(c => c.id !== id));
       toast({ title: "✅ تم الحذف" });
     } catch (error) {
@@ -116,7 +116,7 @@ export default function ManageCertificates() {
       const course = courses.find(c => c.id === editingTemplate);
       if (!course) return;
 
-      await base44.entities.Course.update(course.id, {
+      await supabaseClient.entities.Course.update(course.id, {
         certificate_config: {
           title: templateForm.title,
           body: templateForm.body,
@@ -338,7 +338,7 @@ export default function ManageCertificates() {
                   <Button variant="destructive" size="icon" onClick={async () => {
                     if (!confirm("هل أنت متأكد من حذف هذه الدورة؟")) return;
                     try {
-                      await base44.entities.Course.delete(course.id);
+                      await supabaseClient.entities.Course.delete(course.id);
                       toast({ title: "✅ تم الحذف" });
                       fetchData();
                     } catch (error) {
@@ -470,10 +470,10 @@ export default function ManageCertificates() {
               try {
                 const payload = { ...courseFormData, words_ids: selectedWords };
                 if (editingCourse) {
-                  await base44.entities.Course.update(editingCourse.id, payload);
+                  await supabaseClient.entities.Course.update(editingCourse.id, payload);
                   toast({ title: "✅ تم التحديث" });
                 } else {
-                  await base44.entities.Course.create(payload);
+                  await supabaseClient.entities.Course.create(payload);
                   toast({ title: "✅ تم الإنشاء" });
                 }
                 setShowCourseDialog(false);

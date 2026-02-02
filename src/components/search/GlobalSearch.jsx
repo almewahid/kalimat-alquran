@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,7 +44,7 @@ export default function GlobalSearch() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const currentUser = await base44.auth.me();
+        const currentUser = await supabaseClient.auth.me();
         setUser(currentUser);
       } catch (error) {
         console.log("User not logged in:", error);
@@ -65,8 +65,8 @@ export default function GlobalSearch() {
 
       // البحث في الكلمات القرآنية
       const [allWords, allVerses] = await Promise.all([
-        base44.entities.QuranicWord.list(),
-        base44.entities.QuranAyah.list()
+        supabaseClient.entities.QuranicWord.list(),
+        supabaseClient.entities.QuranAyah.list()
       ]);
 
       // تصفية الكلمات
@@ -91,7 +91,7 @@ export default function GlobalSearch() {
       // البحث في المفضلة (إذا كان المستخدم مسجل دخول)
       let matchedFavorites = [];
       if (user) {
-        const favorites = await base44.entities.FavoriteWord.filter({ created_by: user.email });
+        const favorites = await supabaseClient.entities.FavoriteWord.filter({ user_email: user.email });
         const favoriteWordIds = favorites.map(f => f.word_id);
         matchedFavorites = matchedWords.filter(w => favoriteWordIds.includes(w.id));
       }

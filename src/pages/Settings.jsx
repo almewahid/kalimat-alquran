@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +67,7 @@ export default function Settings() {
 
     useEffect(() => {
         if (activeTab === 'notifications') {
-            base44.functions.invoke("analyzeUserBehavior").then(res => {
+            supabaseClient.functions.invoke("analyzeUserBehavior").then(res => {
                 if (res.data) setSmartAnalysis(res.data);
             });
         }
@@ -80,7 +80,7 @@ export default function Settings() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const currentUser = await base44.auth.me();
+                const currentUser = await supabaseClient.auth.me();
                 setUser(currentUser);
                 if (currentUser.preferences) {
                     const fetchedPreferences = currentUser.preferences;
@@ -137,7 +137,7 @@ export default function Settings() {
     const handleSaveChanges = async () => {
         if (!user) return;
         try {
-            await base44.auth.updateMe({ 
+            await supabaseClient.auth.updateMe({ 
                 preferences,
                 phone_number: user.phone_number,
                 country: user.country,

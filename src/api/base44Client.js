@@ -1,8 +1,7 @@
 import { createClient } from '@base44/sdk';
 
-const isDevelopment = import.meta.env.DEV;
-
+// Create a client WITHOUT authentication requirement
 export const base44 = createClient({
-  appId: import.meta.env.VITE_BASE44_APP_ID || "68b74ae8214aa5bfcb70e378", 
-  requiresAuth: false // تعطيل المصادقة نهائيًا - نستخدم Supabase
+  appId: "68b74ae8214aa5bfcb70e378", 
+  requiresAuth: false // ✅ منع redirect لـ Base44 login
 });

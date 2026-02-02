@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +31,11 @@ export default function ManageUsers() {
 
   const checkAdminAndLoad = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       setIsAdmin(user.role === "admin");
       
       if (user.role === "admin") {
-        const allUsers = await base44.entities.User.list("-created_date", 1000);
+        const allUsers = await supabaseClient.entities.User.list("-created_date", 1000);
         setUsers(allUsers);
       }
     } catch (error) {

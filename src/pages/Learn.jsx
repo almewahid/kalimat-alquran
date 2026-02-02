@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { getDueCards, updateCardWithSM2 } from "../components/srs/SRSAlgorithm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export default function Learn() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const currentUser = await base44.auth.me();
+        const currentUser = await supabaseClient.auth.me();
         if (currentUser.preferences) {
           setUserPreferences({
             sound_effects_enabled: currentUser.preferences.sound_effects_enabled !== false,
@@ -61,7 +61,7 @@ export default function Learn() {
   const loadLearningData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       
       const level = currentUser?.preferences?.learning_level || "all";
@@ -76,15 +76,15 @@ export default function Learn() {
 
       WordsCache.clear();
       
-      const flashCardsPromise = base44.entities.FlashCard.filter({ created_by: currentUser.email });
+      const flashCardsPromise = supabaseClient.entities.FlashCard.filter({ created_by: currentUser.email });
 
       // Fetch words efficiently
       // If level is specific, filter by it. If 'all', limit to 200.
       let wordsPromise;
       if (level && level !== "all") {
-          wordsPromise = base44.entities.QuranicWord.filter({ difficulty_level: level });
+          wordsPromise = supabaseClient.entities.QuranicWord.filter({ difficulty_level: level });
       } else {
-          wordsPromise = base44.entities.QuranicWord.list("-created_date", 200);
+          wordsPromise = supabaseClient.entities.QuranicWord.list("-created_date", 200);
       }
 
       [allWords, allFlashCards] = await Promise.all([
@@ -254,25 +254,25 @@ export default function Learn() {
     
     if (isNew) {
       try {
-        let [progress] = await base44.entities.UserProgress.filter({ created_by: user.email });
-        
+        let [progress] = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
+
         let oldTotalXP = progress?.total_xp || 0;
-        
+
         if (!progress) {
-          progress = await base44.entities.UserProgress.create({ created_by: user.email });
+          progress = await supabaseClient.entities.UserProgress.create({ created_by: user.email });
         }
-        
+
         const newCardData = { word_id: currentWord.id, created_by: user.email, is_new: true };
-        const flashcard = await base44.entities.FlashCard.create(newCardData);
-        
+        const flashcard = await supabaseClient.entities.FlashCard.create(newCardData);
+
         const updatedCard = updateCardWithSM2(flashcard, 5);
-        await base44.entities.FlashCard.update(flashcard.id, updatedCard);
-        
+        await supabaseClient.entities.FlashCard.update(flashcard.id, updatedCard);
+
         const xpGained = 10;
         const newTotalXP = oldTotalXP + xpGained;
         const newLearnedWords = [...new Set([...(progress.learned_words || []), currentWord.id])];
-  
-        await base44.entities.UserProgress.update(progress.id, {
+
+        await supabaseClient.entities.UserProgress.update(progress.id, {
           learned_words: newLearnedWords,
           words_learned: newLearnedWords.length,
           total_xp: newTotalXP,
@@ -319,7 +319,7 @@ export default function Learn() {
         }
 
         const updatedCard = updateCardWithSM2(flashcard, 5);
-        await base44.entities.FlashCard.update(flashcard.id, updatedCard);
+        await supabaseClient.entities.FlashCard.update(flashcard.id, updatedCard);
         
         setFlashCardMap(prevMap => new Map(prevMap).set(flashcard.word_id, updatedCard));
         
@@ -394,13 +394,13 @@ export default function Learn() {
     
     try {
       // تحقق من وجود السجل
-      const existingRecords = await base44.entities.FavoriteWord.filter({
+      const existingRecords = await supabaseClient.entities.FavoriteWord.filter({
         word_id: displayWord.id,
         created_by: user.email
       });
 
       if (existingRecords.length === 0) {
-        await base44.entities.FavoriteWord.create({
+        await supabaseClient.entities.FavoriteWord.create({
           word_id: displayWord.id
         });
 

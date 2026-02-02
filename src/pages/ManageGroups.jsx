@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,11 +30,11 @@ export default function ManageGroups() {
 
   const checkAdminAndLoad = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       setIsAdmin(user.role === "admin");
       
       if (user.role === "admin") {
-        const allGroups = await base44.entities.Group.list("-created_date", 1000);
+        const allGroups = await supabaseClient.entities.Group.list("-created_date", 1000);
         setGroups(allGroups);
       }
     } catch (error) {
@@ -63,7 +63,7 @@ export default function ManageGroups() {
     if (!confirm("هل أنت متأكد من حذف هذه المجموعة؟")) return;
     
     try {
-      await base44.entities.Group.delete(id);
+      await supabaseClient.entities.Group.delete(id);
       toast({ title: "✅ تم حذف المجموعة" });
       checkAdminAndLoad();
     } catch (error) {

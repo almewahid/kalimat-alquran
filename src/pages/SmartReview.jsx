@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -194,10 +194,10 @@ export default function SmartReview() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       
       // 1. Fetch Flashcards (User's progress)
-      const flashcards = await base44.entities.FlashCard.list();
+      const flashcards = await supabaseClient.entities.FlashCard.list();
 
       // 2. Identify words we need to fetch
       // Only fetch words that are actually needed (for due cards) to save bandwidth
@@ -216,7 +216,7 @@ export default function SmartReview() {
           const chunkSize = 50;
           for (let i = 0; i < dueWordIds.length; i += chunkSize) {
               const idsChunk = dueWordIds.slice(i, i + chunkSize);
-              const chunkWords = await base44.entities.QuranicWord.filter({
+              const chunkWords = await supabaseClient.entities.QuranicWord.filter({
                   id: { $in: idsChunk }
               });
               loadedWords = [...loadedWords, ...chunkWords];
@@ -225,7 +225,7 @@ export default function SmartReview() {
 
       // Also fetch a small batch of recent words for the library/discovery (e.g. 50)
       // instead of 1000
-      const recentWords = await base44.entities.QuranicWord.list("-created_date", 50);
+      const recentWords = await supabaseClient.entities.QuranicWord.list("-created_date", 50);
 
       // Merge and dedup
       const allLoadedWordsMap = new Map();
@@ -298,10 +298,10 @@ export default function SmartReview() {
     try {
       if (word.flashcard) {
         // Update existing
-        await base44.entities.FlashCard.update(word.flashcard.id, srsResult);
+        await supabaseClient.entities.FlashCard.update(word.flashcard.id, srsResult);
       } else {
         // Create new
-        await base44.entities.FlashCard.create({
+        await supabaseClient.entities.FlashCard.create({
           word_id: word.id,
           ...srsResult
         });

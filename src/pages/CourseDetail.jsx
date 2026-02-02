@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Link, useLocation } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -30,14 +30,14 @@ export default function CourseDetail() {
   const fetchCourseDetails = async () => {
     try {
       setLoading(true);
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       
-      const courseData = await base44.entities.Course.filter({ id });
+      const courseData = await supabaseClient.entities.Course.filter({ id });
       if (!courseData.length) throw new Error("Course not found");
       setCourse(courseData[0]);
 
       // Fetch Progress
-      const progressData = await base44.entities.UserCourseProgress.filter({ 
+      const progressData = await supabaseClient.entities.UserCourseProgress.filter({ 
         user_email: user.email, 
         course_id: id 
       });
@@ -49,7 +49,7 @@ export default function CourseDetail() {
         // But assuming base44 supports filtering by ID list if the SDK supports it.
         // If not, we might need to fetch all words or loop.
         // The previous attempt used $in, assuming it's supported.
-        const wordsData = await base44.entities.QuranicWord.filter({
+        const wordsData = await supabaseClient.entities.QuranicWord.filter({
            id: { $in: courseData[0].words_ids }
         });
         
@@ -69,7 +69,7 @@ export default function CourseDetail() {
 
   const handleWordComplete = async (wordId) => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       // Initialize if undefined (defensive coding)
       let currentCompleted = [];
       // Note: UserCourseProgress entity in my previous create call didn't have completed_words_ids
@@ -125,9 +125,9 @@ export default function CourseDetail() {
         };
 
         if (progress?.id) {
-          await base44.entities.UserCourseProgress.update(progress.id, payload);
+          await supabaseClient.entities.UserCourseProgress.update(progress.id, payload);
         } else {
-          const newProg = await base44.entities.UserCourseProgress.create(payload);
+          const newProg = await supabaseClient.entities.UserCourseProgress.create(payload);
           setProgress(newProg);
         }
         

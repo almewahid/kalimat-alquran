@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://idivxuxznyrslzjxhtzb.supabase.co'
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkaXZ4dXh6bnlyc2x6anhodHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3ODM3MDIsImV4cCI6MjA4NTM1OTcwMn0.E3ITYSlcs7MXy8ImEzRfOe4acDyVvYvm-Oh01loBm7w';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // Create Supabase client
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -40,7 +40,20 @@ export const supabaseClient = {
     
     logout: async () => {
       await supabase.auth.signOut()
-      window.location.href = '/LoginSupabase'
+      window.location.href = '/Login'
+    },
+    
+    updateMe: async (data) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { error } = await supabase
+        .from('user_profiles')
+        .update(data)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+      return { success: true }
     },
     
     isAuthenticated: async () => {
@@ -52,7 +65,7 @@ export const supabaseClient = {
   entities: {}
 }
 
-// Entity wrapper
+// Entity wrapper - يدعم created_by و user_email معًا
 const createEntityWrapper = (tableName) => ({
   list: async (sortField = '-created_date', limit = 50) => {
     const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
@@ -71,10 +84,34 @@ const createEntityWrapper = (tableName) => ({
   filter: async (conditions = {}, sortField = '-created_date', limit = 50) => {
     let query = supabase.from(tableName).select('*')
     
+    // ✅ دعم created_by (Base44) و user_email (Supabase) معًا
+    const processedConditions = { ...conditions }
+    
+    // إذا كان created_by موجود، استخدم user_email بدلاً منه
+    if (processedConditions.created_by) {
+      processedConditions.user_email = processedConditions.created_by
+      delete processedConditions.created_by
+    }
+    
     // Apply filters
-    Object.entries(conditions).forEach(([key, value]) => {
+    Object.entries(processedConditions).forEach(([key, value]) => {
       if (Array.isArray(value)) {
         query = query.in(key, value)
+      } else if (typeof value === 'object' && value !== null) {
+        // دعم MongoDB-style operators
+        if (value.$in && Array.isArray(value.$in)) {
+          query = query.in(key, value.$in)
+        } else if (value.$gte !== undefined) {
+          query = query.gte(key, value.$gte)
+        } else if (value.$lte !== undefined) {
+          query = query.lte(key, value.$lte)
+        } else if (value.$gt !== undefined) {
+          query = query.gt(key, value.$gt)
+        } else if (value.$lt !== undefined) {
+          query = query.lt(key, value.$lt)
+        } else if (value.$ne !== undefined) {
+          query = query.neq(key, value.$ne)
+        }
       } else {
         query = query.eq(key, value)
       }
@@ -93,12 +130,16 @@ const createEntityWrapper = (tableName) => ({
   create: async (data) => {
     const { data: { user } } = await supabase.auth.getUser()
     
+    // ✅ إضافة user_email (Supabase) بدلاً من created_by (Base44)
     const enrichedData = {
       ...data,
       user_id: user?.id,
       user_email: user?.email,
       created_date: new Date().toISOString(),
     }
+    
+    // إزالة created_by إذا كان موجودًا في البيانات
+    delete enrichedData.created_by
     
     const { data: result, error } = await supabase
       .from(tableName)
@@ -110,10 +151,41 @@ const createEntityWrapper = (tableName) => ({
     return result
   },
   
-  update: async (id, data) => {
+  bulkCreate: async (items) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    const enrichedItems = items.map(item => {
+      const enriched = {
+        ...item,
+        user_id: user?.id,
+        user_email: user?.email,
+        created_date: new Date().toISOString(),
+      }
+      
+      // إزالة created_by
+      delete enriched.created_by
+      
+      return enriched
+    })
+    
     const { data: result, error } = await supabase
       .from(tableName)
-      .update({ ...data, updated_date: new Date().toISOString() })
+      .insert(enrichedItems)
+      .select()
+    
+    if (error) throw error
+    return result
+  },
+  
+  update: async (id, data) => {
+    const updateData = { ...data, updated_date: new Date().toISOString() }
+    
+    // إزالة created_by إذا كان موجودًا
+    delete updateData.created_by
+    
+    const { data: result, error } = await supabase
+      .from(tableName)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()
@@ -148,6 +220,14 @@ supabaseClient.entities = {
   UserGems: createEntityWrapper('user_gems'),
   Notification: createEntityWrapper('user_notifications'),
   LandingPage: createEntityWrapper('landing_pages'),
+  FlashCard: createEntityWrapper('flash_cards'),
+  UserPurchase: createEntityWrapper('user_purchases'),
+  Course: createEntityWrapper('courses'),
+  Certificate: createEntityWrapper('certificates'),
+  DailyChallenge: createEntityWrapper('daily_challenges'),
+  DailyChallengeProgress: createEntityWrapper('daily_challenge_progress'),
+  ReferralCode: createEntityWrapper('referral_codes'),
+  ErrorLog: createEntityWrapper('error_logs'),
 }
 
 export default supabaseClient

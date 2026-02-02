@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,13 +63,13 @@ export default function CreateChallengeModal({ isOpen, onClose, groupId, onSucce
         difficulty_level: challenge.difficulty_level
       };
 
-      const created = await base44.entities.GroupChallenge.create(challengeData);
+      const created = await supabaseClient.entities.GroupChallenge.create(challengeData);
 
       // Create progress records for all group members
-      const group = await base44.entities.Group.filter({ id: groupId });
+      const group = await supabaseClient.entities.Group.filter({ id: groupId });
       if (group[0] && group[0].members) {
         for (const memberEmail of group[0].members) {
-          await base44.entities.ChallengeProgress.create({
+          await supabaseClient.entities.ChallengeProgress.create({
             challenge_id: created.id,
             user_email: memberEmail,
             progress_value: 0,

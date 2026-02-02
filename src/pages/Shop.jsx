@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,12 +54,12 @@ export default function Shop() {
 
   const loadShopData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
-      let [gems] = await base44.entities.UserGems.filter({ user_email: currentUser.email });
+      let [gems] = await supabaseClient.entities.UserGems.filter({ user_email: currentUser.email });
       if (!gems) {
-        gems = await base44.entities.UserGems.create({
+        gems = await supabaseClient.entities.UserGems.create({
           user_email: currentUser.email,
           total_gems: 0,
           current_gems: 0,
@@ -68,7 +68,7 @@ export default function Shop() {
       }
       setUserGems(gems);
 
-      const userPurchases = await base44.entities.UserPurchase.filter({ user_email: currentUser.email });
+      const userPurchases = await supabaseClient.entities.UserPurchase.filter({ user_email: currentUser.email });
       setPurchases(userPurchases);
 
     } catch (error) {
@@ -105,7 +105,7 @@ export default function Shop() {
     }
 
     try {
-      await base44.entities.UserPurchase.create({
+      await supabaseClient.entities.UserPurchase.create({
         user_email: user.email,
         item_type: itemType,
         item_id: item.id,
@@ -117,7 +117,7 @@ export default function Shop() {
       const newGemsCount = userGems.current_gems - item.price;
       const newGemsSpent = userGems.gems_spent + item.price;
       
-      await base44.entities.UserGems.update(userGems.id, {
+      await supabaseClient.entities.UserGems.update(userGems.id, {
         current_gems: newGemsCount,
         gems_spent: newGemsSpent
       });

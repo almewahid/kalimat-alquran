@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 
 /**
  * 🔔 نظام الإشعارات الذكية التلقائي
@@ -18,10 +18,10 @@ export const SmartNotificationSystem = {
    */
   async checkDueReviews() {
     try {
-      const users = await base44.entities.User.list();
+      const users = await supabaseClient.entities.User.list();
       
       for (const user of users) {
-        const flashcards = await base44.entities.FlashCard.filter({ created_by: user.email });
+        const flashcards = await supabaseClient.entities.FlashCard.filter({ created_by: user.email });
         const now = new Date();
         
         // كلمات مستحقة للمراجعة
@@ -31,7 +31,7 @@ export const SmartNotificationSystem = {
         });
         
         if (dueCards.length > 0) {
-          await base44.entities.Notification.create({
+          await supabaseClient.entities.Notification.create({
             user_email: user.email,
             notification_type: "review_reminder",
             title: "⏰ وقت المراجعة!",
@@ -48,7 +48,7 @@ export const SmartNotificationSystem = {
         });
         
         if (upcomingCards.length > 0) {
-          await base44.entities.Notification.create({
+          await supabaseClient.entities.Notification.create({
             user_email: user.email,
             notification_type: "review_reminder",
             title: "🔔 قريباً: موعد المراجعة",
@@ -67,11 +67,11 @@ export const SmartNotificationSystem = {
    */
   async checkStreaks() {
     try {
-      const users = await base44.entities.User.list();
+      const users = await supabaseClient.entities.User.list();
       const today = new Date().toISOString().split('T')[0];
       
       for (const user of users) {
-        const [progress] = await base44.entities.UserProgress.filter({ created_by: user.email });
+        const [progress] = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
         
         if (!progress) continue;
         
@@ -80,7 +80,7 @@ export const SmartNotificationSystem = {
         
         // تحذير إذا لم يسجل دخول اليوم وكان لديه سلسلة
         if (lastLoginDate !== today && consecutiveDays > 0) {
-          await base44.entities.Notification.create({
+          await supabaseClient.entities.Notification.create({
             user_email: user.email,
             notification_type: "streak_warning",
             title: "🔥 احذر! سلسلتك في خطر",
@@ -91,7 +91,7 @@ export const SmartNotificationSystem = {
         
         // تهنئة على سلسلة طويلة
         if (consecutiveDays > 0 && consecutiveDays % 7 === 0) {
-          await base44.entities.Notification.create({
+          await supabaseClient.entities.Notification.create({
             user_email: user.email,
             notification_type: "achievement_earned",
             title: "🎉 إنجاز رائع!",
@@ -110,10 +110,10 @@ export const SmartNotificationSystem = {
    */
   async checkGroupChallenges() {
     try {
-      const groups = await base44.entities.Group.list();
+      const groups = await supabaseClient.entities.Group.list();
       
       for (const group of groups) {
-        const challenges = await base44.entities.GroupChallenge.filter({
+        const challenges = await supabaseClient.entities.GroupChallenge.filter({
           group_id: group.id,
           is_active: true
         });
@@ -129,7 +129,7 @@ export const SmartNotificationSystem = {
         if (newChallenges.length > 0) {
           for (const member of group.members) {
             for (const challenge of newChallenges) {
-              await base44.entities.Notification.create({
+              await supabaseClient.entities.Notification.create({
                 user_email: member,
                 notification_type: "challenge_invite",
                 title: "🎯 تحدي جديد في مجموعتك!",
@@ -150,8 +150,8 @@ export const SmartNotificationSystem = {
    */
   async checkRankChanges() {
     try {
-      const allUsers = await base44.entities.User.list();
-      const allProgress = await base44.entities.UserProgress.list();
+      const allUsers = await supabaseClient.entities.User.list();
+      const allProgress = await supabaseClient.entities.UserProgress.list();
       
       // ترتيب حسب XP
       const sorted = allProgress
@@ -164,7 +164,7 @@ export const SmartNotificationSystem = {
         
         // تم تجاوزه
         if (previousRank < currentRank) {
-          await base44.entities.Notification.create({
+          await supabaseClient.entities.Notification.create({
             user_email: userProgress.created_by,
             notification_type: "rank_change",
             title: "📉 تم تجاوزك!",
@@ -175,7 +175,7 @@ export const SmartNotificationSystem = {
         
         // تجاوز أحداً
         if (previousRank > currentRank) {
-          await base44.entities.Notification.create({
+          await supabaseClient.entities.Notification.create({
             user_email: userProgress.created_by,
             notification_type: "rank_change",
             title: "📈 صعدت في الترتيب!",
@@ -186,7 +186,7 @@ export const SmartNotificationSystem = {
         
         // تحديث الترتيب السابق
         if (userProgress.id) {
-          await base44.entities.UserProgress.update(userProgress.id, {
+          await supabaseClient.entities.UserProgress.update(userProgress.id, {
             previous_rank: currentRank
           });
         }
@@ -201,16 +201,16 @@ export const SmartNotificationSystem = {
    */
   async sendDailyReminders() {
     try {
-      const users = await base44.entities.User.list();
+      const users = await supabaseClient.entities.User.list();
       const currentHour = new Date().getHours();
       
       for (const user of users) {
         const preferredHour = user.preferences?.reminder_time || 20; // افتراضي 8 مساءً
         
         if (currentHour === preferredHour) {
-          const [progress] = await base44.entities.UserProgress.filter({ created_by: user.email });
+          const [progress] = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
           
-          await base44.entities.Notification.create({
+          await supabaseClient.entities.Notification.create({
             user_email: user.email,
             notification_type: "daily_challenge",
             title: "🌙 وقت التعلم اليومي!",

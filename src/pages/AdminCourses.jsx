@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,8 +47,8 @@ export default function AdminCourses() {
     try {
       setLoading(true);
       const [coursesData, wordsData] = await Promise.all([
-        base44.entities.Course.list("-created_date"),
-        base44.entities.QuranicWord.list("-created_date", 2000)
+        supabaseClient.entities.Course.list("-created_date"),
+        supabaseClient.entities.QuranicWord.list("-created_date", 2000)
       ]);
       setCourses(coursesData);
       setAvailableWords(wordsData);
@@ -116,10 +116,10 @@ export default function AdminCourses() {
       };
 
       if (currentCourse) {
-        await base44.entities.Course.update(currentCourse.id, payload);
+        await supabaseClient.entities.Course.update(currentCourse.id, payload);
         toast({ title: "✅ تم تحديث الدورة" });
       } else {
-        await base44.entities.Course.create(payload);
+        await supabaseClient.entities.Course.create(payload);
         toast({ title: "✅ تم إنشاء الدورة" });
       }
       setShowDialog(false);
@@ -133,7 +133,7 @@ export default function AdminCourses() {
   const handleDelete = async (id) => {
     if (!confirm("هل أنت متأكد من حذف هذه الدورة؟")) return;
     try {
-      await base44.entities.Course.delete(id);
+      await supabaseClient.entities.Course.delete(id);
       toast({ title: "✅ تم الحذف" });
       fetchData();
     } catch (error) {

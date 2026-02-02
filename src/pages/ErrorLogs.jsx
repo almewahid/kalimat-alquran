@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ export default function ErrorLogs() {
     setLoading(true);
     try {
       // Fetching more logs to allow better client-side filtering
-      const data = await base44.entities.ErrorLog.list("-timestamp", 100);
+      const data = await supabaseClient.entities.ErrorLog.list("-timestamp", 100);
       setLogs(data);
     } catch (error) {
       console.error("Failed to fetch logs:", error);
@@ -41,7 +41,7 @@ export default function ErrorLogs() {
     e.stopPropagation();
     if (!confirm("هل أنت متأكد من حذف هذا السجل؟")) return;
     try {
-      await base44.entities.ErrorLog.delete(id);
+      await supabaseClient.entities.ErrorLog.delete(id);
       setLogs(logs.filter(l => l.id !== id));
     } catch (error) {
       alert("فشل الحذف");
@@ -55,7 +55,7 @@ export default function ErrorLogs() {
     try {
       // Delete visible logs one by one (safer with current SDK)
       const idsToDelete = filteredLogs.map(l => l.id);
-      await Promise.all(idsToDelete.map(id => base44.entities.ErrorLog.delete(id)));
+      await Promise.all(idsToDelete.map(id => supabaseClient.entities.ErrorLog.delete(id)));
       
       setLogs(logs.filter(l => !idsToDelete.includes(l.id)));
       alert("تم حذف السجلات بنجاح");

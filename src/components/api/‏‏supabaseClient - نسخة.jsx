@@ -89,7 +89,7 @@ export const linkSupabaseUser = async () => {
 
     // 2. الحصول على مستخدم Base44
     const base44 = await import('@/api/base44Client');
-    const base44User = await base44.base44.auth.me();
+    const base44User = await base44.supabaseClient.auth.me();
     if (!base44User) {
       console.log('No Base44 user found');
       return null;
@@ -147,7 +147,7 @@ export const supabaseAuth = {
       } catch (supabaseError) {
         // Fallback إلى Base44
         const base44 = await import('@/api/base44Client');
-        const base44User = await base44.base44.auth.me();
+        const base44User = await base44.supabaseClient.auth.me();
         if (!base44User) return null;
         
         console.warn('⚠️ Using Base44 auth as fallback');

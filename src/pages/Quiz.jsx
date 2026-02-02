@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { updateCardWithSM2, getDueCards } from "../components/srs/SRSAlgorithm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,7 +64,7 @@ export default function Quiz() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const user = await base44.auth.me();
+        const user = await supabaseClient.auth.me();
         if (user.preferences) {
           setUserPreferences({
             sound_effects_enabled: user.preferences.sound_effects_enabled !== false,
@@ -108,7 +107,7 @@ export default function Quiz() {
     }
 
     try {
-      await base44.entities.QuizSession.create({
+      await supabaseClient.entities.QuizSession.create({
         score: Math.round((correctCount / questions.length) * 100),
         total_questions: questions.length,
         correct_answers: correctCount,
@@ -117,8 +116,8 @@ export default function Quiz() {
         completion_time: totalTime
       });
 
-      const user = await base44.auth.me();
-      const [currentProgress] = await base44.entities.UserProgress.filter({ created_by: user.email });
+      const user = await supabaseClient.auth.me();
+      const [currentProgress] = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
 
       if (currentProgress) {
         const newTotalXP = (currentProgress.total_xp || 0) + xpEarned;
@@ -127,7 +126,7 @@ export default function Quiz() {
         const newStreak = correctCount >= questions.length * 0.7 ?
           (currentProgress.quiz_streak || 0) + 1 : 0;
 
-        await base44.entities.UserProgress.update(currentProgress.id, {
+        await supabaseClient.entities.UserProgress.update(currentProgress.id, {
           total_xp: newTotalXP,
           current_level: newLevel,
           quiz_streak: newStreak,
@@ -173,15 +172,15 @@ export default function Quiz() {
       const { word_id } = pendingAnswerData;
 
       try {
-        const user = await base44.auth.me();
-        let [flashcard] = await base44.entities.FlashCard.filter({ word_id, created_by: user.email });
+        const user = await supabaseClient.auth.me();
+        let [flashcard] = await supabaseClient.entities.FlashCard.filter({ word_id, created_by: user.email });
 
         if (!flashcard) {
-          flashcard = await base44.entities.FlashCard.create({ word_id, created_by: user.email });
+          flashcard = await supabaseClient.entities.FlashCard.create({ word_id, created_by: user.email });
         }
 
         const updatedCard = updateCardWithSM2(flashcard, quality);
-        await base44.entities.FlashCard.update(flashcard.id, updatedCard);
+        await supabaseClient.entities.FlashCard.update(flashcard.id, updatedCard);
 
       } catch(e) {
         console.error("Failed to update flashcard:", e);
@@ -274,7 +273,7 @@ export default function Quiz() {
     setQuizMode(mode);
     setIsLoading(true);
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       
       // ✅ تحميل إعدادات الوقت من تفضيلات المستخدم
       const timeLimit = user?.preferences?.quiz_time_limit !== undefined 
@@ -286,8 +285,8 @@ export default function Quiz() {
       setUserLevel(level);
       
       const [allWords, allFlashCards] = await Promise.all([
-          base44.entities.QuranicWord.list(),
-          base44.entities.FlashCard.filter({ created_by: user.email })
+          supabaseClient.entities.QuranicWord.list(),
+          supabaseClient.entities.FlashCard.filter({ created_by: user.email })
       ]);
 
       console.log('[pages/Quiz.js] Total words:', allWords.length);

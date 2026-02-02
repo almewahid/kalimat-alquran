@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,10 +49,10 @@ export default function GroupDetail() {
 
   const loadGroupData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       
-      const groupData = await base44.entities.Group.filter({ id: groupId });
+      const groupData = await supabaseClient.entities.Group.filter({ id: groupId });
       if (groupData.length === 0) {
         toast({ title: "❌ المجموعة غير موجودة", variant: "destructive" });
         return;
@@ -61,16 +61,16 @@ export default function GroupDetail() {
       const currentGroup = groupData[0];
       setGroup(currentGroup);
 
-      const groupChallenges = await base44.entities.GroupChallenge.filter({ group_id: groupId });
+      const groupChallenges = await supabaseClient.entities.GroupChallenge.filter({ group_id: groupId });
       setChallenges(groupChallenges);
 
       // Load member details
-      const allUsers = await base44.entities.User.list();
+      const allUsers = await supabaseClient.entities.User.list();
       const groupMembers = allUsers.filter(u => currentGroup.members?.includes(u.email));
       
       const membersWithProgress = await Promise.all(
         groupMembers.map(async (member) => {
-          const [progress] = await base44.entities.UserProgress.filter({ 
+          const [progress] = await supabaseClient.entities.UserProgress.filter({ 
             created_by: member.email 
           });
           return {
@@ -85,7 +85,7 @@ export default function GroupDetail() {
       // Load Leaderboard Data
       const challengeIds = groupChallenges.map(c => c.id);
       if (challengeIds.length > 0) {
-          const progress = await base44.entities.ChallengeProgress.filter({ challenge_id: { $in: challengeIds } });
+          const progress = await supabaseClient.entities.ChallengeProgress.filter({ challenge_id: { $in: challengeIds } });
           
           // Aggregate scores per user
           const scores = {};
@@ -124,7 +124,7 @@ export default function GroupDetail() {
     try {
         // Simple suggestion: Random words for now
         // In a real app, this would query aggregated difficulty stats
-        const words = await base44.entities.QuranicWord.list(); // Fetch some words
+        const words = await supabaseClient.entities.QuranicWord.list(); // Fetch some words
         const randomWords = words.sort(() => 0.5 - Math.random()).slice(0, 5);
         setSuggestedWords(randomWords);
     } catch (e) {
@@ -140,7 +140,7 @@ export default function GroupDetail() {
     try {
         const recipients = group.members.filter(email => email !== user.email);
         await Promise.all(recipients.map(email => 
-            base44.entities.Notification.create({
+            supabaseClient.entities.Notification.create({
                 user_email: email,
                 notification_type: "challenge_invite",
                 title: `📢 تنبيه من قائد المجموعة: ${group.name}`,
@@ -170,7 +170,7 @@ export default function GroupDetail() {
     
     try {
       const updatedMembers = group.members.filter(m => m !== memberEmail);
-      await base44.entities.Group.update(group.id, { members: updatedMembers });
+      await supabaseClient.entities.Group.update(group.id, { members: updatedMembers });
       toast({ title: "✅ تم إزالة العضو" });
       loadGroupData();
     } catch (error) {
@@ -186,7 +186,7 @@ export default function GroupDetail() {
     try {
       const updatedMembers = group.members.filter(m => m !== memberEmail);
       const bannedList = [...(group.banned_members || []), memberEmail];
-      await base44.entities.Group.update(group.id, { 
+      await supabaseClient.entities.Group.update(group.id, { 
         members: updatedMembers,
         banned_members: bannedList
       });
@@ -209,7 +209,7 @@ export default function GroupDetail() {
     
     try {
       const updatedMembers = group.members.filter(m => m !== user.email);
-      await base44.entities.Group.update(group.id, { members: updatedMembers });
+      await supabaseClient.entities.Group.update(group.id, { members: updatedMembers });
       toast({ title: "✅ تم مغادرة المجموعة" });
       window.location.href = createPageUrl("Groups");
     } catch (error) {
@@ -219,7 +219,7 @@ export default function GroupDetail() {
 
   const handleCreateQuiz = async () => {
     try {
-        await base44.entities.GroupChallenge.create({
+        await supabaseClient.entities.GroupChallenge.create({
             group_id: groupId,
             title: quizForm.title || "اختبار جديد",
             description: `اختبار في ${quizForm.source_type}: ${quizForm.source_value}`,
@@ -424,7 +424,7 @@ export default function GroupDetail() {
                                 if (!confirm(`هل تريد إلغاء حظر ${email}؟`)) return;
                                 try {
                                   const updatedBanned = group.banned_members.filter(e => e !== email);
-                                  await base44.entities.Group.update(group.id, { banned_members: updatedBanned });
+                                  await supabaseClient.entities.Group.update(group.id, { banned_members: updatedBanned });
                                   toast({ title: "✅ تم إلغاء الحظر" });
                                   loadGroupData();
                                 } catch (error) {

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Brain, BookOpen, Target, Zap, Trophy, Clock, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import {
   Dialog,
   DialogContent,
@@ -111,7 +111,7 @@ export default function QuizTypes() {
 
   const loadUserLevel = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       const level = user?.preferences?.learning_level || "متوسط";
       setUserLevel(level);
     } catch (error) {

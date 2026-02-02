@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,14 +28,14 @@ export default function Friends() {
 
   const loadFriendsData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
-      const myFriendships = await base44.entities.Friendship.filter({
+      const myFriendships = await supabaseClient.entities.Friendship.filter({
         user_email: currentUser.email
       });
 
-      const friendRequestsReceived = await base44.entities.Friendship.filter({
+      const friendRequestsReceived = await supabaseClient.entities.Friendship.filter({
         friend_email: currentUser.email,
         status: "pending"
       });
@@ -43,7 +43,7 @@ export default function Friends() {
       setFriendships(myFriendships);
       setFriendRequests(friendRequestsReceived);
 
-      const users = await base44.entities.User.list();
+      const users = await supabaseClient.entities.User.list();
       setAllUsers(users);
 
       const acceptedFriends = myFriendships.filter(f => f.status === "accepted");
@@ -54,9 +54,9 @@ export default function Friends() {
       for (const friendship of acceptedFriends) {
         try {
           const [progressList, recentActivity, courseProgress] = await Promise.all([
-            base44.entities.UserProgress.filter({ created_by: friendship.friend_email }),
-            base44.entities.ActivityLog.filter({ user_email: friendship.friend_email }, '-created_date', 5),
-            base44.entities.UserCourseProgress.filter({ user_email: friendship.friend_email })
+            supabaseClient.entities.UserProgress.filter({ created_by: friendship.friend_email }),
+            supabaseClient.entities.ActivityLog.filter({ user_email: friendship.friend_email }, '-created_date', 5),
+            supabaseClient.entities.UserCourseProgress.filter({ user_email: friendship.friend_email })
           ]);
           
           if (progressList && progressList.length > 0) {
@@ -111,14 +111,14 @@ export default function Friends() {
         return;
       }
 
-      await base44.entities.Friendship.create({
+      await supabaseClient.entities.Friendship.create({
         user_email: user.email,
         friend_email: searchEmail,
         status: "pending",
         requested_date: new Date().toISOString()
       });
 
-      await base44.entities.Notification.create({
+      await supabaseClient.entities.Notification.create({
         user_email: searchEmail,
         notification_type: "friend_request",
         title: "طلب صداقة جديد",
@@ -137,12 +137,12 @@ export default function Friends() {
 
   const acceptFriendRequest = async (friendship) => {
     try {
-      await base44.entities.Friendship.update(friendship.id, {
+      await supabaseClient.entities.Friendship.update(friendship.id, {
         status: "accepted",
         accepted_date: new Date().toISOString()
       });
 
-      await base44.entities.Friendship.create({
+      await supabaseClient.entities.Friendship.create({
         user_email: user.email,
         friend_email: friendship.user_email,
         status: "accepted",
@@ -150,7 +150,7 @@ export default function Friends() {
         accepted_date: new Date().toISOString()
       });
 
-      await base44.entities.Notification.create({
+      await supabaseClient.entities.Notification.create({
         user_email: friendship.user_email,
         notification_type: "friend_request",
         title: "تم قبول طلب الصداقة",
@@ -168,7 +168,7 @@ export default function Friends() {
 
   const rejectFriendRequest = async (friendship) => {
     try {
-      await base44.entities.Friendship.delete(friendship.id);
+      await supabaseClient.entities.Friendship.delete(friendship.id);
       toast({ title: "تم رفض الطلب" });
       loadFriendsData();
     } catch (error) {
@@ -178,13 +178,13 @@ export default function Friends() {
 
   const removeFriend = async (friendship) => {
     try {
-      await base44.entities.Friendship.delete(friendship.id);
+      await supabaseClient.entities.Friendship.delete(friendship.id);
 
       const reverseFriendship = friendships.find(
         f => f.user_email === friendship.friend_email && f.friend_email === user.email
       );
       if (reverseFriendship) {
-        await base44.entities.Friendship.delete(reverseFriendship.id);
+        await supabaseClient.entities.Friendship.delete(reverseFriendship.id);
       }
 
       toast({ title: "تمت الإزالة" });

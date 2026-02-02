@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -334,7 +333,7 @@ export default function ImportTafsir() {
       setStatus(checkMessage);
       setLogs(prev => [...prev, checkMessage]);
 
-      const existingTafsirs = await base44.entities.QuranTafsir.filter({ 
+      const existingTafsirs = await supabaseClient.entities.QuranTafsir.filter({ 
         tafsir_name: tafsir.name 
       });
 
@@ -450,7 +449,7 @@ export default function ImportTafsir() {
 
         try {
           // ✅ استخدام bulkCreate لكل دفعة
-          await base44.entities.QuranTafsir.bulkCreate(batch);
+          await supabaseClient.entities.QuranTafsir.bulkCreate(batch);
           imported += batch.length;
           
           setProgress(Math.round((imported / actualTotalToImport) * 100));
@@ -472,7 +471,7 @@ export default function ImportTafsir() {
           await sleep(2000); // انتظار ثانيتين
           
           try {
-            await base44.entities.QuranTafsir.bulkCreate(batch);
+            await supabaseClient.entities.QuranTafsir.bulkCreate(batch);
             imported += batch.length;
             setProgress(Math.round((imported / actualTotalToImport) * 100));
             

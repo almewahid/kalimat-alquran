@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,7 +105,7 @@ function GenerateWords() {
 
   const checkAdmin = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       setIsAdmin(currentUser.role === 'admin');
     } catch (error) {
@@ -118,7 +118,7 @@ function GenerateWords() {
 
   const logError = async (context, message, details) => {
     try {
-      await base44.functions.invoke("logAppError", {
+      await supabaseClient.functions.invoke("logAppError", {
         error_message: message,
         error_details: details ? JSON.stringify(details, Object.getOwnPropertyNames(details)) : "",
         context: context,
@@ -142,7 +142,7 @@ function GenerateWords() {
       await Promise.all(chunk.map(async (wordData) => {
         try {
           // البحث عن الكلمة الموجودة
-          const existing = await base44.entities.QuranicWord.filter({
+          const existing = await supabaseClient.entities.QuranicWord.filter({
             word: wordData.word,
             surah_name: wordData.surah_name,
             ayah_number: wordData.ayah_number,
@@ -151,13 +151,13 @@ function GenerateWords() {
 
           if (existing.length > 0) {
             if (updateExisting) {
-              await base44.entities.QuranicWord.update(existing[0].id, wordData);
+              await supabaseClient.entities.QuranicWord.update(existing[0].id, wordData);
               updatedCount++;
             } else {
               // Skip if exists and no update requested
             }
           } else {
-            await base44.entities.QuranicWord.create(wordData);
+            await supabaseClient.entities.QuranicWord.create(wordData);
             createdCount++;
           }
         } catch (err) {
@@ -219,7 +219,7 @@ function GenerateWords() {
 
           // Fetch Ayah for Context
           const cleanWord = removeArabicDiacritics(word);
-          const ayahs = await base44.entities.QuranAyah.filter({
+          const ayahs = await supabaseClient.entities.QuranAyah.filter({
             surah_name: matchedSurah,
             ayah_text_simple: { '$ilike': `%${cleanWord}%` }
           });
@@ -240,7 +240,7 @@ Fields required: meaning, category, root, aya_text (context), example_usage, ref
 Ensure aya_text is the full ayah text if Level is 'متقدم'.
 `;
           
-          const llmRes = await base44.integrations.Core.InvokeLLM({
+          const llmRes = await supabaseClient.integrations.Core.InvokeLLM({
             prompt,
             response_json_schema: {
               type: "object",
@@ -311,7 +311,7 @@ Ensure aya_text is the full ayah text if Level is 'متقدم'.
   const openImageGallery = async (formType) => {
     setSelectedImageFor(formType);
     try {
-      const images = await base44.entities.images.list("-created_date", 50);
+      const images = await supabaseClient.entities.images.list("-created_date", 50);
       setGalleryImages(images);
       setShowImageGallery(true);
     } catch (error) {

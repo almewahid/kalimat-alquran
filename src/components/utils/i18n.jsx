@@ -1,5 +1,5 @@
 import React from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 
 /**
  * 🌍 نظام تعدد اللغات (Multi-Language System)
@@ -280,7 +280,7 @@ export const useTranslation = () => {
   React.useEffect(() => {
     const loadLanguage = async () => {
       try {
-        const user = await base44.auth.me();
+        const user = await supabaseClient.auth.me();
         const userLang = user?.preferences?.language || 'ar';
         setLanguage(userLang);
         document.documentElement.lang = userLang;
@@ -310,8 +310,8 @@ export const useTranslation = () => {
     document.documentElement.dir = LANGUAGES[newLang].dir;
     
     try {
-      const user = await base44.auth.me();
-      await base44.auth.updateMe({
+      const user = await supabaseClient.auth.me();
+      await supabaseClient.auth.updateMe({
         preferences: {
           ...user.preferences,
           language: newLang

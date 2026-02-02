@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -27,7 +27,7 @@ export default function ChallengeCard({ challenge, index, userEmail }) {
 
   const loadProgress = async () => {
     try {
-      const userProgress = await base44.entities.ChallengeProgress.filter({
+      const userProgress = await supabaseClient.entities.ChallengeProgress.filter({
         challenge_id: challenge.id,
         user_email: userEmail
       });

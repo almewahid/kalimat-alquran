@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +44,7 @@ export default function WeeklyReports() {
   const loadWeeklyReport = async () => {
     setIsLoading(true);
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
       const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 6 });
@@ -52,7 +52,7 @@ export default function WeeklyReports() {
       const weekEndStr = format(weekEnd, 'yyyy-MM-dd');
 
       // Check if report exists
-      let [report] = await base44.entities.WeeklyReport.filter({
+      let [report] = await supabaseClient.entities.WeeklyReport.filter({
         user_email: currentUser.email,
         week_start_date: weekStartStr
       });
@@ -65,7 +65,7 @@ export default function WeeklyReports() {
       setWeeklyReport(report);
 
       // Load weekly activity data
-      const sessions = await base44.entities.QuizSession.filter({ created_by: currentUser.email });
+      const sessions = await supabaseClient.entities.QuizSession.filter({ created_by: currentUser.email });
       const weekSessions = sessions.filter(s => {
         const sessionDate = new Date(s.created_date);
         return sessionDate >= currentWeekStart && sessionDate <= weekEnd;
@@ -89,8 +89,8 @@ export default function WeeklyReports() {
       setWeeklyActivity(dailyActivity);
 
       // Load category breakdown
-      const allWords = await base44.entities.QuranicWord.list();
-      const [progress] = await base44.entities.UserProgress.filter({ created_by: currentUser.email });
+      const allWords = await supabaseClient.entities.QuranicWord.list();
+      const [progress] = await supabaseClient.entities.UserProgress.filter({ created_by: currentUser.email });
       const learnedIds = progress?.learned_words || [];
       const learnedWords = allWords.filter(w => learnedIds.includes(w.id));
 
@@ -110,8 +110,8 @@ export default function WeeklyReports() {
       setRankChange(Math.floor(Math.random() * 20) - 10);
 
       // Load comparison data (you vs average)
-      const allUsers = await base44.entities.User.list();
-      const allProgress = await base44.entities.UserProgress.list();
+      const allUsers = await supabaseClient.entities.User.list();
+      const allProgress = await supabaseClient.entities.UserProgress.list();
       
       const avgXP = allProgress.reduce((sum, p) => sum + (p.total_xp || 0), 0) / allProgress.length;
       const userXP = progress?.total_xp || 0;
@@ -131,7 +131,7 @@ export default function WeeklyReports() {
 
   const generateWeeklyReport = async (user, weekStart, weekEnd) => {
     try {
-      const sessions = await base44.entities.QuizSession.filter({ created_by: user.email });
+      const sessions = await supabaseClient.entities.QuizSession.filter({ created_by: user.email });
       const weekSessions = sessions.filter(s => {
         if (!s.created_date) return false;
         return s.created_date >= weekStart && s.created_date <= weekEnd;
@@ -141,7 +141,7 @@ export default function WeeklyReports() {
       const quizzesCompleted = weekSessions.length;
       const xpEarned = weekSessions.reduce((sum, s) => sum + (s.xp_earned || 0), 0);
 
-      const achievements = await base44.entities.Achievement.filter({ user_email: user.email });
+      const achievements = await supabaseClient.entities.Achievement.filter({ user_email: user.email });
       const weekAchievements = achievements.filter(a => {
         if (!a.earned_date) return false;
         return a.earned_date >= weekStart && a.earned_date <= weekEnd;
@@ -156,7 +156,7 @@ export default function WeeklyReports() {
       if (avgAccuracy < 70) recommendations.push("راجع الكلمات الصعبة أكثر");
       if (quizzesCompleted < 5) recommendations.push("اختبر نفسك مرة يومياً على الأقل");
 
-      const report = await base44.entities.WeeklyReport.create({
+      const report = await supabaseClient.entities.WeeklyReport.create({
         user_email: user.email,
         week_start_date: weekStart,
         week_end_date: weekEnd,

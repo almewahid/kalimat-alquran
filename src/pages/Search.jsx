@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import {
   Card,
   CardContent,
@@ -167,7 +167,7 @@ export default function Search() {
     const load = async () => {
       try {
         setLoadingAyahs(true);
-        const ayahs = await base44.entities.QuranAyah.list("-id", 10000);
+        const ayahs = await supabaseClient.entities.QuranAyah.list("-id", 10000);
         if (!mounted) return;
         const processed = ayahs.map((a) => ({
           ...a,
@@ -183,7 +183,7 @@ export default function Search() {
 
       try {
         setLoadingWords(true);
-        const words = await base44.entities.QuranicWord.list();
+        const words = await supabaseClient.entities.QuranicWord.list();
         if (!mounted) return;
         setAllWords(words || []);
       } catch (err) {

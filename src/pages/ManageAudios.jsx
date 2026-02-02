@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +76,7 @@ export default function ManageAudios() {
 
   const checkAdminAndLoadAll = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       setIsAdmin(user.role === "admin");
 
       if (user.role !== "admin") {
@@ -98,14 +98,14 @@ export default function ManageAudios() {
   };
 
   const loadAudios = async () => {
-    const res = await base44.entities.audios.list("-created_date", 1000);
+    const res = await supabaseClient.entities.audios.list("-created_date", 1000);
     setAudios(res);
   };
 
   const loadCategories = async () => {
     try {
       // ✅ جلب فئات الصوتيات فقط
-      const res = await base44.entities.categories.list("-created_date", 1000);
+      const res = await supabaseClient.entities.categories.list("-created_date", 1000);
       setCategories(res.filter(c => c.type === 'audio'));
     } catch (error) {
       console.error("Error loading categories:", error);
@@ -165,7 +165,7 @@ export default function ManageAudios() {
         const data = await res.json();
 
         if (data.secure_url) {
-          await base44.entities.audios.create({
+          await supabaseClient.entities.audios.create({
             url: data.secure_url,
             title: file.name,
             description: "",
@@ -204,7 +204,7 @@ export default function ManageAudios() {
 
   const handleSaveEdit = async () => {
     try {
-      await base44.entities.audios.update(editingAudio.id, {
+      await supabaseClient.entities.audios.update(editingAudio.id, {
         title: editingAudio.title,
         description: editingAudio.description,
         category: editingAudio.category,
@@ -222,7 +222,7 @@ export default function ManageAudios() {
   const handleDelete = async (audioId) => {
     if (!confirm("هل أنت متأكد من حذف هذا الملف الصوتي؟")) return;
     try {
-      await base44.entities.audios.delete(audioId);
+      await supabaseClient.entities.audios.delete(audioId);
       toast({ title: "✅ تم حذف الملف الصوتي" });
       checkAdminAndLoadAll();
     } catch (error) {
@@ -258,7 +258,7 @@ export default function ManageAudios() {
       return;
     }
     try {
-      await base44.entities.categories.create({
+      await supabaseClient.entities.categories.create({
         name: newCategory.name.trim(),
         description: newCategory.description.trim(),
         type: 'audio', // ✅ تحديد النوع كصوتيات
@@ -275,7 +275,7 @@ export default function ManageAudios() {
   const handleDeleteCategory = async (id) => {
     if (!confirm("هل تريد حذف هذه الفئة؟")) return;
     try {
-      await base44.entities.categories.delete(id);
+      await supabaseClient.entities.categories.delete(id);
       toast({ title: "✅ تم حذف الفئة" });
       loadCategories();
     } catch (error) {

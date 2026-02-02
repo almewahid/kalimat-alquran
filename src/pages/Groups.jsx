@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,10 +38,10 @@ export default function Groups() {
 
   const loadData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       
-      const allGroups = await base44.entities.Group.list();
+      const allGroups = await supabaseClient.entities.Group.list();
       const userGroups = allGroups.filter(g => 
         g.leader_email === currentUser.email || 
         (g.members && g.members.includes(currentUser.email))
@@ -74,7 +74,7 @@ export default function Groups() {
         type: newGroup.type || "general"
       };
 
-      await base44.entities.Group.create(groupData);
+      await supabaseClient.entities.Group.create(groupData);
       
       toast({ 
         title: "✅ تم إنشاء المجموعة بنجاح",
@@ -100,7 +100,7 @@ export default function Groups() {
 
     setIsJoining(true);
     try {
-      const foundGroup = await base44.entities.Group.filter({ join_code: joinCode.toUpperCase() });
+      const foundGroup = await supabaseClient.entities.Group.filter({ join_code: joinCode.toUpperCase() });
       
       if (foundGroup.length === 0) {
         toast({ title: "❌ كود غير صحيح", variant: "destructive" });
@@ -120,7 +120,7 @@ export default function Groups() {
       }
 
       const updatedMembers = [...(group.members || []), user.email];
-      await base44.entities.Group.update(group.id, { members: updatedMembers });
+      await supabaseClient.entities.Group.update(group.id, { members: updatedMembers });
       
       toast({ 
         title: "✅ تم الانضمام للمجموعة بنجاح",
@@ -154,7 +154,7 @@ export default function Groups() {
         // إرسال إشعار لكل عضو (ما عدا المرسل)
         const recipients = group.members.filter(m => m !== user.email);
         await Promise.all(recipients.map(email => 
-            base44.entities.Notification.create({
+            supabaseClient.entities.Notification.create({
                 user_email: email,
                 notification_type: "challenge_invite", // أو نوع مخصص جديد "group_message"
                 title: `رسالة من مجموعة ${group.name}`,

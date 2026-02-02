@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +29,8 @@ export default function CreateCustomChallenge() {
   }, []);
 
   const loadFriends = async () => {
-    const user = await base44.auth.me();
-    const friendships = await base44.entities.Friendship.filter({
+    const user = await supabaseClient.auth.me();
+    const friendships = await supabaseClient.entities.Friendship.filter({
         user_email: user.email,
         status: "accepted"
     });
@@ -41,7 +41,7 @@ export default function CreateCustomChallenge() {
     if (!searchTerm) return;
     setIsLoading(true);
     try {
-        const words = await base44.entities.QuranicWord.list(); // Ideally filter by search term on DB
+        const words = await supabaseClient.entities.QuranicWord.list(); // Ideally filter by search term on DB
         const filtered = words.filter(w => w.word.includes(searchTerm) || w.meaning.includes(searchTerm)).slice(0, 10);
         setWordResults(filtered);
     } catch (e) {
@@ -74,8 +74,8 @@ export default function CreateCustomChallenge() {
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
-        const user = await base44.auth.me();
-        await base44.entities.PersonalChallenge.create({
+        const user = await supabaseClient.auth.me();
+        await supabaseClient.entities.PersonalChallenge.create({
             creator_email: user.email,
             title: challengeData.title,
             description: challengeData.description,
@@ -88,7 +88,7 @@ export default function CreateCustomChallenge() {
 
         // Notify participants
         for (const email of challengeData.participants) {
-            await base44.entities.Notification.create({
+            await supabaseClient.entities.Notification.create({
                 user_email: email,
                 notification_type: "challenge_invite",
                 title: `دعوة لتحدي: ${challengeData.title}`,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -235,7 +235,7 @@ export default function QuranReader() {
   const loadSurah = async (surahNumber) => {
     setIsLoading(true);
     try {
-      const ayahsData = await base44.entities.QuranAyah.filter({
+      const ayahsData = await supabaseClient.entities.QuranAyah.filter({
         surah_number: surahNumber
       });
       
@@ -259,7 +259,7 @@ export default function QuranReader() {
   // تحميل كل آيات القرآن للبحث الشامل
   const loadAllAyahs = async () => {
     try {
-      const allData = await base44.entities.QuranAyah.list('-id', 10000); // Increased limit to fetch more
+      const allData = await supabaseClient.entities.QuranAyah.list('-id', 10000); // Increased limit to fetch more
       setAllAyahs(allData);
     } catch (error) {
       console.error("Error loading all ayahs:", error);
@@ -276,9 +276,9 @@ export default function QuranReader() {
           // Optimization: fetch words only for displayed ayahs in result?
           // For simplicity, let's fetch all words (might be heavy, maybe stick to current surah logic and accept limitations or paginate)
           // Better: just fetch words.
-          words = await base44.entities.QuranicWord.list();
+          words = await supabaseClient.entities.QuranicWord.list();
       } else {
-          words = await base44.entities.QuranicWord.filter({
+          words = await supabaseClient.entities.QuranicWord.filter({
             surah_name: SURAHS.find(s => s.number === selectedSurah)?.name
           });
       }
@@ -302,7 +302,7 @@ export default function QuranReader() {
       if (tafsirName === "none") return;
       
       // محاولة التحميل من قاعدة البيانات المحلية أولاً
-      const localTafsirs = await base44.entities.QuranTafsir.filter({
+      const localTafsirs = await supabaseClient.entities.QuranTafsir.filter({
         surah_number: surahNumber,
         tafsir_name: tafsirName
       });
@@ -348,7 +348,7 @@ export default function QuranReader() {
 
   const loadBookmarks = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       const userBookmarks = user.preferences?.quran_bookmarks || [];
       setBookmarks(userBookmarks);
     } catch (error) {
@@ -358,7 +358,7 @@ export default function QuranReader() {
 
   const toggleBookmark = async (surahNum, ayahNum) => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       const bookmarkId = `${surahNum}_${ayahNum}`;
       const currentBookmarks = user.preferences?.quran_bookmarks || [];
       
@@ -371,7 +371,7 @@ export default function QuranReader() {
         toast({ title: "تمت إضافة علامة مرجعية" });
       }
       
-      await base44.auth.updateMe({
+      await supabaseClient.auth.updateMe({
         preferences: {
           ...user.preferences,
           quran_bookmarks: newBookmarks

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,7 @@ export default function GroupChat({ groupId, currentUserEmail }) {
 
   const loadMessages = async () => {
     try {
-      const groupMessages = await base44.entities.GroupMessage.filter({
+      const groupMessages = await supabaseClient.entities.GroupMessage.filter({
         group_id: groupId
       });
 
@@ -53,7 +53,7 @@ export default function GroupChat({ groupId, currentUserEmail }) {
 
     setIsSending(true);
     try {
-      await base44.entities.GroupMessage.create({
+      await supabaseClient.entities.GroupMessage.create({
         group_id: groupId,
         message_text: newMessage,
         sender_email: currentUserEmail

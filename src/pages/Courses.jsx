@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,10 +19,10 @@ export default function Courses() {
 
   const fetchCourses = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       const [allCourses, progressList] = await Promise.all([
-        base44.entities.Course.filter({ is_active: true }, "-created_date"),
-        base44.entities.UserCourseProgress.filter({ user_email: user.email })
+        supabaseClient.entities.Course.filter({ is_active: true }, "-created_date"),
+        supabaseClient.entities.UserCourseProgress.filter({ user_email: user.email })
       ]);
 
       setCourses(allCourses);

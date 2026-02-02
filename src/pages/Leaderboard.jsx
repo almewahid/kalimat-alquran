@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,16 +19,16 @@ export default function Leaderboard() {
 
   const loadLeaderboards = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       setCurrentUser(user);
 
       // Global leaderboard (all time)
-      const allProgress = await base44.entities.UserProgress.list();
+      const allProgress = await supabaseClient.entities.UserProgress.list();
       const sortedGlobal = allProgress
         .sort((a, b) => (b.total_xp || 0) - (a.total_xp || 0))
         .slice(0, 50);
 
-      const allUsers = await base44.entities.User.list();
+      const allUsers = await supabaseClient.entities.User.list();
       const globalData = sortedGlobal.map((prog, index) => {
         const userInfo = allUsers.find(u => u.email === prog.created_by);
         return {
@@ -49,7 +49,7 @@ export default function Leaderboard() {
       weekAgo.setDate(weekAgo.getDate() - 7);
       const weekAgoStr = weekAgo.toISOString();
 
-      const recentSessions = await base44.entities.QuizSession.list('-created_date', 1000);
+      const recentSessions = await supabaseClient.entities.QuizSession.list('-created_date', 1000);
       const weekSessions = recentSessions.filter(s => s.created_date >= weekAgoStr);
 
       const weeklyXP = {};
@@ -74,7 +74,7 @@ export default function Leaderboard() {
       setWeeklyLeaderboard(weeklyData);
 
       // Group leaderboards
-      const allGroups = await base44.entities.Group.list();
+      const allGroups = await supabaseClient.entities.Group.list();
       const groupsData = [];
 
       for (const group of allGroups.slice(0, 5)) {

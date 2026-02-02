@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +26,8 @@ export default function KidsWordCard({ word, onMarkLearned }) {
   const checkFavoriteStatus = async () => {
     if (!word) return;
     try {
-      const user = await base44.auth.me();
-      const favorites = await base44.entities.FavoriteWord.filter({
+      const user = await supabaseClient.auth.me();
+      const favorites = await supabaseClient.entities.FavoriteWord.filter({
         word_id: word.id,
         created_by: user.email
       });
@@ -41,17 +41,17 @@ export default function KidsWordCard({ word, onMarkLearned }) {
     if (favoriteLoading || !word) return;
     setFavoriteLoading(true);
     try {
-      const user = await base44.auth.me();
-      const favorites = await base44.entities.FavoriteWord.filter({
+      const user = await supabaseClient.auth.me();
+      const favorites = await supabaseClient.entities.FavoriteWord.filter({
         word_id: word.id,
         created_by: user.email
       });
 
       if (favorites.length > 0) {
-        await base44.entities.FavoriteWord.delete(favorites[0].id);
+        await supabaseClient.entities.FavoriteWord.delete(favorites[0].id);
         setIsFavorite(false);
       } else {
-        await base44.entities.FavoriteWord.create({ word_id: word.id });
+        await supabaseClient.entities.FavoriteWord.create({ word_id: word.id });
         setIsFavorite(true);
       }
     } catch (error) {
@@ -64,8 +64,8 @@ export default function KidsWordCard({ word, onMarkLearned }) {
   const loadUserNote = async () => {
     if (!word) return;
     try {
-      const user = await base44.auth.me();
-      const notes = await base44.entities.UserNote.filter({
+      const user = await supabaseClient.auth.me();
+      const notes = await supabaseClient.entities.UserNote.filter({
         word_id: word.id,
         created_by: user.email
       });
@@ -83,20 +83,20 @@ export default function KidsWordCard({ word, onMarkLearned }) {
     if (noteLoading || !word) return;
     setNoteLoading(true);
     try {
-      const user = await base44.auth.me();
-      const notes = await base44.entities.UserNote.filter({
+      const user = await supabaseClient.auth.me();
+      const notes = await supabaseClient.entities.UserNote.filter({
         word_id: word.id,
         created_by: user.email
       });
 
       if (notes.length > 0) {
         if (userNote.trim()) {
-          await base44.entities.UserNote.update(notes[0].id, { content: userNote });
+          await supabaseClient.entities.UserNote.update(notes[0].id, { content: userNote });
         } else {
-          await base44.entities.UserNote.delete(notes[0].id);
+          await supabaseClient.entities.UserNote.delete(notes[0].id);
         }
       } else if (userNote.trim()) {
-        await base44.entities.UserNote.create({
+        await supabaseClient.entities.UserNote.create({
           word_id: word.id,
           content: userNote
         });

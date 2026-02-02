@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +60,7 @@ export default function Analytics() {
 
   const checkAdminAndLoadData = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       if (user.role !== 'admin') {
         setIsAdmin(false);
         setIsLoading(false);
@@ -79,7 +78,7 @@ export default function Analytics() {
   const loadAnalytics = async () => {
     try {
       // Load Users
-      const users = await base44.entities.User.list();
+      const users = await supabaseClient.entities.User.list();
       setTotalUsers(users.length);
       
       const weekAgo = new Date();
@@ -88,7 +87,7 @@ export default function Analytics() {
       setNewUsersThisWeek(newUsers.length);
       
       // Load Words
-      const words = await base44.entities.QuranicWord.list();
+      const words = await supabaseClient.entities.QuranicWord.list();
       setTotalWords(words.length);
       
       // Words by Surah (top 10)
@@ -150,7 +149,7 @@ export default function Analytics() {
       ]);
       
       // Load Quizzes
-      const quizzes = await base44.entities.QuizSession.list();
+      const quizzes = await supabaseClient.entities.QuizSession.list();
       setTotalQuizzes(quizzes.length);
       
       const validScores = quizzes.filter(q => typeof q.score === 'number').map(q => q.score);
@@ -176,7 +175,7 @@ export default function Analytics() {
       // Active Users (last 7 days)
       const activeUsersData = await Promise.all(
         users.map(async (user) => {
-          const progress = await base44.entities.UserProgress.filter({ created_by: user.email });
+          const progress = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
           if (progress.length > 0 && progress[0].last_login_date) {
             return { email: user.email, lastLogin: progress[0].last_login_date };
           }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +45,7 @@ export default function ManageLandingPages() {
 
   const checkAdminAndLoad = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       setIsAdmin(user.role === "admin");
       
       if (user.role === "admin") {
@@ -60,7 +60,7 @@ export default function ManageLandingPages() {
 
   const loadLandingPages = async () => {
     try {
-      const pages = await base44.entities.LandingPage.list("-priority", 100);
+      const pages = await supabaseClient.entities.LandingPage.list("-priority", 100);
       setLandingPages(pages);
     } catch (error) {
       console.error("Error loading landing pages:", error);
@@ -75,10 +75,10 @@ export default function ManageLandingPages() {
 
     try {
       if (editingPage) {
-        await base44.entities.LandingPage.update(editingPage.id, formData);
+        await supabaseClient.entities.LandingPage.update(editingPage.id, formData);
         toast({ title: "✅ تم التحديث بنجاح" });
       } else {
-        await base44.entities.LandingPage.create(formData);
+        await supabaseClient.entities.LandingPage.create(formData);
         toast({ title: "✅ تم الإنشاء بنجاح" });
       }
       
@@ -116,7 +116,7 @@ export default function ManageLandingPages() {
     if (!confirm("هل أنت متأكد من الحذف؟")) return;
     
     try {
-      await base44.entities.LandingPage.delete(id);
+      await supabaseClient.entities.LandingPage.delete(id);
       toast({ title: "✅ تم الحذف" });
       loadLandingPages();
     } catch (error) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +24,8 @@ export default function ContextQuiz() {
   const loadQuiz = async () => {
     try {
       const [words, ayahs] = await Promise.all([
-        base44.entities.QuranicWord.list(),
-        base44.entities.QuranAyah.list()
+        supabaseClient.entities.QuranicWord.list(),
+        supabaseClient.entities.QuranAyah.list()
       ]);
 
       // Create questions from words that have ayah context

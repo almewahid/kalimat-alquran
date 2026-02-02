@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,7 +42,7 @@ export default function Reports() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["reportsData"],
     queryFn: async () => {
-      const response = await base44.functions.invoke("getReportsData");
+      const response = await supabaseClient.functions.invoke("getReportsData");
       return response.data;
     }
   });

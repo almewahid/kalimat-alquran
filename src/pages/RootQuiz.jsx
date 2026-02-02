@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ export default function RootQuiz() {
 
   const loadQuiz = async () => {
     try {
-      const words = await base44.entities.QuranicWord.list();
+      const words = await supabaseClient.entities.QuranicWord.list();
       
       // Filter words with roots
       const wordsWithRoots = words.filter(w => w.root);
