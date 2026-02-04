@@ -21,7 +21,7 @@ export const supabaseClient = {
           .from('user_profiles')
           .select('*')
           .eq('user_id', user.id)
-          .single()
+          .maybeSingle()  // ✅ تغيير من single
         
         return {
           id: user.id,
