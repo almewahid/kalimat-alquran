@@ -1,5 +1,7 @@
 {
-  "name": "base44-app",
+  "name": "kalimat-alquran",
+  "description": "تطبيق لتعلم كلمات القرآن الكريم",
+  "author": "أسامة صقر",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,6 +13,9 @@
   },
   "dependencies": {
     "@base44/sdk": "^0.1.2",
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/cli": "^8.0.2",
+    "@capacitor/core": "^8.0.2",
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^4.1.2",
     "@radix-ui/react-accordion": "^1.2.3",
