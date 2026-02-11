@@ -21,7 +21,7 @@ export const SmartNotificationSystem = {
       const users = await supabaseClient.entities.User.list();
       
       for (const user of users) {
-        const flashcards = await supabaseClient.entities.FlashCard.filter({ created_by: user.email });
+        const flashcards = await supabaseClient.entities.FlashCard.filter({ user_email: user.email });
         const now = new Date();
         
         // كلمات مستحقة للمراجعة
@@ -71,7 +71,7 @@ export const SmartNotificationSystem = {
       const today = new Date().toISOString().split('T')[0];
       
       for (const user of users) {
-        const [progress] = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
+        const [progress] = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
         
         if (!progress) continue;
         
@@ -165,7 +165,7 @@ export const SmartNotificationSystem = {
         // تم تجاوزه
         if (previousRank < currentRank) {
           await supabaseClient.entities.Notification.create({
-            user_email: userProgress.created_by,
+            user_email: userProgress.user_email,
             notification_type: "rank_change",
             title: "📉 تم تجاوزك!",
             message: `نزلت للمرتبة ${currentRank}. حان وقت العودة للمنافسة! 💪`,
@@ -176,7 +176,7 @@ export const SmartNotificationSystem = {
         // تجاوز أحداً
         if (previousRank > currentRank) {
           await supabaseClient.entities.Notification.create({
-            user_email: userProgress.created_by,
+            user_email: userProgress.user_email,
             notification_type: "rank_change",
             title: "📈 صعدت في الترتيب!",
             message: `أحسنت! أصبحت في المرتبة ${currentRank}. استمر! 🔥`,
@@ -208,7 +208,7 @@ export const SmartNotificationSystem = {
         const preferredHour = user.preferences?.reminder_time || 20; // افتراضي 8 مساءً
         
         if (currentHour === preferredHour) {
-          const [progress] = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
+          const [progress] = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
           
           await supabaseClient.entities.Notification.create({
             user_email: user.email,

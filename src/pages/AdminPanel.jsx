@@ -94,7 +94,7 @@ export default function AdminPanel() {
 
   const checkAdminAndLoadData = async () => {
     try {
-      const currentUser = await supabaseClient.auth.me();
+      const currentUser = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
 
       if (currentUser.role !== 'admin') {
@@ -198,8 +198,8 @@ export default function AdminPanel() {
           }
           const progressList = await supabaseClient.entities.UserProgress.list();
           targetUserEmails = progressList
-            .filter(p => p.current_level >= level && existingUserEmails.has(p.created_by))
-            .map(p => p.created_by);
+            .filter(p => p.current_level >= level && existingUserEmails.has(p.user_email))
+            .map(p => p.user_email);
           break;
         case "group":
           if (!notificationForm.target_value) {

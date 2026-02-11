@@ -19,7 +19,7 @@ export default function Leaderboard() {
 
   const loadLeaderboards = async () => {
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       setCurrentUser(user);
 
       // Global leaderboard (all time)
@@ -30,11 +30,11 @@ export default function Leaderboard() {
 
       const allUsers = await supabaseClient.entities.User.list();
       const globalData = sortedGlobal.map((prog, index) => {
-        const userInfo = allUsers.find(u => u.email === prog.created_by);
+        const userInfo = allUsers.find(u => u.email === prog.user_email);
         return {
           rank: index + 1,
-          email: prog.created_by,
-          name: userInfo?.full_name || prog.created_by,
+          email: prog.user_email,
+          name: userInfo?.full_name || prog.user_email,
           total_xp: prog.total_xp || 0,
           level: prog.current_level || 1,
           words_learned: prog.words_learned || 0,
@@ -54,7 +54,7 @@ export default function Leaderboard() {
 
       const weeklyXP = {};
       weekSessions.forEach(session => {
-        const email = session.created_by;
+        const email = session.user_email;
         weeklyXP[email] = (weeklyXP[email] || 0) + (session.xp_earned || 0);
       });
 
@@ -78,16 +78,16 @@ export default function Leaderboard() {
       const groupsData = [];
 
       for (const group of allGroups.slice(0, 5)) {
-        const groupProgress = allProgress.filter(p => group.members?.includes(p.created_by));
+        const groupProgress = allProgress.filter(p => group.members?.includes(p.user_email));
         const sortedGroup = groupProgress
           .sort((a, b) => (b.total_xp || 0) - (a.total_xp || 0))
           .slice(0, 10)
           .map((prog, index) => {
-            const userInfo = allUsers.find(u => u.email === prog.created_by);
+            const userInfo = allUsers.find(u => u.email === prog.user_email);
             return {
               rank: index + 1,
-              email: prog.created_by,
-              name: userInfo?.full_name || prog.created_by,
+              email: prog.user_email,
+              name: userInfo?.full_name || prog.user_email,
               total_xp: prog.total_xp || 0,
               level: prog.current_level || 1
             };

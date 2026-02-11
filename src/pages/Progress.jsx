@@ -38,7 +38,7 @@ export default function Progress() {
 
   const loadProgressData = async () => {
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       if (!user?.email) {
         console.warn("User email not found");
         setIsLoading(false);
@@ -46,7 +46,7 @@ export default function Progress() {
       }
 
       // 1. Load User Progress
-      const progressList = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
+      const progressList = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
       const progress = progressList[0] || {
         total_xp: 0,
         current_level: 1,
@@ -57,13 +57,13 @@ export default function Progress() {
       setUserProgress(progress);
 
       // 2. Load Quiz Sessions
-      const sessions = await supabaseClient.entities.QuizSession.filter({ created_by: user.email }, '-created_date');
+      const sessions = await supabaseClient.entities.QuizSession.filter({ user_email: user.email }, '-created_date');
       const validSessions = sessions.filter(session => session && typeof session === 'object');
       setQuizSessions(validSessions);
 
       // 3. Load All Words & FlashCards
       const words = await supabaseClient.entities.QuranicWord.list();
-      const flashcards = await supabaseClient.entities.FlashCard.filter({ created_by: user.email });
+      const flashcards = await supabaseClient.entities.FlashCard.filter({ user_email: user.email });
       
       setTotalWords(Array.isArray(words) ? words.length : 0);
 

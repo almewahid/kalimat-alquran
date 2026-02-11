@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, Lock, Loader2 } from 'lucide-react';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -29,18 +31,34 @@ export default function Login() {
         if (error) throw error;
 
         if (data.user) {
-          await supabaseClient.supabase.from('user_profiles').insert({
-            user_id: data.user.id,
-            user_email: email,
-            full_name: email.split('@')[0],
-            role: 'user',
-          });
+          // إنشاء user profile
+          const { error: profileError } = await supabaseClient.supabase
+            .from('user_profiles')
+            .insert({
+              user_id: data.user.id,
+              email: email,
+              full_name: email.split('@')[0],
+              role: 'user',
+            });
 
-          await supabaseClient.supabase.from('user_gems').insert({
-            user_id: data.user.id,
-            user_email: email,
-            gems_count: 0,
-          });
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+          }
+
+          // إنشاء user gems
+          const { error: gemsError } = await supabaseClient.supabase
+            .from('user_gems')
+            .insert({
+              user_id: data.user.id,
+              user_email: email,
+              total_gems: 0,
+              gems_spent: 0,
+              current_gems: 0,
+            });
+
+          if (gemsError) {
+            console.error('Gems creation error:', gemsError);
+          }
 
           window.location.href = '/Dashboard';
         }
@@ -54,24 +72,76 @@ export default function Login() {
         window.location.href = '/Dashboard';
       }
     } catch (err) {
+      console.error('Full error:', err);
       setError(err.message || 'حدث خطأ، حاول مرة أخرى');
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Google Sign-In الصحيح
   const handleGoogleLogin = async () => {
     setLoading(true);
+    setError('');
+
     try {
-      const { error } = await supabaseClient.supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/Dashboard`,
-        },
-      });
-      if (error) throw error;
+      const isNative = Capacitor.isNativePlatform();
+
+      if (isNative) {
+        // ✅ للتطبيق (Android/iOS) - استخدم signInWithIdToken
+        const googleUser = await GoogleAuth.signIn();
+        
+        if (!googleUser || !googleUser.authentication) {
+          throw new Error('فشل تسجيل الدخول بـ Google');
+        }
+
+        const { data, error } = await supabaseClient.supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: googleUser.authentication.idToken,
+        });
+
+        if (error) throw error;
+
+        // إنشاء profile إذا لم يكن موجوداً
+        const { data: existingProfile } = await supabaseClient.supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (!existingProfile) {
+          await supabaseClient.supabase.from('user_profiles').insert({
+            user_id: data.user.id,
+            email: data.user.email,
+            full_name: googleUser.name || data.user.email.split('@')[0],
+            role: 'user',
+          });
+
+          await supabaseClient.supabase.from('user_gems').insert({
+            user_id: data.user.id,
+            user_email: data.user.email,
+            total_gems: 0,
+            gems_spent: 0,
+            current_gems: 0,
+          });
+        }
+
+        window.location.href = '/Dashboard';
+      } else {
+        // ✅ للويب - استخدم signInWithOAuth
+        const { error } = await supabaseClient.supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + '/Dashboard',
+          },
+        });
+
+        if (error) throw error;
+      }
     } catch (err) {
+      console.error('Google login error:', err);
       setError(err.message || 'فشل تسجيل الدخول بـ Google');
+    } finally {
       setLoading(false);
     }
   };
@@ -89,7 +159,7 @@ export default function Login() {
           {/* الشعار - الصورة */}
           <div className="mx-auto">
             <img 
-              src="public\logo.png" 
+              src="/logo.png" 
               alt="كلمات القرآن" 
               className="w-32 h-32 mx-auto object-contain drop-shadow-2xl animate-in zoom-in duration-500"
             />

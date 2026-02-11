@@ -64,7 +64,7 @@ export default function Quiz() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const user = await supabaseClient.auth.me();
+        const user = await supabaseClient.supabase.auth.getUser();
         if (user.preferences) {
           setUserPreferences({
             sound_effects_enabled: user.preferences.sound_effects_enabled !== false,
@@ -116,8 +116,8 @@ export default function Quiz() {
         completion_time: totalTime
       });
 
-      const user = await supabaseClient.auth.me();
-      const [currentProgress] = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
+      const user = await supabaseClient.supabase.auth.getUser();
+      const [currentProgress] = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
 
       if (currentProgress) {
         const newTotalXP = (currentProgress.total_xp || 0) + xpEarned;
@@ -172,11 +172,11 @@ export default function Quiz() {
       const { word_id } = pendingAnswerData;
 
       try {
-        const user = await supabaseClient.auth.me();
-        let [flashcard] = await supabaseClient.entities.FlashCard.filter({ word_id, created_by: user.email });
+        const user = await supabaseClient.supabase.auth.getUser();
+        let [flashcard] = await supabaseClient.entities.FlashCard.filter({ word_id, user_email: user.email });
 
         if (!flashcard) {
-          flashcard = await supabaseClient.entities.FlashCard.create({ word_id, created_by: user.email });
+          flashcard = await supabaseClient.entities.FlashCard.create({ word_id, user_email: user.email });
         }
 
         const updatedCard = updateCardWithSM2(flashcard, quality);
@@ -273,7 +273,7 @@ export default function Quiz() {
     setQuizMode(mode);
     setIsLoading(true);
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       
       // ✅ تحميل إعدادات الوقت من تفضيلات المستخدم
       const timeLimit = user?.preferences?.quiz_time_limit !== undefined 
@@ -286,7 +286,7 @@ export default function Quiz() {
       
       const [allWords, allFlashCards] = await Promise.all([
           supabaseClient.entities.QuranicWord.list(),
-          supabaseClient.entities.FlashCard.filter({ created_by: user.email })
+          supabaseClient.entities.FlashCard.filter({ user_email: user.email })
       ]);
 
       console.log('[pages/Quiz.js] Total words:', allWords.length);

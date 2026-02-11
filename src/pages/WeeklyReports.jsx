@@ -44,7 +44,7 @@ export default function WeeklyReports() {
   const loadWeeklyReport = async () => {
     setIsLoading(true);
     try {
-      const currentUser = await supabaseClient.auth.me();
+      const currentUser = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
 
       const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 6 });
@@ -65,7 +65,7 @@ export default function WeeklyReports() {
       setWeeklyReport(report);
 
       // Load weekly activity data
-      const sessions = await supabaseClient.entities.QuizSession.filter({ created_by: currentUser.email });
+      const sessions = await supabaseClient.entities.QuizSession.filter({ user_email: currentUser.email });
       const weekSessions = sessions.filter(s => {
         const sessionDate = new Date(s.created_date);
         return sessionDate >= currentWeekStart && sessionDate <= weekEnd;
@@ -90,7 +90,7 @@ export default function WeeklyReports() {
 
       // Load category breakdown
       const allWords = await supabaseClient.entities.QuranicWord.list();
-      const [progress] = await supabaseClient.entities.UserProgress.filter({ created_by: currentUser.email });
+      const [progress] = await supabaseClient.entities.UserProgress.filter({ user_email: currentUser.email });
       const learnedIds = progress?.learned_words || [];
       const learnedWords = allWords.filter(w => learnedIds.includes(w.id));
 
@@ -131,7 +131,7 @@ export default function WeeklyReports() {
 
   const generateWeeklyReport = async (user, weekStart, weekEnd) => {
     try {
-      const sessions = await supabaseClient.entities.QuizSession.filter({ created_by: user.email });
+      const sessions = await supabaseClient.entities.QuizSession.filter({ user_email: user.email });
       const weekSessions = sessions.filter(s => {
         if (!s.created_date) return false;
         return s.created_date >= weekStart && s.created_date <= weekEnd;

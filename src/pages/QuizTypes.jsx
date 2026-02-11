@@ -111,7 +111,7 @@ export default function QuizTypes() {
 
   const loadUserLevel = async () => {
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       const level = user?.preferences?.learning_level || "متوسط";
       setUserLevel(level);
     } catch (error) {

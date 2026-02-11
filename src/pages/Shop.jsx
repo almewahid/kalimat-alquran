@@ -54,7 +54,7 @@ export default function Shop() {
 
   const loadShopData = async () => {
     try {
-      const currentUser = await supabaseClient.auth.me();
+      const currentUser = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
 
       let [gems] = await supabaseClient.entities.UserGems.filter({ user_email: currentUser.email });

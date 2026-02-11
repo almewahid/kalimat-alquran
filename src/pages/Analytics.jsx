@@ -60,7 +60,7 @@ export default function Analytics() {
 
   const checkAdminAndLoadData = async () => {
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       if (user.role !== 'admin') {
         setIsAdmin(false);
         setIsLoading(false);
@@ -175,7 +175,7 @@ export default function Analytics() {
       // Active Users (last 7 days)
       const activeUsersData = await Promise.all(
         users.map(async (user) => {
-          const progress = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
+          const progress = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
           if (progress.length > 0 && progress[0].last_login_date) {
             return { email: user.email, lastLogin: progress[0].last_login_date };
           }

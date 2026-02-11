@@ -154,8 +154,8 @@ export default function SmartQuizSession({ words, onComplete, preferences = { mu
 
       // Save XP to UserProgress
       try {
-          const user = await supabaseClient.auth.me();
-          const [progress] = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
+          const user = await supabaseClient.supabase.auth.getUser();
+          const [progress] = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
           
           if (progress) {
               await supabaseClient.entities.UserProgress.update(progress.id, {
@@ -164,7 +164,7 @@ export default function SmartQuizSession({ words, onComplete, preferences = { mu
               });
           } else {
               await supabaseClient.entities.UserProgress.create({
-                  created_by: user.email,
+                  user_email: user.email,
                   total_xp: totalXP,
                   quiz_streak: 1,
                   current_level: 1
@@ -177,7 +177,7 @@ export default function SmartQuizSession({ words, onComplete, preferences = { mu
               total_questions: totalWords,
               correct_answers: correctCount,
               xp_earned: totalXP,
-              created_by: user.email
+              user_email: user.email
           });
 
       } catch (error) {

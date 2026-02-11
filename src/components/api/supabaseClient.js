@@ -65,7 +65,7 @@ export const supabaseClient = {
   entities: {}
 }
 
-// Entity wrapper - يدعم created_by و user_email معًا
+// Entity wrapper - يدعم user_email و user_email معًا
 const createEntityWrapper = (tableName) => ({
   list: async (sortField = '-created_date', limit = 50) => {
     const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
@@ -84,13 +84,13 @@ const createEntityWrapper = (tableName) => ({
   filter: async (conditions = {}, sortField = '-created_date', limit = 50) => {
     let query = supabase.from(tableName).select('*')
     
-    // ✅ دعم created_by (Base44) و user_email (Supabase) معًا
+    // ✅ دعم user_email (Base44) و user_email (Supabase) معًا
     const processedConditions = { ...conditions }
     
-    // إذا كان created_by موجود، استخدم user_email بدلاً منه
-    if (processedConditions.created_by) {
-      processedConditions.user_email = processedConditions.created_by
-      delete processedConditions.created_by
+    // إذا كان user_email موجود، استخدم user_email بدلاً منه
+    if (processedConditions.user_email) {
+      processedConditions.user_email = processedConditions.user_email
+      delete processedConditions.user_email
     }
     
     // Apply filters
@@ -130,7 +130,7 @@ const createEntityWrapper = (tableName) => ({
   create: async (data) => {
     const { data: { user } } = await supabase.auth.getUser()
     
-    // ✅ إضافة user_email (Supabase) بدلاً من created_by (Base44)
+    // ✅ إضافة user_email (Supabase) بدلاً من user_email (Base44)
     const enrichedData = {
       ...data,
       user_id: user?.id,
@@ -138,8 +138,8 @@ const createEntityWrapper = (tableName) => ({
       created_date: new Date().toISOString(),
     }
     
-    // إزالة created_by إذا كان موجودًا في البيانات
-    delete enrichedData.created_by
+    // إزالة user_email إذا كان موجودًا في البيانات
+    delete enrichedData.user_email
     
     const { data: result, error } = await supabase
       .from(tableName)
@@ -162,8 +162,8 @@ const createEntityWrapper = (tableName) => ({
         created_date: new Date().toISOString(),
       }
       
-      // إزالة created_by
-      delete enriched.created_by
+      // إزالة user_email
+      delete enriched.user_email
       
       return enriched
     })
@@ -180,8 +180,8 @@ const createEntityWrapper = (tableName) => ({
   update: async (id, data) => {
     const updateData = { ...data, updated_date: new Date().toISOString() }
     
-    // إزالة created_by إذا كان موجودًا
-    delete updateData.created_by
+    // إزالة user_email إذا كان موجودًا
+    delete updateData.user_email
     
     const { data: result, error } = await supabase
       .from(tableName)

@@ -36,7 +36,7 @@ const logErrorToBackend = async (context, message, details) => {
   try {
     let userEmail = "anonymous";
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       if (user) userEmail = user.email;
     } catch (e) { /* ignore auth error */ }
 

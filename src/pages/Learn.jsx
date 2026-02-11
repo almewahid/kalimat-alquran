@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowRight, ArrowLeft, CheckCircle, Brain, Trophy, Zap, Loader2, RotateCcw, Shuffle, Star, AlertCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle, Brain, Trophy, Zap, Loader2, RotateCcw, Shuffle, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import WordCard from "../components/learn/WordCard";
 import KidsWordCard from "../components/kids/KidsWordCard";
 import LearningProgress from "../components/learn/LearningProgress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 import { triggerConfetti } from "../components/common/Confetti";
 import { playSound } from "../components/common/SoundEffects";
@@ -76,7 +76,7 @@ export default function Learn() {
 
       WordsCache.clear();
       
-      const flashCardsPromise = supabaseClient.entities.FlashCard.filter({ created_by: currentUser.email });
+      const flashCardsPromise = supabaseClient.entities.FlashCard.filter({ user_email: currentUser.email });
 
       // Fetch words efficiently
       // If level is specific, filter by it. If 'all', limit to 200.
@@ -254,29 +254,83 @@ export default function Learn() {
     
     if (isNew) {
       try {
-        let [progress] = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
-
+        let [progress] = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
+        
         let oldTotalXP = progress?.total_xp || 0;
-
+        
         if (!progress) {
-          progress = await supabaseClient.entities.UserProgress.create({ created_by: user.email });
+          progress = await supabaseClient.entities.UserProgress.create({ 
+            user_email: user.email,
+            total_xp: 0,
+            current_level: 1,
+            words_learned: 0,
+            learned_words: []
+          });
         }
 
-        const newCardData = { word_id: currentWord.id, created_by: user.email, is_new: true };
-        const flashcard = await supabaseClient.entities.FlashCard.create(newCardData);
+        // ✅ تحقق من وجود FlashCard
+        const [existingCard] = await supabaseClient.entities.FlashCard.filter({
+          user_email: user.email,
+          word_id: currentWord.id
+        });
+
+        let flashcard;
+        if (existingCard) {
+          console.log('FlashCard already exists, updating...');
+          flashcard = existingCard;
+        } else {
+          const newCardData = { 
+            word_id: String(currentWord.id), // ✅ Text type
+            user_email: user.email,
+            user_id: user.id, // ✅ إضافة user_id
+            is_new: true,
+            interval: 0,
+            efactor: 2.5, // ✅ اسم صحيح
+            repetitions: 0,
+            next_review: new Date().toISOString() // ✅ اسم صحيح
+          };
+          
+          // ✅ استخدام Supabase مباشرة
+          const { data, error } = await supabaseClient.supabase
+            .from('flash_cards')
+            .insert([newCardData])
+            .select()
+            .single();
+            
+          if (error) throw error;
+          flashcard = data;
+        }
 
         const updatedCard = updateCardWithSM2(flashcard, 5);
-        await supabaseClient.entities.FlashCard.update(flashcard.id, updatedCard);
+        
+        // ✅ تحديث FlashCard باستخدام Supabase مباشرة
+        const { error: updateCardError } = await supabaseClient.supabase
+          .from('flash_cards')
+          .update(updatedCard)
+          .eq('id', flashcard.id);
+        
+        if (updateCardError) throw updateCardError;
 
         const xpGained = 10;
         const newTotalXP = oldTotalXP + xpGained;
         const newLearnedWords = [...new Set([...(progress.learned_words || []), currentWord.id])];
 
-        await supabaseClient.entities.UserProgress.update(progress.id, {
-          learned_words: newLearnedWords,
-          words_learned: newLearnedWords.length,
-          total_xp: newTotalXP,
-          current_level: Math.floor(newTotalXP / 100) + 1
+        // ✅ تحديث UserProgress باستخدام Supabase مباشرة
+        const { error: updateProgressError } = await supabaseClient.supabase
+          .from('user_progress')
+          .update({
+            learned_words: newLearnedWords,
+            words_learned: newLearnedWords.length,
+            total_xp: newTotalXP,
+            current_level: Math.floor(newTotalXP / 100) + 1
+          })
+          .eq('id', progress.id);
+        
+        if (updateProgressError) throw updateProgressError;
+
+        console.log('✅ Progress updated:', { 
+          words_learned: newLearnedWords.length, 
+          total_xp: newTotalXP 
         });
   
         setFlashCardMap(prevMap => new Map(prevMap).set(flashcard.word_id, updatedCard));
@@ -297,7 +351,6 @@ export default function Learn() {
           title: "✅ تم الحفظ بنجاح",
           description: "أحسنت! الكلمة أُضيفت إلى مراجعاتك.",
           duration: 3000,
-          className: "bg-green-100 text-green-800 top-0 right-0",
         });
       } catch (error) {
         console.error("Error marking new word as learned:", error);
@@ -326,8 +379,7 @@ export default function Learn() {
         toast({
           title: "🔁 تمت المراجعة",
           description: updatedCard.next_review_message || "ستظهر لك هذه الكلمة مجددًا في المستقبل.",
-          duration: 4000,
-          className: "bg-blue-100 text-blue-800 top-0 right-0",
+          duration: 3000,
         });
       } catch (error) {
         console.error("Error marking word as reviewed:", error);
@@ -396,7 +448,7 @@ export default function Learn() {
       // تحقق من وجود السجل
       const existingRecords = await supabaseClient.entities.FavoriteWord.filter({
         word_id: displayWord.id,
-        created_by: user.email
+        user_email: user.email
       });
 
       if (existingRecords.length === 0) {
@@ -407,13 +459,13 @@ export default function Learn() {
         toast({
           title: "⭐ تم الإضافة للمفضلة",
           description: "يمكنك مراجعة هذه الكلمة من صفحة المفضلة",
-          className: "bg-amber-100 text-amber-800"
+          duration: 3000,
         });
       } else {
         toast({
           title: "ℹ️ الكلمة موجودة بالفعل",
           description: "هذه الكلمة مضافة مسبقاً للمفضلة",
-          className: "bg-blue-100 text-blue-800"
+          duration: 3000,
         });
       }
     } catch (error) {

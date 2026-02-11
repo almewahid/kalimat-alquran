@@ -348,7 +348,7 @@ export default function QuranReader() {
 
   const loadBookmarks = async () => {
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       const userBookmarks = user.preferences?.quran_bookmarks || [];
       setBookmarks(userBookmarks);
     } catch (error) {
@@ -358,7 +358,7 @@ export default function QuranReader() {
 
   const toggleBookmark = async (surahNum, ayahNum) => {
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       const bookmarkId = `${surahNum}_${ayahNum}`;
       const currentBookmarks = user.preferences?.quran_bookmarks || [];
       

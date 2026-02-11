@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabaseClient } from "@/components/api/supabaseClient";
@@ -48,7 +47,8 @@ import {
   Volume2,
   Music,
   AlertTriangle,
-  LogOut
+  LogOut,
+  TrendingUp
 } from "lucide-react";
 import {
   Sidebar,
@@ -70,6 +70,7 @@ const navigationItems = [
   { title: "التعلم", url: createPageUrl("Learn"), icon: BookOpen },
   { title: "المراجعة الذكية", url: createPageUrl("SmartReview"), icon: Brain },
   { title: "الاختبار", url: createPageUrl("QuizTypes"), icon: Brain },
+  { title: "اختبار حسب المصدر", url: createPageUrl("SourceQuiz"), icon: BookOpen },
   { title: "قارئ القرآن", url: createPageUrl("QuranReader"), icon: BookText },
   { title: "البحث", url: createPageUrl("Search"), icon: Search },
   { title: "مفضلتي", url: createPageUrl("Favorites"), icon: Heart },
@@ -95,6 +96,7 @@ const systemItems = [
   { title: "ملاحظاتي", url: createPageUrl("ManageNotes"), icon: FileText },
   { title: "الملف الشخصي", url: createPageUrl("UserProfile"), icon: UserPlus },
   { title: "التقدم", url: createPageUrl("Progress"), icon: BarChart3 },
+  { title: "تقدم الكلمات", url: createPageUrl("WordProgressStats"), icon: TrendingUp },
   { title: "التقارير الشاملة", url: createPageUrl("Reports"), icon: FileText },
   { title: "الخصوصية والأمان", url: createPageUrl("PrivacySettings"), icon: Lock },
   { title: "المساعدة", url: createPageUrl("Help"), icon: HelpCircle },
@@ -126,11 +128,24 @@ export default function Layout({ children, currentPageName }) {
   const [colorScheme, setColorScheme] = useState("default");
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      setSidebarOpen(window.innerWidth >= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const fetchUserPreferences = async () => {
       try {
-        const user = await supabaseClient.auth.me();
+        const user = await supabaseClient.supabase.auth.getUser();
         setTheme(user?.preferences?.theme || "light");
         setColorScheme(user?.preferences?.color_scheme || "default");
         setIsAdmin(user?.role === 'admin');
@@ -146,6 +161,13 @@ export default function Layout({ children, currentPageName }) {
     };
     fetchUserPreferences();
   }, [location.pathname]);
+
+  // إغلاق القائمة على الموبيل عند تغيير الصفحة
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -309,7 +331,7 @@ export default function Layout({ children, currentPageName }) {
           }
         `}</style>
 
-        <SidebarProvider defaultOpen={true}>
+        <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <div className="min-h-screen flex w-full" dir="rtl">
             <Sidebar className="sidebar-right border-l border-border bg-card/95 backdrop-blur-md" side="right" variant="sidebar" collapsible="icon">
               <SidebarHeader className="border-b border-border p-6">

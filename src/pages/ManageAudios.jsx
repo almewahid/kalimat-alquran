@@ -76,7 +76,7 @@ export default function ManageAudios() {
 
   const checkAdminAndLoadAll = async () => {
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       setIsAdmin(user.role === "admin");
 
       if (user.role !== "admin") {

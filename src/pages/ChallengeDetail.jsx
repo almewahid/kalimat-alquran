@@ -38,7 +38,7 @@ export default function ChallengeDetail() {
 
   const loadChallengeData = async () => {
     try {
-      const currentUser = await supabaseClient.auth.me();
+      const currentUser = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
 
       const challengeData = await supabaseClient.entities.GroupChallenge.filter({ id: challengeId });
@@ -92,7 +92,7 @@ export default function ChallengeDetail() {
     if (!challenge || !user) return;
 
     try {
-      const userProgressData = await supabaseClient.entities.UserProgress.filter({ created_by: user.email });
+      const userProgressData = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
       if (userProgressData.length === 0) return;
 
       const userProg = userProgressData[0];
@@ -104,11 +104,11 @@ export default function ChallengeDetail() {
           break;
         case "review_words":
           // Count reviews from quiz sessions
-          const sessions = await supabaseClient.entities.QuizSession.filter({ created_by: user.email });
+          const sessions = await supabaseClient.entities.QuizSession.filter({ user_email: user.email });
           newProgressValue = sessions.length;
           break;
         case "complete_quizzes":
-          const quizSessions = await supabaseClient.entities.QuizSession.filter({ created_by: user.email });
+          const quizSessions = await supabaseClient.entities.QuizSession.filter({ user_email: user.email });
           newProgressValue = quizSessions.length;
           break;
         case "maintain_streak":

@@ -30,7 +30,7 @@ export default function PrivacySettings() {
 
   const loadPrivacyData = async () => {
     try {
-      const currentUser = await supabaseClient.auth.me();
+      const currentUser = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
       
       if (currentUser.privacy_settings) {
@@ -72,10 +72,10 @@ export default function PrivacySettings() {
   const handleExportData = async () => {
     try {
       const [progress, quizzes, notes, favorites] = await Promise.all([
-        supabaseClient.entities.UserProgress.filter({ created_by: user.email }),
-        supabaseClient.entities.QuizSession.filter({ created_by: user.email }),
-        supabaseClient.entities.UserNote.filter({ created_by: user.email }),
-        supabaseClient.entities.FavoriteWord.filter({ created_by: user.email })
+        supabaseClient.entities.UserProgress.filter({ user_email: user.email }),
+        supabaseClient.entities.QuizSession.filter({ user_email: user.email }),
+        supabaseClient.entities.UserNote.filter({ user_email: user.email }),
+        supabaseClient.entities.FavoriteWord.filter({ user_email: user.email })
       ]);
       
       const userData = {
@@ -137,11 +137,11 @@ export default function PrivacySettings() {
     
     try {
       const [progress, quizzes, notes, favorites, flashcards] = await Promise.all([
-        supabaseClient.entities.UserProgress.filter({ created_by: user.email }),
-        supabaseClient.entities.QuizSession.filter({ created_by: user.email }),
-        supabaseClient.entities.UserNote.filter({ created_by: user.email }),
-        supabaseClient.entities.FavoriteWord.filter({ created_by: user.email }),
-        supabaseClient.entities.FlashCard.filter({ created_by: user.email })
+        supabaseClient.entities.UserProgress.filter({ user_email: user.email }),
+        supabaseClient.entities.QuizSession.filter({ user_email: user.email }),
+        supabaseClient.entities.UserNote.filter({ user_email: user.email }),
+        supabaseClient.entities.FavoriteWord.filter({ user_email: user.email }),
+        supabaseClient.entities.FlashCard.filter({ user_email: user.email })
       ]);
       
       await Promise.all([

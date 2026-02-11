@@ -80,7 +80,7 @@ export default function Settings() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const currentUser = await supabaseClient.auth.me();
+                const currentUser = await supabaseClient.supabase.auth.getUser();
                 setUser(currentUser);
                 if (currentUser.preferences) {
                     const fetchedPreferences = currentUser.preferences;

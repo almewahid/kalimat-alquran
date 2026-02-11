@@ -26,10 +26,10 @@ export default function KidsWordCard({ word, onMarkLearned }) {
   const checkFavoriteStatus = async () => {
     if (!word) return;
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       const favorites = await supabaseClient.entities.FavoriteWord.filter({
         word_id: word.id,
-        created_by: user.email
+        user_email: user.email
       });
       setIsFavorite(favorites.length > 0);
     } catch (error) {
@@ -41,10 +41,10 @@ export default function KidsWordCard({ word, onMarkLearned }) {
     if (favoriteLoading || !word) return;
     setFavoriteLoading(true);
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       const favorites = await supabaseClient.entities.FavoriteWord.filter({
         word_id: word.id,
-        created_by: user.email
+        user_email: user.email
       });
 
       if (favorites.length > 0) {
@@ -64,10 +64,10 @@ export default function KidsWordCard({ word, onMarkLearned }) {
   const loadUserNote = async () => {
     if (!word) return;
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       const notes = await supabaseClient.entities.UserNote.filter({
         word_id: word.id,
-        created_by: user.email
+        user_email: user.email
       });
       if (notes.length > 0) {
         setUserNote(notes[0].content);
@@ -83,10 +83,10 @@ export default function KidsWordCard({ word, onMarkLearned }) {
     if (noteLoading || !word) return;
     setNoteLoading(true);
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       const notes = await supabaseClient.entities.UserNote.filter({
         word_id: word.id,
-        created_by: user.email
+        user_email: user.email
       });
 
       if (notes.length > 0) {

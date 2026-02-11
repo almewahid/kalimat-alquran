@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import {
   Dialog,
   DialogContent,
@@ -90,9 +91,31 @@ export default function TutorialModal({ isOpen, onClose }) {
     handleFinish();
   };
 
-  const handleFinish = () => {
-    // سيتم تمرير الإعدادات إلى الـ parent component
-    onClose(userSettings);
+  const handleFinish = async () => {
+    try {
+      // حفظ الإعدادات في user_preferences
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      
+      if (user) {
+        // تحديث user_profiles مع الإعدادات
+        await supabaseClient.supabase
+          .from('user_profiles')
+          .update({
+            preferences: {
+              ...userSettings,
+              tutorial_completed: true // علامة أن المستخدم أكمل الشرح
+            }
+          })
+          .eq('user_id', user.id);
+      }
+      
+      // تمرير الإعدادات للـ parent component
+      onClose(userSettings);
+    } catch (error) {
+      console.error('Error saving tutorial settings:', error);
+      // إغلاق حتى لو فشل الحفظ
+      onClose(userSettings);
+    }
   };
 
   const currentStepData = tutorialSteps[currentStep];

@@ -19,11 +19,11 @@ export default function FavoritesPage() {
   const loadFavorites = useCallback(async () => {
     setIsLoading(true);
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       const level = user?.preferences?.learning_level || "متوسط";
       setUserLevel(level);
 
-      const favoriteRecords = await supabaseClient.entities.FavoriteWord.filter({ created_by: user.email });
+      const favoriteRecords = await supabaseClient.entities.FavoriteWord.filter({ user_email: user.email });
       const wordIds = favoriteRecords.map(f => f.word_id);
 
       if (wordIds.length > 0) {
@@ -51,10 +51,10 @@ export default function FavoritesPage() {
 
   const handleRemoveFavorite = async (wordId) => {
     try {
-      const user = await supabaseClient.auth.me();
+      const user = await supabaseClient.supabase.auth.getUser();
       const favoriteRecords = await supabaseClient.entities.FavoriteWord.filter({
         word_id: wordId,
-        created_by: user.email
+        user_email: user.email
       });
 
       if (favoriteRecords.length > 0) {

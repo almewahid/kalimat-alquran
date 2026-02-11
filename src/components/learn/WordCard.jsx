@@ -21,7 +21,7 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const user = await supabaseClient.auth.me();
+        const { data: { user } } = await supabaseClient.supabase.auth.getUser();
         if (user?.preferences?.word_card_elements) {
           setCardElements(user.preferences.word_card_elements);
         } else {
@@ -49,12 +49,12 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
     const loadNoteAndFavorite = async () => {
       if (!word) return;
       try {
-        const user = await supabaseClient.auth.me();
+        const { data: { user } } = await supabaseClient.supabase.auth.getUser();
         
         // Load note
         const notes = await supabaseClient.entities.UserNote.filter({
           word_id: word.id,
-          created_by: user.email
+          user_email: user.email
         });
         if (notes.length > 0) {
           setUserNote(notes[0].content);
@@ -63,7 +63,7 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
         // Load favorite status
         const favorites = await supabaseClient.entities.FavoriteWord.filter({
           word_id: word.id,
-          created_by: user.email
+          user_email: user.email
         });
         setIsFavorite(favorites.length > 0);
       } catch (error) {
@@ -76,10 +76,10 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
   const handleToggleFavorite = async () => {
     if (!word) return;
     try {
-      const user = await supabaseClient.auth.me();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       const favorites = await supabaseClient.entities.FavoriteWord.filter({
         word_id: word.id,
-        created_by: user.email
+        user_email: user.email
       });
 
       if (favorites.length > 0) {
@@ -97,10 +97,10 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
   const handleSaveNote = async () => {
     if (!word) return;
     try {
-      const user = await supabaseClient.auth.me();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       const existingNotes = await supabaseClient.entities.UserNote.filter({
         word_id: word.id,
-        created_by: user.email
+        user_email: user.email
       });
 
       if (existingNotes.length > 0) {

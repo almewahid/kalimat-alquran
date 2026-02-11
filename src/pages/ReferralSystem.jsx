@@ -34,7 +34,7 @@ export default function ReferralSystem() {
 
   const loadReferralData = async () => {
     try {
-      const currentUser = await supabaseClient.auth.me();
+      const currentUser = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
 
       // Check if user has referral code

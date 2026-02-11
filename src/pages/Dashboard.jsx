@@ -22,17 +22,17 @@ export default function Dashboard() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboardData"],
     queryFn: async () => {
-      const currentUser = await supabaseClient.auth.me();
+      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
 
       const [progressData] = await supabaseClient.entities.UserProgress.filter({ 
-        created_by: currentUser.email 
+        user_email: currentUser.email 
       });
 
       let finalProgress = progressData;
 
       if (!progressData) {
         finalProgress = await supabaseClient.entities.UserProgress.create({
-          created_by: currentUser.email,
+          user_email: currentUser.email,
           total_xp: 0,
           current_level: 1,
           words_learned: 0,
@@ -66,11 +66,19 @@ export default function Dashboard() {
       // جلب الكلمات والاختبارات بالتوازي
       const [allWords, quizSessions] = await Promise.all([
         supabaseClient.entities.QuranicWord.list(), // يمكن تحسين هذا بفلترة الكلمات المطلوبة فقط مستقبلاً
-        supabaseClient.entities.QuizSession.filter({ created_by: currentUser.email })
+        supabaseClient.entities.QuizSession.filter({ user_email: currentUser.email })
       ]);
 
       const learnedWordIds = finalProgress?.learned_words || [];
-      const learned = allWords.filter(word => learnedWordIds.includes(word.id)).slice(0, 6);
+      console.log('📚 Learned word IDs:', learnedWordIds);
+      
+      // ✅ البحث بـ word.id أو word._id حسب البنية
+      const learned = allWords.filter(word => {
+        const wordId = word.id || word._id;
+        return learnedWordIds.includes(wordId);
+      }).slice(0, 6);
+      
+      console.log('📖 Learned words found:', learned.length);
 
       const sortedQuizzes = quizSessions.sort((a, b) => 
         new Date(b.created_date) - new Date(a.created_date)
@@ -80,8 +88,18 @@ export default function Dashboard() {
       const todayQuizzes = quizSessions.filter(q => q.created_date.startsWith(today));
       const todayXP = todayQuizzes.reduce((sum, q) => sum + (q.xp_earned || 0), 0);
 
+      // ✅ جلب الاسم من user_profiles
+      const { data: profile } = await supabaseClient.supabase
+        .from('user_profiles')
+        .select('full_name')
+        .eq('user_id', currentUser.id)
+        .single();
+
+      const userName = profile?.full_name || currentUser.email?.split('@')[0] || 'صديقي';
+
       return {
         user: currentUser,
+        userName: userName,
         userProgress: finalProgress,
         learnedWords: learned,
         recentQuizzes: sortedQuizzes,
@@ -93,7 +111,15 @@ export default function Dashboard() {
   useEffect(() => {
     const checkTutorial = async () => {
       if (data?.user && data?.userProgress) {
-        const hasSeenTutorial = data.user.preferences?.showed_tutorial;
+        // التحقق من user_profiles.preferences
+        const { data: profile } = await supabaseClient.supabase
+          .from('user_profiles')
+          .select('preferences')
+          .eq('user_id', data.user.id)
+          .single();
+        
+        const hasSeenTutorial = profile?.preferences?.tutorial_completed;
+        
         if (!hasSeenTutorial && data.userProgress.words_learned === 0) {
           setShowTutorial(true);
         }
@@ -102,7 +128,7 @@ export default function Dashboard() {
     checkTutorial();
   }, [data]);
 
-  const { user, userProgress, learnedWords, recentQuizzes, dailyXPEarned } = data || {};
+  const { user, userName, userProgress, learnedWords, recentQuizzes, dailyXPEarned } = data || {};
 
   // حساب التقدم نحو المستوى التالي
   const currentLevelXP = userProgress?.total_xp || 0;
@@ -190,7 +216,7 @@ export default function Dashboard() {
         {/* رسالة ترحيبية */}
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">
-            مرحباً، {user?.full_name?.split(' ')[0] || 'صديقي'} 👋
+            مرحباً، {userName?.split(' ')[0] || 'صديقي'} 👋
           </h1>
           <p className="text-foreground/70 text-lg">
             استمر في رحلتك لتعلم كلمات القرآن الكريم
@@ -230,14 +256,9 @@ export default function Dashboard() {
           isOpen={showTutorial}
           onClose={async (settings) => {
             setShowTutorial(false);
+            // الإعدادات تم حفظها بالفعل في TutorialModal
+            // فقط نحدّث البيانات
             if (settings) {
-              await supabaseClient.auth.updateMe({
-                preferences: {
-                  ...user?.preferences,
-                  ...settings,
-                  showed_tutorial: true
-                }
-              });
               refetch();
             }
           }}

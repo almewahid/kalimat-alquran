@@ -38,7 +38,7 @@ export default function Groups() {
 
   const loadData = async () => {
     try {
-      const currentUser = await supabaseClient.auth.me();
+      const currentUser = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
       
       const allGroups = await supabaseClient.entities.Group.list();

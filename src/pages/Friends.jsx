@@ -28,7 +28,7 @@ export default function Friends() {
 
   const loadFriendsData = async () => {
     try {
-      const currentUser = await supabaseClient.auth.me();
+      const currentUser = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
 
       const myFriendships = await supabaseClient.entities.Friendship.filter({
@@ -54,7 +54,7 @@ export default function Friends() {
       for (const friendship of acceptedFriends) {
         try {
           const [progressList, recentActivity, courseProgress] = await Promise.all([
-            supabaseClient.entities.UserProgress.filter({ created_by: friendship.friend_email }),
+            supabaseClient.entities.UserProgress.filter({ user_email: friendship.friend_email }),
             supabaseClient.entities.ActivityLog.filter({ user_email: friendship.friend_email }, '-created_date', 5),
             supabaseClient.entities.UserCourseProgress.filter({ user_email: friendship.friend_email })
           ]);

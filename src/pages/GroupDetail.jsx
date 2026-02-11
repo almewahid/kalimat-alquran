@@ -49,7 +49,7 @@ export default function GroupDetail() {
 
   const loadGroupData = async () => {
     try {
-      const currentUser = await supabaseClient.auth.me();
+      const currentUser = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
       
       const groupData = await supabaseClient.entities.Group.filter({ id: groupId });
@@ -71,7 +71,7 @@ export default function GroupDetail() {
       const membersWithProgress = await Promise.all(
         groupMembers.map(async (member) => {
           const [progress] = await supabaseClient.entities.UserProgress.filter({ 
-            created_by: member.email 
+            user_email: member.email 
           });
           return {
             ...member,

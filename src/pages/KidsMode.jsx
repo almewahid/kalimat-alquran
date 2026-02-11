@@ -2,11 +2,10 @@ import React, { useState, useEffect } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Baby, Star, Trophy, Heart, Sparkles, Shield } from "lucide-react";
+import { Baby, Trophy, Sparkles, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -25,13 +24,13 @@ export default function KidsMode() {
 
   const loadData = async () => {
     try {
-      const currentUser = await supabaseClient.auth.me();
+      const currentUser = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
       setKidsModeEnabled(currentUser.preferences?.kids_mode_enabled || false);
       setChildName(currentUser.preferences?.child_name || "");
 
       const [userProgress] = await supabaseClient.entities.UserProgress.filter({ 
-        created_by: currentUser.email 
+        user_email: currentUser.email 
       });
       setProgress(userProgress);
     } catch (error) {
@@ -207,33 +206,43 @@ export default function KidsMode() {
             transition={{ delay: 0.2 }}
           >
             <h2 className="text-2xl font-bold mb-4 text-center">🎮 أنشطة ممتعة</h2>
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
               <Link to={createPageUrl("Learn")}>
-                <Card className="hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-green-100 to-emerald-100 border-green-300">
+                <Card className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer bg-gradient-to-br from-green-100 to-emerald-100 border-green-300">
                   <CardContent className="p-6 text-center">
                     <div className="text-6xl mb-3">📚</div>
-                    <h3 className="text-xl font-bold text-green-700">تعلم كلمات جديدة</h3>
+                    <h3 className="text-xl font-bold text-green-700">تعلم كلمات</h3>
                     <p className="text-sm text-green-600 mt-2">كلمات سهلة وممتعة</p>
                   </CardContent>
                 </Card>
               </Link>
 
-              <Link to={createPageUrl("Quiz")}>
-                <Card className="hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-blue-100 to-cyan-100 border-blue-300">
+              <Link to={createPageUrl("KidsGames")}>
+                <Card className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer bg-gradient-to-br from-pink-100 to-rose-100 border-pink-300">
                   <CardContent className="p-6 text-center">
-                    <div className="text-6xl mb-3">🎯</div>
-                    <h3 className="text-xl font-bold text-blue-700">اختبر نفسك</h3>
-                    <p className="text-sm text-blue-600 mt-2">ألعاب مسلية</p>
+                    <div className="text-6xl mb-3">🎮</div>
+                    <h3 className="text-xl font-bold text-pink-700">ألعاب تعليمية</h3>
+                    <p className="text-sm text-pink-600 mt-2">العب وتعلم</p>
                   </CardContent>
                 </Card>
               </Link>
 
-              <Link to={createPageUrl("Achievements")}>
-                <Card className="hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-300">
+              <Link to={createPageUrl("Quiz")}>
+                <Card className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer bg-gradient-to-br from-blue-100 to-cyan-100 border-blue-300">
+                  <CardContent className="p-6 text-center">
+                    <div className="text-6xl mb-3">🎯</div>
+                    <h3 className="text-xl font-bold text-blue-700">اختبر نفسك</h3>
+                    <p className="text-sm text-blue-600 mt-2">أسئلة سريعة</p>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link to={createPageUrl("KidsRewards")}>
+                <Card className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-300">
                   <CardContent className="p-6 text-center">
                     <div className="text-6xl mb-3">🏆</div>
-                    <h3 className="text-xl font-bold text-orange-700">شاراتي</h3>
-                    <p className="text-sm text-orange-600 mt-2">جمع الجوائز</p>
+                    <h3 className="text-xl font-bold text-orange-700">مكافآتي</h3>
+                    <p className="text-sm text-orange-600 mt-2">نجومي وميدالياتي</p>
                   </CardContent>
                 </Card>
               </Link>

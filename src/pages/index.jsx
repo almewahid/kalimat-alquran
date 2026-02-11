@@ -32,6 +32,7 @@ import PrivacySettings from "./PrivacySettings";
 import RootQuiz from "./RootQuiz";
 import ContextQuiz from "./ContextQuiz";
 import ListeningQuiz from "./ListeningQuiz";
+import SourceQuiz from "./SourceQuiz";
 import TranslationHelper from "./TranslationHelper";
 import ManageImages from "./ManageImages";
 import ManageQuran from "./ManageQuran";
@@ -94,6 +95,7 @@ const PAGES = {
     RootQuiz: RootQuiz,
     ContextQuiz: ContextQuiz,
     ListeningQuiz: ListeningQuiz,
+    SourceQuiz: SourceQuiz,
     TranslationHelper: TranslationHelper,
     ManageImages: ManageImages,
     ManageQuran: ManageQuran,
@@ -174,6 +176,7 @@ function PagesContent() {
                 <Route path="/RootQuiz" element={<RootQuiz />} />
                 <Route path="/ContextQuiz" element={<ContextQuiz />} />
                 <Route path="/ListeningQuiz" element={<ListeningQuiz />} />
+                <Route path="/SourceQuiz" element={<SourceQuiz />} />
                 <Route path="/TranslationHelper" element={<TranslationHelper />} />
                 <Route path="/ManageImages" element={<ManageImages />} />
                 <Route path="/ManageQuran" element={<ManageQuran />} />
