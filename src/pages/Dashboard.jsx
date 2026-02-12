@@ -75,11 +75,22 @@ export default function Dashboard() {
       const learnedWordIds = (finalProgress?.learned_words || [])
         .filter(id => id && id.length === 36); // ✅ فقط UUIDs (36 حرف)
       
+      console.log('🔍 Debug - learned_words:', finalProgress?.learned_words);
+      console.log('🔍 Debug - learnedWordIds (filtered):', learnedWordIds);
+      console.log('🔍 Debug - allWords count:', allWords.length);
+      console.log('🔍 Debug - sample allWords IDs:', allWords.slice(0, 3).map(w => ({ id: w.id, word: w.word })));
+      
       const learned = learnedWordIds
         .slice(-6) // ✅ آخر 6 IDs بالترتيب الزمني
-        .map(id => allWords.find(word => String(word.id) === String(id)))
+        .map(id => {
+          const found = allWords.find(word => String(word.id) === String(id));
+          console.log(`🔍 Looking for ID: ${id}, Found:`, found ? found.word : 'NOT FOUND');
+          return found;
+        })
         .filter(Boolean)
         .reverse(); // عكس الترتيب لإظهار الأحدث أولاً
+      
+      console.log('🔍 Debug - learned words (final):', learned);
 
       // 5. ترتيب الاختبارات
       const sortedQuizzes = quizSessions.sort((a, b) => 
