@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Loader2, AlertCircle, BookOpen } from "lucide-react";
-import { useQuery } from "@tanstack/react-query"; // ✅ استخدام React Query
+import { useQuery } from "@tanstack/react-query";
 
 import LevelCard from "../components/dashboard/LevelCard";
 import StatsGrid from "../components/dashboard/StatsGrid";
@@ -18,18 +18,20 @@ const createPageUrl = (pageName) => `/${pageName}`;
 export default function Dashboard() {
   const [showTutorial, setShowTutorial] = useState(false);
 
-  // ✅ استخدام useQuery لجلب بيانات المستخدم والتقدم بشكل محسن
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboardData"],
     queryFn: async () => {
+      // 1. جلب المستخدم الحالي
       const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
 
+      // 2. جلب بيانات التقدم
       const [progressData] = await supabaseClient.entities.UserProgress.filter({ 
         user_email: currentUser.email 
       });
 
       let finalProgress = progressData;
 
+      // 3. إنشاء سجل تقدم جديد إذا لم يوجد
       if (!progressData) {
         finalProgress = await supabaseClient.entities.UserProgress.create({
           user_email: currentUser.email,
@@ -42,7 +44,7 @@ export default function Dashboard() {
           last_login_date: new Date().toISOString().split('T')[0]
         });
       } else {
-        // تحديث تسجيل الدخول اليومي
+        // تحديث تسجيل الدخول اليومي (Streak)
         const today = new Date().toISOString().split('T')[0];
         const lastLogin = progressData.last_login_date;
 
@@ -63,35 +65,34 @@ export default function Dashboard() {
         }
       }
 
-      // جلب الكلمات والاختبارات بالتوازي
+      // 4. جلب الكلمات والاختبارات
       const [allWords, quizSessions] = await Promise.all([
-        supabaseClient.entities.QuranicWord.list(), // يمكن تحسين هذا بفلترة الكلمات المطلوبة فقط مستقبلاً
+        supabaseClient.entities.QuranicWord.list(),
         supabaseClient.entities.QuizSession.filter({ user_email: currentUser.email })
       ]);
 
+      // ✅ إصلاح مشكلة الكلمات المتعلمة (تحويل الأرقام والنصوص للمطابقة)
       const learnedWordIds = finalProgress?.learned_words || [];
-      console.log('📚 Learned word IDs:', learnedWordIds);
       
-      // ✅ التعديل الجديد: تحويل الطرفين إلى نصوص لضمان المطابقة
       const learned = allWords.filter(word => {
-        // نأخذ الـ ID ونحوله لنص
-        const wordId = String(word.id || word._id); 
+        // نحاول الحصول على الـ ID بأي اسم محتمل ونحوله لنص
+        const wordId = String(word.id || word._id || word.word_id);
         
-        // نبحث عنه داخل المصفوفة (مع تحويل عناصر المصفوفة لنصوص أيضاً للأمان)
+        // نبحث داخل مصفوفة الكلمات المتعلمة (مع تحويل عناصرها لنصوص أيضاً)
         return learnedWordIds.some(learnedId => String(learnedId) === wordId);
-      }).slice(0, 6);
-      
-      console.log('📖 Learned words found:', learned.length);
+      }).slice(0, 6); // نأخذ آخر 6 كلمات فقط
 
+      // 5. ترتيب الاختبارات
       const sortedQuizzes = quizSessions.sort((a, b) => 
         new Date(b.created_date) - new Date(a.created_date)
       ).slice(0, 3);
 
+      // 6. حساب نقاط اليوم
       const today = new Date().toISOString().split('T')[0];
       const todayQuizzes = quizSessions.filter(q => q.created_date.startsWith(today));
       const todayXP = todayQuizzes.reduce((sum, q) => sum + (q.xp_earned || 0), 0);
 
-      // ✅ جلب الاسم من user_profiles
+      // 7. جلب الاسم
       const { data: profile } = await supabaseClient.supabase
         .from('user_profiles')
         .select('full_name')
@@ -111,10 +112,10 @@ export default function Dashboard() {
     }
   });
 
+  // التحقق من التتوريال (Tutorial)
   useEffect(() => {
     const checkTutorial = async () => {
       if (data?.user && data?.userProgress) {
-        // التحقق من user_profiles.preferences
         const { data: profile } = await supabaseClient.supabase
           .from('user_profiles')
           .select('preferences')
@@ -169,14 +170,6 @@ export default function Dashboard() {
               <Button onClick={refetch} className="w-full">
                 إعادة المحاولة
               </Button>
-              <div className="text-sm text-red-600 dark:text-red-400 space-y-1">
-                <p>💡 خطوات استكشاف الأخطاء:</p>
-                <ul className="text-right space-y-1">
-                  <li>• تحقق من اتصالك بالإنترنت</li>
-                  <li>• تأكد من تسجيل دخولك</li>
-                  <li>• حاول تحديث الصفحة (F5)</li>
-                </ul>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -248,7 +241,7 @@ export default function Dashboard() {
           recentQuizzes={recentQuizzes}
         />
 
-        {/* الكلمات الأخيرة */}
+        {/* الكلمات الأخيرة - يفترض الآن أن تعمل بشكل صحيح */}
         <RecentWords words={learnedWords} />
 
         {/* الإجراءات السريعة */}
@@ -259,8 +252,6 @@ export default function Dashboard() {
           isOpen={showTutorial}
           onClose={async (settings) => {
             setShowTutorial(false);
-            // الإعدادات تم حفظها بالفعل في TutorialModal
-            // فقط نحدّث البيانات
             if (settings) {
               refetch();
             }
