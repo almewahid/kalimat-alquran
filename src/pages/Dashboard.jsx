@@ -72,10 +72,13 @@ export default function Dashboard() {
       const learnedWordIds = finalProgress?.learned_words || [];
       console.log('📚 Learned word IDs:', learnedWordIds);
       
-      // ✅ البحث بـ word.id أو word._id حسب البنية
+      // ✅ التعديل الجديد: تحويل الطرفين إلى نصوص لضمان المطابقة
       const learned = allWords.filter(word => {
-        const wordId = word.id || word._id;
-        return learnedWordIds.includes(wordId);
+        // نأخذ الـ ID ونحوله لنص
+        const wordId = String(word.id || word._id); 
+        
+        // نبحث عنه داخل المصفوفة (مع تحويل عناصر المصفوفة لنصوص أيضاً للأمان)
+        return learnedWordIds.some(learnedId => String(learnedId) === wordId);
       }).slice(0, 6);
       
       console.log('📖 Learned words found:', learned.length);
