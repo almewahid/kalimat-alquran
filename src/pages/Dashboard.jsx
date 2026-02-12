@@ -71,12 +71,13 @@ export default function Dashboard() {
         supabaseClient.entities.QuizSession.filter({ user_email: currentUser.email })
       ]);
 
-      // 5 إصلاح مشكلة الكلمات المتعلمة (تحويل الأرقام والنصوص للمطابقة)
-      const learnedWordIds = finalProgress?.learned_words || [];
+      // 5 إصلاح مشكلة الكلمات المتعلمة (تصفية UUIDs الصحيحة فقط)
+      const learnedWordIds = (finalProgress?.learned_words || [])
+        .filter(id => id && id.length === 36); // ✅ فقط UUIDs (36 حرف)
       
       const learned = learnedWordIds
         .slice(-6) // ✅ آخر 6 IDs بالترتيب الزمني
-        .map(id => allWords.find(word => String(word.id || word._id) === String(id)))
+        .map(id => allWords.find(word => String(word.id) === String(id)))
         .filter(Boolean)
         .reverse(); // عكس الترتيب لإظهار الأحدث أولاً
 
