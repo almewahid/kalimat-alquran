@@ -71,16 +71,14 @@ export default function Dashboard() {
         supabaseClient.entities.QuizSession.filter({ user_email: currentUser.email })
       ]);
 
-      // ✅ إصلاح مشكلة الكلمات المتعلمة (تحويل الأرقام والنصوص للمطابقة)
+      // 5 إصلاح مشكلة الكلمات المتعلمة (تحويل الأرقام والنصوص للمطابقة)
       const learnedWordIds = finalProgress?.learned_words || [];
       
-      const learned = allWords.filter(word => {
-        // نحاول الحصول على الـ ID بأي اسم محتمل ونحوله لنص
-        const wordId = String(word.id || word._id || word.word_id);
-        
-        // نبحث داخل مصفوفة الكلمات المتعلمة (مع تحويل عناصرها لنصوص أيضاً)
-        return learnedWordIds.some(learnedId => String(learnedId) === wordId);
-      }).slice(0, 6); // نأخذ آخر 6 كلمات فقط
+      const learned = learnedWordIds
+        .slice(-6) // ✅ آخر 6 IDs بالترتيب الزمني
+        .map(id => allWords.find(word => String(word.id || word._id) === String(id)))
+        .filter(Boolean)
+        .reverse(); // عكس الترتيب لإظهار الأحدث أولاً
 
       // 5. ترتيب الاختبارات
       const sortedQuizzes = quizSessions.sort((a, b) => 
