@@ -82,7 +82,8 @@ export default function NotificationManager() {
       toast({
         title: "✅ تم الحفظ!",
         description: "تم حفظ إعدادات الإشعارات بنجاح",
-        className: "bg-green-100 text-green-800"
+        variant: "success",
+        duration: 3000
       });
 
       // Setup scheduled notifications
@@ -93,7 +94,8 @@ export default function NotificationManager() {
       toast({
         title: "❌ خطأ",
         description: "حدث خطأ أثناء الحفظ",
-        variant: "destructive"
+        variant: "destructive",
+        duration: 4000
       });
     } finally {
       setIsSaving(false);

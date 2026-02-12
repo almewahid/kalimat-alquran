@@ -224,14 +224,14 @@ export default function Layout({ children, currentPageName }) {
           }
 
           .theme-orange {
-            --primary-rgb: 249 115 22;
-            --secondary-rgb: 251 146 60;
-            --accent-rgb: 254 215 170;
-            --background: 255 247 237;
+            --primary-rgb: 234 88 12;
+            --secondary-rgb: 249 115 22;
+            --accent-rgb: 255 237 213;
+            --background: 255 251 245;
             --background-soft: 255 255 255;
             --foreground: 124 45 18;
-            --card: 255 251 235;
-            --border: 253 186 116;
+            --card: 254 249 242;
+            --border: 251 207 168;
           }
 
           .dark {
