@@ -75,22 +75,11 @@ export default function Dashboard() {
       const learnedWordIds = (finalProgress?.learned_words || [])
         .filter(id => id && id.length === 36); // ✅ فقط UUIDs (36 حرف)
       
-      console.log('🔍 Debug - learned_words:', finalProgress?.learned_words);
-      console.log('🔍 Debug - learnedWordIds (filtered):', learnedWordIds);
-      console.log('🔍 Debug - allWords count:', allWords.length);
-      console.log('🔍 Debug - sample allWords IDs:', allWords.slice(0, 3).map(w => ({ id: w.id, word: w.word })));
-      
       const learned = learnedWordIds
         .slice(-6) // ✅ آخر 6 IDs بالترتيب الزمني
-        .map(id => {
-          const found = allWords.find(word => String(word.id) === String(id));
-          console.log(`🔍 Looking for ID: ${id}, Found:`, found ? found.word : 'NOT FOUND');
-          return found;
-        })
+        .map(id => allWords.find(word => String(word.id) === String(id)))
         .filter(Boolean)
         .reverse(); // عكس الترتيب لإظهار الأحدث أولاً
-      
-      console.log('🔍 Debug - learned words (final):', learned);
 
       // 5. ترتيب الاختبارات
       const sortedQuizzes = quizSessions.sort((a, b) => 
@@ -116,6 +105,7 @@ export default function Dashboard() {
         userName: userName,
         userProgress: finalProgress,
         learnedWords: learned,
+        allWords: allWords, // ✅ إضافة جميع الكلمات
         recentQuizzes: sortedQuizzes,
         dailyXPEarned: todayXP
       };
@@ -251,8 +241,8 @@ export default function Dashboard() {
           recentQuizzes={recentQuizzes}
         />
 
-        {/* الكلمات الأخيرة - يفترض الآن أن تعمل بشكل صحيح */}
-        <RecentWords words={learnedWords} />
+        {/* الكلمات الأخيرة */}
+        <RecentWords learnedWordsIds={userProgress.learned_words} allWords={data?.allWords || []} />
 
         {/* الإجراءات السريعة */}
         <QuickActions />
