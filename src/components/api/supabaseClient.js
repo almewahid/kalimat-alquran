@@ -67,7 +67,7 @@ export const supabaseClient = {
 
 // Entity wrapper - يدعم user_email و user_email معاً
 const createEntityWrapper = (tableName) => ({
-  list: async (sortField = '-created_date', limit = 50) => {
+  list: async (sortField = '-created_at', limit = 50) => {
     const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
     const ascending = !sortField?.startsWith('-')
     
@@ -81,7 +81,7 @@ const createEntityWrapper = (tableName) => ({
     return data || []
   },
   
-  filter: async (conditions = {}, sortField = '-created_date', limit = 50) => {
+  filter: async (conditions = {}, sortField = '-created_at', limit = 50) => {
     let query = supabase.from(tableName).select('*')
     
     // دعم user_email (Base44) و user_email (Supabase) معاً
@@ -118,9 +118,9 @@ const createEntityWrapper = (tableName) => ({
     })
     
     // Apply sorting
-    const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
-    const ascending = !sortField?.startsWith('-')
-    query = query.order(orderField || 'created_date', { ascending }).limit(limit)
+const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
+const ascending = !sortField?.startsWith('-')
+query = query.order(orderField || 'created_at', { ascending }).limit(limit)
     
     const { data, error } = await query
     if (error) throw error
