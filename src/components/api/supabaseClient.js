@@ -65,145 +65,159 @@ export const supabaseClient = {
   entities: {}
 }
 
-// Entity wrapper - يدعم user_email و user_email معاً
-const createEntityWrapper = (tableName) => ({
-  list: async (sortField = '-created_at', limit = 50) => {
-    const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
-    const ascending = !sortField?.startsWith('-')
-    
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*')
-      .order(orderField || 'created_date', { ascending })
-      .limit(limit)
-    
-    if (error) throw error
-    return data || []
-  },
+// Entity wrapper - يدعم created_at و created_date تلقائياً
+const createEntityWrapper = (tableName) => {
+  // تحديد اسم العمود حسب الجدول
+  const dateColumn = tableName === 'app_settings' || tableName === 'app_user_version' 
+    ? 'created_at'  // الجداول الجديدة
+    : 'created_date'; // الجداول القديمة
   
-  filter: async (conditions = {}, sortField = '-created_at', limit = 50) => {
-    let query = supabase.from(tableName).select('*')
+  const updateColumn = tableName === 'app_settings' || tableName === 'app_user_version'
+    ? 'updated_at'
+    : 'updated_date';
+
+  return {
+    list: async (sortField = `-${dateColumn}`, limit = 50) => {
+      const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
+      const ascending = !sortField?.startsWith('-')
+      
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .order(orderField || dateColumn, { ascending })
+        .limit(limit)
+      
+      if (error) throw error
+      return data || []
+    },
     
-    // دعم user_email (Base44) و user_email (Supabase) معاً
-    const processedConditions = { ...conditions }
-    
-    // إذا كان user_email موجود، استخدم user_email بدلاً منه
-    if (processedConditions.user_email) {
-      processedConditions.user_email = processedConditions.user_email
-      delete processedConditions.user_email
-    }
-    
-    // Apply filters
-    Object.entries(processedConditions).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        query = query.in(key, value)
-      } else if (typeof value === 'object' && value !== null) {
-        // دعم MongoDB-style operators
-        if (value.$in && Array.isArray(value.$in)) {
-          query = query.in(key, value.$in)
-        } else if (value.$gte !== undefined) {
-          query = query.gte(key, value.$gte)
-        } else if (value.$lte !== undefined) {
-          query = query.lte(key, value.$lte)
-        } else if (value.$gt !== undefined) {
-          query = query.gt(key, value.$gt)
-        } else if (value.$lt !== undefined) {
-          query = query.lt(key, value.$lt)
-        } else if (value.$ne !== undefined) {
-          query = query.neq(key, value.$ne)
-        }
-      } else {
-        query = query.eq(key, value)
+    filter: async (conditions = {}, sortField = `-${dateColumn}`, limit = 50) => {
+      let query = supabase.from(tableName).select('*')
+      
+      // دعم user_email (Base44) و user_email (Supabase) معاً
+      const processedConditions = { ...conditions }
+      
+      // إذا كان user_email موجود، استخدم user_email بدلاً منه
+      if (processedConditions.user_email) {
+        processedConditions.user_email = processedConditions.user_email
+        delete processedConditions.user_email
       }
-    })
+      
+      // Apply filters
+      Object.entries(processedConditions).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          query = query.in(key, value)
+        } else if (typeof value === 'object' && value !== null) {
+          // دعم MongoDB-style operators
+          if (value.$in && Array.isArray(value.$in)) {
+            query = query.in(key, value.$in)
+          } else if (value.$gte !== undefined) {
+            query = query.gte(key, value.$gte)
+          } else if (value.$lte !== undefined) {
+            query = query.lte(key, value.$lte)
+          } else if (value.$gt !== undefined) {
+            query = query.gt(key, value.$gt)
+          } else if (value.$lt !== undefined) {
+            query = query.lt(key, value.$lt)
+          } else if (value.$ne !== undefined) {
+            query = query.neq(key, value.$ne)
+          }
+        } else {
+          query = query.eq(key, value)
+        }
+      })
+      
+      // Apply sorting
+      const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
+      const ascending = !sortField?.startsWith('-')
+      query = query.order(orderField || dateColumn, { ascending }).limit(limit)
+      
+      const { data, error } = await query
+      if (error) throw error
+      return data || []
+    },
     
-    // Apply sorting
-const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
-const ascending = !sortField?.startsWith('-')
-query = query.order(orderField || 'created_at', { ascending }).limit(limit)
-    
-    const { data, error } = await query
-    if (error) throw error
-    return data || []
-  },
-  
-  create: async (data) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    // إضافة user_email (Supabase) بدلاً من user_email (Base44)
-    const enrichedData = {
-      ...data,
-      user_id: user?.id,
-      user_email: user?.email,
-      created_date: new Date().toISOString(),
-    }
-    
-    // إزالة user_email إذا كان موجوداً في البيانات
-    delete enrichedData.user_email
-    
-    const { data: result, error } = await supabase
-      .from(tableName)
-      .insert(enrichedData)
-      .select()
-      .single()
-    
-    if (error) throw error
-    return result
-  },
-  
-  bulkCreate: async (items) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    const enrichedItems = items.map(item => {
-      const enriched = {
-        ...item,
+    create: async (data) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      // إضافة user_email (Supabase) بدلاً من user_email (Base44)
+      const enrichedData = {
+        ...data,
         user_id: user?.id,
         user_email: user?.email,
-        created_date: new Date().toISOString(),
+        [dateColumn]: new Date().toISOString(),
       }
       
-      // إزالة user_email
-      delete enriched.user_email
+      // إزالة user_email إذا كان موجوداً في البيانات
+      delete enrichedData.user_email
       
-      return enriched
-    })
+      const { data: result, error } = await supabase
+        .from(tableName)
+        .insert(enrichedData)
+        .select()
+        .single()
+      
+      if (error) throw error
+      return result
+    },
     
-    const { data: result, error } = await supabase
-      .from(tableName)
-      .insert(enrichedItems)
-      .select()
+    bulkCreate: async (items) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      const enrichedItems = items.map(item => {
+        const enriched = {
+          ...item,
+          user_id: user?.id,
+          user_email: user?.email,
+          [dateColumn]: new Date().toISOString(),
+        }
+        
+        // إزالة user_email
+        delete enriched.user_email
+        
+        return enriched
+      })
+      
+      const { data: result, error } = await supabase
+        .from(tableName)
+        .insert(enrichedItems)
+        .select()
+      
+      if (error) throw error
+      return result
+    },
     
-    if (error) throw error
-    return result
-  },
-  
-  update: async (id, data) => {
-    const updateData = { ...data, updated_date: new Date().toISOString() }
+    update: async (id, data) => {
+      const updateData = { 
+        ...data, 
+        [updateColumn]: new Date().toISOString() 
+      }
+      
+      // إزالة user_email إذا كان موجوداً
+      delete updateData.user_email
+      
+      const { data: result, error } = await supabase
+        .from(tableName)
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) throw error
+      return result
+    },
     
-    // إزالة user_email إذا كان موجوداً
-    delete updateData.user_email
-    
-    const { data: result, error } = await supabase
-      .from(tableName)
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
-    
-    if (error) throw error
-    return result
-  },
-  
-  delete: async (id) => {
-    const { error } = await supabase
-      .from(tableName)
-      .delete()
-      .eq('id', id)
-    
-    if (error) throw error
-    return { success: true }
+    delete: async (id) => {
+      const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq('id', id)
+      
+      if (error) throw error
+      return { success: true }
+    }
   }
-})
+}
 
 // Add entities
 supabaseClient.entities = {
