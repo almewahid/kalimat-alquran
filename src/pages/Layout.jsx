@@ -48,7 +48,8 @@ import {
   Music,
   AlertTriangle,
   LogOut,
-  TrendingUp
+  TrendingUp,
+  Smartphone
 } from "lucide-react";
 import {
   Sidebar,
@@ -118,6 +119,7 @@ const adminItems = [
   { title: "الدورات والشهادات", url: createPageUrl("ManageCertificates"), icon: BookOpen },
   { title: "إدارة الصوتيات", url: createPageUrl("ManageAudios"), icon: Music },
   { title: "صفحات الهبوط", url: createPageUrl("ManageLandingPages"), icon: Zap },
+  { title: "تتبع نسخة التطبيق", url: createPageUrl("AppVersionTracking"), icon: Smartphone },
   { title: "سجلات الأخطاء", url: createPageUrl("ErrorLogs"), icon: AlertTriangle },
   { title: "اختبار الصوت", url: createPageUrl("AudioTest"), icon: Volume2 },
 ];
@@ -145,7 +147,7 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     const fetchUserPreferences = async () => {
       try {
-        const user = await supabaseClient.supabase.auth.getUser();
+        const user = await supabaseClient.auth.me();
         setTheme(user?.preferences?.theme || "light");
         setColorScheme(user?.preferences?.color_scheme || "default");
         setIsAdmin(user?.role === 'admin');

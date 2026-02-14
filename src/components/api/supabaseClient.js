@@ -21,7 +21,7 @@ export const supabaseClient = {
           .from('user_profiles')
           .select('*')
           .eq('user_id', user.id)
-          .maybeSingle()  // ✅ تغيير من single
+          .maybeSingle()
         
         return {
           id: user.id,
@@ -65,7 +65,7 @@ export const supabaseClient = {
   entities: {}
 }
 
-// Entity wrapper - يدعم user_email و user_email معًا
+// Entity wrapper - يدعم user_email و user_email معاً
 const createEntityWrapper = (tableName) => ({
   list: async (sortField = '-created_date', limit = 50) => {
     const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
@@ -84,7 +84,7 @@ const createEntityWrapper = (tableName) => ({
   filter: async (conditions = {}, sortField = '-created_date', limit = 50) => {
     let query = supabase.from(tableName).select('*')
     
-    // ✅ دعم user_email (Base44) و user_email (Supabase) معًا
+    // دعم user_email (Base44) و user_email (Supabase) معاً
     const processedConditions = { ...conditions }
     
     // إذا كان user_email موجود، استخدم user_email بدلاً منه
@@ -130,7 +130,7 @@ const createEntityWrapper = (tableName) => ({
   create: async (data) => {
     const { data: { user } } = await supabase.auth.getUser()
     
-    // ✅ إضافة user_email (Supabase) بدلاً من user_email (Base44)
+    // إضافة user_email (Supabase) بدلاً من user_email (Base44)
     const enrichedData = {
       ...data,
       user_id: user?.id,
@@ -138,7 +138,7 @@ const createEntityWrapper = (tableName) => ({
       created_date: new Date().toISOString(),
     }
     
-    // إزالة user_email إذا كان موجودًا في البيانات
+    // إزالة user_email إذا كان موجوداً في البيانات
     delete enrichedData.user_email
     
     const { data: result, error } = await supabase
@@ -180,7 +180,7 @@ const createEntityWrapper = (tableName) => ({
   update: async (id, data) => {
     const updateData = { ...data, updated_date: new Date().toISOString() }
     
-    // إزالة user_email إذا كان موجودًا
+    // إزالة user_email إذا كان موجوداً
     delete updateData.user_email
     
     const { data: result, error } = await supabase
@@ -228,6 +228,8 @@ supabaseClient.entities = {
   DailyChallengeProgress: createEntityWrapper('daily_challenge_progress'),
   ReferralCode: createEntityWrapper('referral_codes'),
   ErrorLog: createEntityWrapper('error_logs'),
+  AppSettings: createEntityWrapper('app_settings'),
+  AppUserVersion: createEntityWrapper('app_user_version'),
 }
 
 export default supabaseClient

@@ -3,6 +3,7 @@ import Dashboard from "./Dashboard";
 import Learn from "./Learn";
 import Quiz from "./Quiz";
 import Progress from "./Progress";
+import AppVersionTracking from './AppVersionTracking';
 import Settings from "./Settings";
 import Help from "./Help";
 import Favorites from "./Favorites";
@@ -66,6 +67,7 @@ const PAGES = {
     Learn: Learn,
     Quiz: Quiz,
     Progress: Progress,
+    AppVersionTracking: AppVersionTracking,
     Settings: Settings,
     Help: Help,
     Favorites: Favorites,
@@ -147,6 +149,7 @@ function PagesContent() {
                 <Route path="/Learn" element={<Learn />} />
                 <Route path="/Quiz" element={<Quiz />} />
                 <Route path="/Progress" element={<Progress />} />
+                <Route path="/AppVersionTracking" element={<AppVersionTracking />} />
                 <Route path="/Settings" element={<Settings />} />
                 <Route path="/Help" element={<Help />} />
                 <Route path="/Favorites" element={<Favorites />} />
