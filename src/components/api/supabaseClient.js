@@ -250,7 +250,43 @@ supabaseClient.entities = {
   DailyChallengeProgress: createEntityWrapper('daily_challenge_progress'),
   ReferralCode: createEntityWrapper('referral_codes'),
   ErrorLog: createEntityWrapper('error_logs'),
-  AppSettings: createEntityWrapper('app_settings'),
+  AppSettings: {
+    ...createEntityWrapper('app_settings'),
+    
+    // استخدام Edge Function للإضافة/التحديث (للأدمن فقط)
+    createOrUpdate: async (key, value, description = '') => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session) {
+          throw new Error('غير مسجل دخول')
+        }
+
+        const response = await fetch(
+          'https://idivxuxznyrslzjxhtzb.supabase.co/functions/v1/admin-settings',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ key, value, description })
+          }
+        )
+
+        const result = await response.json()
+        
+        if (!result.success) {
+          throw new Error(result.error || 'فشل في حفظ الإعدادات')
+        }
+        
+        return result.data
+      } catch (error) {
+        console.error('خطأ في حفظ الإعدادات:', error)
+        throw error
+      }
+    }
+  },
   AppUserVersion: createEntityWrapper('app_user_version'),
 }
 
