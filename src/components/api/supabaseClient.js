@@ -76,6 +76,9 @@ const createEntityWrapper = (tableName) => {
     ? 'updated_at'
     : 'updated_date';
 
+  // جداول لا تحتاج user_id
+  const tablesWithoutUserId = ['app_settings', 'landing_pages', 'quran_ayahs', 'quranic_words'];
+
   return {
     list: async (sortField = `-${dateColumn}`, limit = 50) => {
       const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
@@ -140,13 +143,15 @@ const createEntityWrapper = (tableName) => {
     create: async (data) => {
       const { data: { user } } = await supabase.auth.getUser()
       
-      // إضافة user_email (Supabase) بدلاً من user_email (Base44)
-      const enrichedData = {
-        ...data,
-        user_id: user?.id,
-        user_email: user?.email,
-        [dateColumn]: new Date().toISOString(),
+      const enrichedData = { ...data }
+      
+      // فقط أضف user_id للجداول التي تحتاجه
+      if (!tablesWithoutUserId.includes(tableName)) {
+        enrichedData.user_id = user?.id
+        enrichedData.user_email = user?.email
       }
+      
+      enrichedData[dateColumn] = new Date().toISOString()
       
       // إزالة user_email إذا كان موجوداً في البيانات
       delete enrichedData.user_email
@@ -165,12 +170,15 @@ const createEntityWrapper = (tableName) => {
       const { data: { user } } = await supabase.auth.getUser()
       
       const enrichedItems = items.map(item => {
-        const enriched = {
-          ...item,
-          user_id: user?.id,
-          user_email: user?.email,
-          [dateColumn]: new Date().toISOString(),
+        const enriched = { ...item }
+        
+        // فقط أضف user_id للجداول التي تحتاجه
+        if (!tablesWithoutUserId.includes(tableName)) {
+          enriched.user_id = user?.id
+          enriched.user_email = user?.email
         }
+        
+        enriched[dateColumn] = new Date().toISOString()
         
         // إزالة user_email
         delete enriched.user_email
