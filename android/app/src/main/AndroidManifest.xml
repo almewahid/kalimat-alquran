@@ -23,11 +23,13 @@
             </intent-filter>
 
             <!-- Deep Link for Google OAuth -->
-            <intent-filter>
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="kalimat-alquran" />
+                <data 
+                    android:scheme="kalimat-alquran" 
+                    android:host="login" />
             </intent-filter>
 
         </activity>

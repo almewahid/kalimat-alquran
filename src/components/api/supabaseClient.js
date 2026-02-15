@@ -77,7 +77,24 @@ const createEntityWrapper = (tableName) => {
     : 'updated_date';
 
   // جداول لا تحتاج user_id
-  const tablesWithoutUserId = ['app_settings', 'landing_pages', 'quran_ayahs', 'quranic_words'];
+  const tablesWithoutUserId = [
+    'app_settings', 
+    'landing_pages', 
+    'quran_ayahs', 
+    'quranic_words',
+    'quran_tafsirs',
+    'groups',  // يستخدم leader_email
+    'categories',
+    'images',
+    'audios',
+    'courses',
+    'learning_paths',
+    'daily_challenges',
+    'flash_challenges',
+    'seasonal_challenges',
+    'team_challenges',
+    'group_challenges'
+  ];
 
   return {
     list: async (sortField = `-${dateColumn}`, limit = 50) => {

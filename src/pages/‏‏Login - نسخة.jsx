@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabaseClient } from '@/components/api/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, Lock, Loader2 } from 'lucide-react';
-import { Browser } from '@capacitor/browser';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -16,89 +15,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
-  const [debugLog, setDebugLog] = useState([]);
-
-  const addLog = (message) => {
-    setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-    console.log(message);
-  };
-
-  // ✅ استماع لـ Deep Links عند العودة من Google
-  useEffect(() => {
-    const setupDeepLinks = async () => {
-      App.addListener('appUrlOpen', async (data) => {
-        addLog('🔵 تم استقبال Deep Link');
-        console.log('Deep Link Data:', data);
-        
-        if (data.url) {
-          const url = new URL(data.url);
-          const hash = url.hash.substring(1);
-          const params = new URLSearchParams(hash);
-          
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
-          
-          if (accessToken) {
-            addLog('✅ تم الحصول على Access Token');
-            
-            const { data: sessionData, error } = await supabaseClient.supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-
-            if (error) {
-              addLog(`❌ خطأ في Session: ${error.message}`);
-              setError(error.message);
-              return;
-            }
-
-            if (sessionData?.user) {
-              addLog('✅ تم تسجيل الدخول بنجاح!');
-              
-              try {
-                const { data: profile } = await supabaseClient.supabase
-                  .from('user_profiles')
-                  .select('user_id')
-                  .eq('user_id', sessionData.user.id)
-                  .maybeSingle();
-
-                if (!profile) {
-                  await supabaseClient.supabase.from('user_profiles').insert({
-                    user_id: sessionData.user.id,
-                    email: sessionData.user.email,
-                    full_name: sessionData.user.user_metadata?.full_name || 'مستخدم',
-                    role: 'user',
-                  });
-
-                  await supabaseClient.supabase.from('user_gems').insert({
-                    user_id: sessionData.user.id,
-                    user_email: sessionData.user.email,
-                    total_gems: 0,
-                    gems_spent: 0,
-                    current_gems: 0,
-                  });
-                }
-              } catch (profileError) {
-                console.error('Profile Error:', profileError);
-              }
-
-              window.location.href = '/Dashboard';
-            }
-          }
-        }
-      });
-    };
-
-    if (Capacitor.isNativePlatform()) {
-      setupDeepLinks();
-    }
-
-    return () => {
-      if (Capacitor.isNativePlatform()) {
-        App.removeAllListeners();
-      }
-    };
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -115,20 +31,34 @@ export default function Login() {
         if (error) throw error;
 
         if (data.user) {
-          await supabaseClient.supabase.from('user_profiles').insert({
-            user_id: data.user.id,
-            email: email,
-            full_name: email.split('@')[0],
-            role: 'user',
-          });
+          // إنشاء user profile
+          const { error: profileError } = await supabaseClient.supabase
+            .from('user_profiles')
+            .insert({
+              user_id: data.user.id,
+              email: email,
+              full_name: email.split('@')[0],
+              role: 'user',
+            });
 
-          await supabaseClient.supabase.from('user_gems').insert({
-            user_id: data.user.id,
-            user_email: email,
-            total_gems: 0,
-            gems_spent: 0,
-            current_gems: 0,
-          });
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+          }
+
+          // إنشاء user gems
+          const { error: gemsError } = await supabaseClient.supabase
+            .from('user_gems')
+            .insert({
+              user_id: data.user.id,
+              user_email: email,
+              total_gems: 0,
+              gems_spent: 0,
+              current_gems: 0,
+            });
+
+          if (gemsError) {
+            console.error('Gems creation error:', gemsError);
+          }
 
           window.location.href = '/Dashboard';
         }
@@ -142,55 +72,75 @@ export default function Login() {
         window.location.href = '/Dashboard';
       }
     } catch (err) {
+      console.error('Full error:', err);
       setError(err.message || 'حدث خطأ، حاول مرة أخرى');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Google Login - الحل الأفضل بدون SHA-1
+  // ✅ Google Sign-In الصحيح
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
-    setDebugLog([]);
-    addLog('🔵 بدء تسجيل الدخول بـ Google');
 
     try {
       const isNative = Capacitor.isNativePlatform();
-      addLog(`المنصة: ${isNative ? 'موبايل' : 'ويب'}`);
 
-      const { data, error } = await supabaseClient.supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: isNative 
-            ? 'kalimat-alquran://login' 
-            : `${window.location.origin}/Dashboard`,
-        },
-      });
-
-      if (error) {
-        addLog(`❌ OAuth Error: ${error.message}`);
-        throw error;
-      }
-
-      if (data?.url) {
-        addLog('✅ تم الحصول على OAuth URL');
+      if (isNative) {
+        // ✅ للتطبيق (Android/iOS) - استخدم signInWithIdToken
+        const googleUser = await GoogleAuth.signIn();
         
-        if (isNative) {
-          addLog('🔵 فتح المتصفح للموبايل...');
-          await Browser.open({ 
-            url: data.url,
-            presentationStyle: 'popover'
-          });
-        } else {
-          addLog('🔵 التحويل في الويب...');
-          window.location.href = data.url;
+        if (!googleUser || !googleUser.authentication) {
+          throw new Error('فشل تسجيل الدخول بـ Google');
         }
-      }
 
+        const { data, error } = await supabaseClient.supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: googleUser.authentication.idToken,
+        });
+
+        if (error) throw error;
+
+        // إنشاء profile إذا لم يكن موجوداً
+        const { data: existingProfile } = await supabaseClient.supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (!existingProfile) {
+          await supabaseClient.supabase.from('user_profiles').insert({
+            user_id: data.user.id,
+            email: data.user.email,
+            full_name: googleUser.name || data.user.email.split('@')[0],
+            role: 'user',
+          });
+
+          await supabaseClient.supabase.from('user_gems').insert({
+            user_id: data.user.id,
+            user_email: data.user.email,
+            total_gems: 0,
+            gems_spent: 0,
+            current_gems: 0,
+          });
+        }
+
+        window.location.href = '/Dashboard';
+      } else {
+        // ✅ للويب - استخدم signInWithOAuth
+        const { error } = await supabaseClient.supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + '/Dashboard',
+          },
+        });
+
+        if (error) throw error;
+      }
     } catch (err) {
-      addLog(`❌ خطأ نهائي: ${err.message}`);
-      setError(err.message || 'حدث خطأ');
+      console.error('Google login error:', err);
+      setError(err.message || 'فشل تسجيل الدخول بـ Google');
     } finally {
       setLoading(false);
     }
@@ -198,6 +148,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-gray-900 dark:via-amber-950 dark:to-gray-900 p-4">
+      {/* خلفية زخرفية */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-amber-200/30 dark:bg-amber-500/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-orange-200/30 dark:bg-orange-500/10 rounded-full blur-3xl"></div>
@@ -205,6 +156,7 @@ export default function Login() {
 
       <Card className="w-full max-w-md relative z-10 shadow-2xl border-2 border-amber-200 dark:border-amber-800">
         <CardHeader className="space-y-4 text-center pb-8">
+          {/* الشعار - الصورة */}
           <div className="mx-auto">
             <img 
               src="/logo.png" 
@@ -224,18 +176,6 @@ export default function Login() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {debugLog.length > 0 && (
-            <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 max-h-64 overflow-y-auto">
-              <AlertDescription>
-                <div className="text-xs font-mono space-y-1 text-right">
-                  {debugLog.map((log, i) => (
-                    <div key={i}>{log}</div>
-                  ))}
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
           {error && (
             <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
               <AlertDescription>{error}</AlertDescription>
@@ -243,6 +183,7 @@ export default function Login() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* البريد الإلكتروني */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
                 البريد الإلكتروني
@@ -262,6 +203,7 @@ export default function Login() {
               </div>
             </div>
 
+            {/* كلمة المرور */}
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">
                 كلمة المرور
@@ -282,6 +224,7 @@ export default function Login() {
               </div>
             </div>
 
+            {/* زر التسجيل */}
             <Button
               type="submit"
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-lg"
@@ -300,6 +243,7 @@ export default function Login() {
             </Button>
           </form>
 
+          {/* الفاصل */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
@@ -309,6 +253,7 @@ export default function Login() {
             </div>
           </div>
 
+          {/* Google Sign In */}
           <Button
             type="button"
             variant="outline"
@@ -337,6 +282,7 @@ export default function Login() {
             متابعة مع Google
           </Button>
 
+          {/* تبديل بين تسجيل دخول وإنشاء حساب */}
           <div className="text-center text-sm">
             <button
               type="button"
