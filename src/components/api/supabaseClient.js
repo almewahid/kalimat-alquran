@@ -68,11 +68,11 @@ export const supabaseClient = {
 // Entity wrapper - يدعم created_at و created_date تلقائياً
 const createEntityWrapper = (tableName) => {
   // تحديد اسم العمود حسب الجدول
-  const dateColumn = tableName === 'app_settings' || tableName === 'app_user_version' 
-    ? 'created_at'  // الجداول الجديدة
+  const dateColumn = tableName === 'app_settings' || tableName === 'app_user_version' || tableName === 'app_users_version'
+    ? 'updated_at'  // الجداول الجديدة
     : 'created_date'; // الجداول القديمة
   
-  const updateColumn = tableName === 'app_settings' || tableName === 'app_user_version'
+  const updateColumn = tableName === 'app_settings' || tableName === 'app_user_version' || tableName === 'app_users_version'
     ? 'updated_at'
     : 'updated_date';
 
