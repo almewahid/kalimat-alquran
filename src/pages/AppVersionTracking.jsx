@@ -236,7 +236,7 @@ export default function AppVersionTracking() {
         <Info className="w-4 h-4" />
         <AlertDescription>
           <strong>ملاحظة:</strong> عند تفعيل التتبع، سيتم تسجيل نسخة التطبيق تلقائياً لكل مستخدم يقوم بتسجيل الدخول أو التحديث. 
-          يتم حفظ البيانات في جدول <code className="bg-muted px-1 py-0.5 rounded">app_user_version</code>.
+          يتم حفظ البيانات في جدول <code className="bg-muted px-1 py-0.5 rounded">app_users_version</code>.
         </AlertDescription>
       </Alert>
     </div>
