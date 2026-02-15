@@ -53,7 +53,7 @@ export default function AppVersionTracking() {
 
   const loadUsersCount = async () => {
     try {
-      const users = await supabaseClient.entities.AppUserVersion.list();
+      const users = await supabaseClient.entities.AppUsersVersion.list();
       setUsersCount(users.length);
     } catch (error) {
       console.error('Error loading users count:', error);
