@@ -78,22 +78,33 @@ const createEntityWrapper = (tableName) => {
 
   // جداول لا تحتاج user_id
   const tablesWithoutUserId = [
-    'app_settings', 
-    'landing_pages', 
-    'quran_ayahs', 
+    // إعدادات النظام
+    'app_settings',
+    
+    // محتوى القرآن الكريم
+    'quran_ayahs',
     'quranic_words',
     'quran_tafsirs',
-    'groups',  // يستخدم leader_email
+    
+    // المحتوى العام
+    'landing_pages',
     'categories',
     'images',
     'audios',
     'courses',
     'learning_paths',
-    'daily_challenges',
+    
+    // التحديات العامة
     'flash_challenges',
     'seasonal_challenges',
     'team_challenges',
-    'group_challenges'
+    'group_challenges',
+    
+    // المجموعات (تستخدم leader_email)
+    'groups',
+    
+    // سجلات النظام
+    'audit_log'
   ];
 
   return {
@@ -304,7 +315,7 @@ supabaseClient.entities = {
       }
     }
   },
-  AppUserVersion: createEntityWrapper('app_user_version'),
+  AppUsersVersion: createEntityWrapper('app_users_version'),
 }
 
 export default supabaseClient
