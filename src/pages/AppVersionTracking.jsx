@@ -14,6 +14,8 @@ export default function AppVersionTracking() {
   const [updating, setUpdating] = useState(false);
   const [trackingEnabled, setTrackingEnabled] = useState(false);
   const [usersCount, setUsersCount] = useState(0);
+  const [versionStats, setVersionStats] = useState([]);
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     loadSettings();
@@ -55,6 +57,29 @@ export default function AppVersionTracking() {
     try {
       const users = await supabaseClient.entities.AppUsersVersion.list();
       setUsersCount(users.length);
+      setUsers(users);
+      
+      // حساب إحصائيات الإصدارات
+      const stats = users.reduce((acc, user) => {
+        const key = `${user.app_version}-${user.platform}`;
+        if (!acc[key]) {
+          acc[key] = {
+            app_version: user.app_version,
+            platform: user.platform,
+            count: 0,
+            users: []
+          };
+        }
+        acc[key].count++;
+        acc[key].users.push({
+          email: user.email,
+          full_name: user.full_name,
+          updated_at: user.updated_at
+        });
+        return acc;
+      }, {});
+      
+      setVersionStats(Object.values(stats));
     } catch (error) {
       console.error('Error loading users count:', error);
     }
@@ -231,12 +256,63 @@ export default function AppVersionTracking() {
         </CardContent>
       </Card>
 
+      {/* جدول تفاصيل الإصدارات */}
+      {versionStats.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>تفاصيل الإصدارات</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {versionStats.map((stat, index) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="default" className="text-lg">
+                        {stat.app_version}
+                      </Badge>
+                      <Badge variant="secondary">
+                        {stat.platform === 'web' ? '🌐 ويب' : 
+                         stat.platform === 'android' ? '📱 أندرويد' : 
+                         stat.platform === 'ios' ? '🍎 iOS' : stat.platform}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {stat.count} مستخدم
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-primary hover:underline">
+                      عرض المستخدمين ({stat.count})
+                    </summary>
+                    <div className="mt-3 space-y-2 bg-muted p-3 rounded">
+                      {stat.users.map((user, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <div>
+                            <span className="font-medium">{user.full_name}</span>
+                            <span className="text-muted-foreground ml-2">({user.email})</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(user.updated_at).toLocaleDateString('ar-EG')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* معلومات إضافية */}
       <Alert>
         <Info className="w-4 h-4" />
         <AlertDescription>
           <strong>ملاحظة:</strong> عند تفعيل التتبع، سيتم تسجيل نسخة التطبيق تلقائياً لكل مستخدم يقوم بتسجيل الدخول أو التحديث. 
-          يتم حفظ البيانات في جدول <code className="bg-muted px-1 py-0.5 rounded">app_users_version</code>.
+          يتم حفظ البيانات في جدول <code className="bg-muted px-1 py-0.5 rounded">app_user_version</code>.
         </AlertDescription>
       </Alert>
     </div>
