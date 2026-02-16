@@ -16,6 +16,7 @@ const queryClient = new QueryClient({
 const createPageUrl = (pageName) => `/${pageName}`;
 import { AudioProvider } from "@/components/common/AudioContext";
 import GlobalAudioPlayer from "../components/common/GlobalAudioPlayer";
+import AppUpdateChecker from "../components/common/AppUpdateChecker";
 import DynamicLandingPage from "../components/common/DynamicLandingPage";
 import {
   Home,
@@ -65,6 +66,16 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const navigationItems = [
   { title: "الرئيسية", url: createPageUrl("Dashboard"), icon: Home },
@@ -88,6 +99,7 @@ const gamificationItems = [
   { title: "الإنجازات", url: createPageUrl("Achievements"), icon: Award },
   { title: "المتجر", url: createPageUrl("Shop"), icon: ShoppingBag },
   { title: "المسارات التعليمية", url: createPageUrl("LearningPaths"), icon: Map },
+  { title: "مساراتي المخصصة", url: createPageUrl("CustomLearningPaths"), icon: TrendingUp },
   { title: "التحديات اليومية", url: createPageUrl("DailyChallenges"), icon: Calendar },
 ];
 
@@ -132,6 +144,7 @@ export default function Layout({ children, currentPageName }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -364,7 +377,7 @@ export default function Layout({ children, currentPageName }) {
                                 : "hover:bg-primary/5 hover:text-primary/90"
                             }`}
                           >
-                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
+                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3" onClick={() => isMobile && setSidebarOpen(false)}>
                               <item.icon className="w-5 h-5" />
                               <span className="font-medium">{item.title}</span>
                             </Link>
@@ -391,7 +404,7 @@ export default function Layout({ children, currentPageName }) {
                                 : "hover:bg-primary/5 hover:text-primary/90"
                             }`}
                           >
-                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
+                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3" onClick={() => isMobile && setSidebarOpen(false)}>
                               <item.icon className="w-5 h-5" />
                               <span className="font-medium">{item.title}</span>
                             </Link>
@@ -513,11 +526,7 @@ export default function Layout({ children, currentPageName }) {
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      onClick={async () => {
-                        if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-                          await supabaseClient.auth.logout();
-                        }
-                      }}
+                      onClick={() => setShowLogoutDialog(true)}
                     >
                       <LogOut className="w-5 h-5 ml-2" />
                       تسجيل الخروج
@@ -544,6 +553,34 @@ export default function Layout({ children, currentPageName }) {
         </SidebarProvider>
 
         <GlobalAudioPlayer />
+        <AppUpdateChecker />
+
+        {/* Logout Confirmation Dialog */}
+        <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+          <AlertDialogContent className="max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl text-center">
+                هل أنت متأكد من تسجيل الخروج؟
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-center">
+                سيتم تسجيل خروجك من التطبيق
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex gap-2 sm:gap-0">
+              <AlertDialogCancel className="mt-0">
+                إلغاء
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={async () => {
+                  await supabaseClient.auth.logout();
+                }}
+              >
+                تسجيل الخروج
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AudioProvider>
     </QueryClientProvider>

@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAudio } from "@/components/common/AudioContext";
 
 export default function KidsWordCard({ word, onMarkLearned }) {
-  const { playAyah, playWord, playMeaning, isPlaying, currentType, pause, resume } = useAudio();
+  const { playAyah, playWord, playMeaning, isPlaying, currentType, pause, resume, stopAll, registerAudio, unregisterAudio } = useAudio();
   const [showMeaning, setShowMeaning] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -18,10 +18,46 @@ export default function KidsWordCard({ word, onMarkLearned }) {
   const [noteLoading, setNoteLoading] = useState(false);
   const [starRating, setStarRating] = useState(0);
 
+  // ✅ Refs لعناصر الصوت
+  const audioRef1 = React.useRef(null);
+  const audioRef2 = React.useRef(null);
+
   useEffect(() => {
     checkFavoriteStatus();
     loadUserNote();
   }, [word?.id]);
+
+  // ✅ تسجيل عناصر audio عند التحميل
+  useEffect(() => {
+    if (audioRef1.current) registerAudio(audioRef1.current);
+    if (audioRef2.current) registerAudio(audioRef2.current);
+
+    // ✅ إيقاف الأصوات الأخرى عند تشغيل أي صوت
+    const handleAudio1Play = () => {
+      stopAll(audioRef1.current);
+    };
+
+    const handleAudio2Play = () => {
+      stopAll(audioRef2.current);
+    };
+
+    const audio1 = audioRef1.current;
+    const audio2 = audioRef2.current;
+
+    if (audio1) audio1.addEventListener('play', handleAudio1Play);
+    if (audio2) audio2.addEventListener('play', handleAudio2Play);
+
+    return () => {
+      if (audio1) {
+        audio1.removeEventListener('play', handleAudio1Play);
+        unregisterAudio(audio1);
+      }
+      if (audio2) {
+        audio2.removeEventListener('play', handleAudio2Play);
+        unregisterAudio(audio2);
+      }
+    };
+  }, [registerAudio, unregisterAudio, stopAll]);
 
   const checkFavoriteStatus = async () => {
     if (!word) return;
@@ -436,7 +472,7 @@ export default function KidsWordCard({ word, onMarkLearned }) {
                       </div>
                       <div className="flex-1">
                           <p className="text-indigo-800 dark:text-indigo-200 font-bold text-sm">الشرح بالفصحى</p>
-                          <audio controls className="w-full h-8 mt-1" src={word.audio_url} />
+                          <audio ref={audioRef1} controls className="w-full h-8 mt-1" src={word.audio_url} />
                       </div>
                     </div>
                   </motion.div>
@@ -456,7 +492,7 @@ export default function KidsWordCard({ word, onMarkLearned }) {
                       </div>
                       <div className="flex-1">
                           <p className="text-orange-800 dark:text-orange-200 font-bold text-sm">الشرح بالعامية</p>
-                          <audio controls className="w-full h-8 mt-1" src={word.audio2_url} />
+                          <audio ref={audioRef2} controls className="w-full h-8 mt-1" src={word.audio2_url} />
                       </div>
                     </div>
                   </motion.div>

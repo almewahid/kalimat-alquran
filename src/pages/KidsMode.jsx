@@ -24,15 +24,24 @@ export default function KidsMode() {
 
   const loadData = async () => {
     try {
-      const currentUser = await supabaseClient.supabase.auth.getUser();
-      setUser(currentUser);
-      setKidsModeEnabled(currentUser.preferences?.kids_mode_enabled || false);
-      setChildName(currentUser.preferences?.child_name || "");
+      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      
+      if (currentUser) {
+        const { data: profile } = await supabaseClient.supabase
+          .from('user_profiles')
+          .select('preferences, email')
+          .eq('user_id', currentUser.id)
+          .single();
+        
+        setUser({ ...currentUser, preferences: profile?.preferences });
+        setKidsModeEnabled(profile?.preferences?.kids_mode_enabled || false);
+        setChildName(profile?.preferences?.child_name || "");
 
-      const [userProgress] = await supabaseClient.entities.UserProgress.filter({ 
-        user_email: currentUser.email 
-      });
-      setProgress(userProgress);
+        const [userProgress] = await supabaseClient.entities.UserProgress.filter({ 
+          user_email: profile?.email 
+        });
+        setProgress(userProgress);
+      }
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -42,14 +51,30 @@ export default function KidsMode() {
 
   const toggleKidsMode = async (enabled) => {
     try {
+      const { data: { user: authUser } } = await supabaseClient.supabase.auth.getUser();
+      
+      const newPreferences = {
+        ...user.preferences,
+        kids_mode_enabled: enabled,
+        learning_level: enabled ? "مبتدئ" : (user.preferences?.learning_level || "متوسط")
+      };
+
+      // حفظ في user_profiles
+      if (authUser) {
+        await supabaseClient.supabase
+          .from('user_profiles')
+          .update({ preferences: newPreferences })
+          .eq('user_id', authUser.id);
+      }
+
+      // حفظ في auth أيضاً
       await supabaseClient.auth.updateMe({
-        preferences: {
-          ...user.preferences,
-          kids_mode_enabled: enabled,
-          learning_level: enabled ? "مبتدئ" : (user.preferences?.learning_level || "all")
-        }
+        preferences: newPreferences
       });
+
       setKidsModeEnabled(enabled);
+      setUser({ ...user, preferences: newPreferences });
+      
       toast({
         title: enabled ? "🎉 تم تفعيل وضع الأطفال!" : "تم إيقاف وضع الأطفال",
         description: enabled 
@@ -69,12 +94,28 @@ export default function KidsMode() {
 
   const saveChildName = async () => {
     try {
+      const { data: { user: authUser } } = await supabaseClient.supabase.auth.getUser();
+      
+      const newPreferences = {
+        ...user.preferences,
+        child_name: childName
+      };
+
+      // حفظ في user_profiles
+      if (authUser) {
+        await supabaseClient.supabase
+          .from('user_profiles')
+          .update({ preferences: newPreferences })
+          .eq('user_id', authUser.id);
+      }
+
+      // حفظ في auth أيضاً
       await supabaseClient.auth.updateMe({
-        preferences: {
-          ...user.preferences,
-          child_name: childName
-        }
+        preferences: newPreferences
       });
+
+      setUser({ ...user, preferences: newPreferences });
+
       toast({
         title: "✅ تم الحفظ!",
         description: "تم حفظ اسم الطفل",

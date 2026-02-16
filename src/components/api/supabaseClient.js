@@ -65,53 +65,54 @@ export const supabaseClient = {
   entities: {}
 }
 
-// Entity wrapper - يدعم created_at و created_date تلقائياً
+// Entity wrapper
 const createEntityWrapper = (tableName) => {
-  // تحديد اسم العمود حسب الجدول
   const dateColumn = tableName === 'app_settings' || tableName === 'app_user_version' || tableName === 'app_users_version'
-    ? 'updated_at'  // الجداول الجديدة
-    : 'created_date'; // الجداول القديمة
+    ? 'updated_at'
+    : 'created_date';
   
   const updateColumn = tableName === 'app_settings' || tableName === 'app_user_version' || tableName === 'app_users_version'
     ? 'updated_at'
     : 'updated_date';
 
-  // جداول لا تحتاج user_id
   const tablesWithoutUserId = [
-    // إعدادات النظام
-    'app_settings',
-    
-    // محتوى القرآن الكريم
-    'quran_ayahs',
-    'quranic_words',
-    'quran_tafsirs',
-    
-    // المحتوى العام
-    'landing_pages',
-    'categories',
-    'images',
-    'audios',
-    'courses',
-    'learning_paths',
-    
-    // التحديات العامة
-    'flash_challenges',
-    'seasonal_challenges',
-    'team_challenges',
-    'group_challenges',
-    
-    // المجموعات (تستخدم leader_email)
-    'groups',
-    
-    // سجلات النظام
-    'audit_log'
+    'app_settings', 'quran_ayahs', 'quranic_words', 'quran_tafsirs',
+    'landing_pages', 'categories', 'images', 'audios', 'courses', 'learning_paths',
+    'flash_challenges', 'seasonal_challenges', 'team_challenges', 'group_challenges',
+    'groups', 'audit_log'
   ];
 
   return {
-    list: async (sortField = `-${dateColumn}`, limit = 50) => {
+    list: async (sortField = `-${dateColumn}`, limit = 10000) => {
       const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
       const ascending = !sortField?.startsWith('-')
       
+      // ✅ Pagination للـ limit الكبير
+      if (limit > 1000) {
+        let allData = [];
+        let from = 0;
+        const pageSize = 1000;
+        
+        while (from < limit) {
+          const { data, error } = await supabase
+            .from(tableName)
+            .select('*')
+            .order(orderField || dateColumn, { ascending })
+            .range(from, from + pageSize - 1);
+          
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          
+          allData = [...allData, ...data];
+          from += pageSize;
+          
+          if (data.length < pageSize) break;
+        }
+        
+        return allData;
+      }
+      
+      // للـ limit الصغير
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
@@ -122,24 +123,19 @@ const createEntityWrapper = (tableName) => {
       return data || []
     },
     
-    filter: async (conditions = {}, sortField = `-${dateColumn}`, limit = 50) => {
+    filter: async (conditions = {}, sortField = `-${dateColumn}`, limit = 10000) => {
       let query = supabase.from(tableName).select('*')
       
-      // دعم user_email (Base44) و user_email (Supabase) معاً
       const processedConditions = { ...conditions }
-      
-      // إذا كان user_email موجود، استخدم user_email بدلاً منه
       if (processedConditions.user_email) {
         processedConditions.user_email = processedConditions.user_email
         delete processedConditions.user_email
       }
       
-      // Apply filters
       Object.entries(processedConditions).forEach(([key, value]) => {
         if (Array.isArray(value)) {
           query = query.in(key, value)
         } else if (typeof value === 'object' && value !== null) {
-          // دعم MongoDB-style operators
           if (value.$in && Array.isArray(value.$in)) {
             query = query.in(key, value.$in)
           } else if (value.$gte !== undefined) {
@@ -158,7 +154,6 @@ const createEntityWrapper = (tableName) => {
         }
       })
       
-      // Apply sorting
       const orderField = sortField?.startsWith('-') ? sortField.slice(1) : sortField
       const ascending = !sortField?.startsWith('-')
       query = query.order(orderField || dateColumn, { ascending }).limit(limit)
@@ -173,15 +168,12 @@ const createEntityWrapper = (tableName) => {
       
       const enrichedData = { ...data }
       
-      // فقط أضف user_id للجداول التي تحتاجه
       if (!tablesWithoutUserId.includes(tableName)) {
         enrichedData.user_id = user?.id
         enrichedData.user_email = user?.email
       }
       
       enrichedData[dateColumn] = new Date().toISOString()
-      
-      // إزالة user_email إذا كان موجوداً في البيانات
       delete enrichedData.user_email
       
       const { data: result, error } = await supabase
@@ -200,15 +192,12 @@ const createEntityWrapper = (tableName) => {
       const enrichedItems = items.map(item => {
         const enriched = { ...item }
         
-        // فقط أضف user_id للجداول التي تحتاجه
         if (!tablesWithoutUserId.includes(tableName)) {
           enriched.user_id = user?.id
           enriched.user_email = user?.email
         }
         
         enriched[dateColumn] = new Date().toISOString()
-        
-        // إزالة user_email
         delete enriched.user_email
         
         return enriched
@@ -229,7 +218,6 @@ const createEntityWrapper = (tableName) => {
         [updateColumn]: new Date().toISOString() 
       }
       
-      // إزالة user_email إذا كان موجوداً
       delete updateData.user_email
       
       const { data: result, error } = await supabase
@@ -280,15 +268,10 @@ supabaseClient.entities = {
   ErrorLog: createEntityWrapper('error_logs'),
   AppSettings: {
     ...createEntityWrapper('app_settings'),
-    
-    // استخدام Edge Function للإضافة/التحديث (للأدمن فقط)
     createOrUpdate: async (key, value, description = '') => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        
-        if (!session) {
-          throw new Error('غير مسجل دخول')
-        }
+        if (!session) throw new Error('غير مسجل دخول')
 
         const response = await fetch(
           'https://idivxuxznyrslzjxhtzb.supabase.co/functions/v1/admin-settings',
@@ -303,10 +286,7 @@ supabaseClient.entities = {
         )
 
         const result = await response.json()
-        
-        if (!result.success) {
-          throw new Error(result.error || 'فشل في حفظ الإعدادات')
-        }
+        if (!result.success) throw new Error(result.error || 'فشل في حفظ الإعدادات')
         
         return result.data
       } catch (error) {
@@ -316,6 +296,9 @@ supabaseClient.entities = {
     }
   },
   AppUsersVersion: createEntityWrapper('app_users_version'),
+  LearningPath: createEntityWrapper('learning_paths'),
+  UserLearningPath: createEntityWrapper('user_learning_paths'),
+  CustomLearningPath: createEntityWrapper('custom_learning_paths'),
 }
 
 export default supabaseClient

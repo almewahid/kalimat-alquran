@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, CheckCircle, AlertCircle, BookOpen, Download, RefreshCw } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, BookOpen, Download, RefreshCw, Badge } from "lucide-react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -170,6 +170,25 @@ export default function ImportTafsir() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [logs, setLogs] = useState([]);
+  const [downloadedTafsirs, setDownloadedTafsirs] = useState([]);
+
+  useEffect(() => {
+    loadDownloadedTafsirs();
+  }, []);
+
+  const loadDownloadedTafsirs = async () => {
+    try {
+      const allTafsirs = await supabaseClient.entities.QuranTafsir.list();
+      const uniqueTafsirs = [...new Set(allTafsirs.map(t => t.tafsir_name))];
+      const tafsirsWithCounts = uniqueTafsirs.map(name => ({
+        name,
+        count: allTafsirs.filter(t => t.tafsir_name === name).length
+      }));
+      setDownloadedTafsirs(tafsirsWithCounts);
+    } catch (err) {
+      console.error('[ImportTafsir] Error loading tafsirs:', err);
+    }
+  };
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -489,6 +508,8 @@ export default function ImportTafsir() {
       const finalMessage = `✅ تم استيراد ${tafsir.name} بنجاح! (${imported} آية جديدة${alreadyExists > 0 ? `، ${alreadyExists} آية موجودة مسبقاً` : ''}${skipped > 0 ? `, ${skipped} آية تم تخطيها (بيانات غير صالحة)` : ''})`;
       setStatus(finalMessage);
       setLogs(prev => [...prev, finalMessage]);
+      
+      loadDownloadedTafsirs(); // تحديث قائمة التفاسير
 
     } catch (importError) {
       const errorMsg = `❌ خطأ: ${importError.message}`;
@@ -520,6 +541,30 @@ export default function ImportTafsir() {
             </p>
           </AlertDescription>
         </Alert>
+
+        {downloadedTafsirs.length > 0 && (
+          <Card className="mb-6 bg-green-50 dark:bg-green-900/20 border-green-200">
+            <CardHeader>
+              <CardTitle className="text-green-800 dark:text-green-300 flex items-center gap-2">
+                <CheckCircle className="w-6 h-6" />
+                التفاسير المحملة
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-3">
+                {downloadedTafsirs.map((tafsir, idx) => (
+                  <div key={idx} className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-300 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span className="font-semibold">{tafsir.name}</span>
+                    </div>
+                    <span className="text-sm bg-green-100 dark:bg-green-800 px-2 py-1 rounded">{tafsir.count} آية</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="mb-6 bg-card border-border shadow-lg">
           <CardHeader>

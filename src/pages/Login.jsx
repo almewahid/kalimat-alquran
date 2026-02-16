@@ -16,19 +16,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
-  const [debugLog, setDebugLog] = useState([]);
-
-  const addLog = (message) => {
-    setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-    console.log(message);
-  };
 
   // ✅ استماع لـ Deep Links عند العودة من Google
   useEffect(() => {
     const setupDeepLinks = async () => {
       App.addListener('appUrlOpen', async (data) => {
-        addLog('🔵 تم استقبال Deep Link');
-        console.log('Deep Link Data:', data);
+        console.log('Deep Link received:', data);
         
         if (data.url) {
           const url = new URL(data.url);
@@ -39,22 +32,18 @@ export default function Login() {
           const refreshToken = params.get('refresh_token');
           
           if (accessToken) {
-            addLog('✅ تم الحصول على Access Token');
-            
             const { data: sessionData, error } = await supabaseClient.supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
 
             if (error) {
-              addLog(`❌ خطأ في Session: ${error.message}`);
+              console.error('Session error:', error);
               setError(error.message);
               return;
             }
 
             if (sessionData?.user) {
-              addLog('✅ تم تسجيل الدخول بنجاح!');
-              
               try {
                 const { data: profile } = await supabaseClient.supabase
                   .from('user_profiles')
@@ -152,12 +141,9 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
-    setDebugLog([]);
-    addLog('🔵 بدء تسجيل الدخول بـ Google');
 
     try {
       const isNative = Capacitor.isNativePlatform();
-      addLog(`المنصة: ${isNative ? 'موبايل' : 'ويب'}`);
 
       const { data, error } = await supabaseClient.supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -168,28 +154,21 @@ export default function Login() {
         },
       });
 
-      if (error) {
-        addLog(`❌ OAuth Error: ${error.message}`);
-        throw error;
-      }
+      if (error) throw error;
 
       if (data?.url) {
-        addLog('✅ تم الحصول على OAuth URL');
-        
         if (isNative) {
-          addLog('🔵 فتح المتصفح للموبايل...');
           await Browser.open({ 
             url: data.url,
             presentationStyle: 'popover'
           });
         } else {
-          addLog('🔵 التحويل في الويب...');
           window.location.href = data.url;
         }
       }
 
     } catch (err) {
-      addLog(`❌ خطأ نهائي: ${err.message}`);
+      console.error('Google login error:', err);
       setError(err.message || 'حدث خطأ');
     } finally {
       setLoading(false);
@@ -224,18 +203,6 @@ export default function Login() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {debugLog.length > 0 && (
-            <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 max-h-64 overflow-y-auto">
-              <AlertDescription>
-                <div className="text-xs font-mono space-y-1 text-right">
-                  {debugLog.map((log, i) => (
-                    <div key={i}>{log}</div>
-                  ))}
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
           {error && (
             <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
               <AlertDescription>{error}</AlertDescription>

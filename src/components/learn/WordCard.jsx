@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,14 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
   const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [starRating, setStarRating] = useState(0);
-  const { playAyah, playWord, playMeaning } = useAudio();
+  const { playAyah, playWord, playMeaning, stopAll, registerAudio, unregisterAudio } = useAudio();
+  const audioRef1 = React.useRef(null);
+  const audioRef2 = React.useRef(null);
 
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+        const user = await supabaseClient.auth.me();
         if (user?.preferences?.word_card_elements) {
           setCardElements(user.preferences.word_card_elements);
         } else {
@@ -49,12 +51,12 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
     const loadNoteAndFavorite = async () => {
       if (!word) return;
       try {
-        const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+        const user = await supabaseClient.auth.me();
         
         // Load note
         const notes = await supabaseClient.entities.UserNote.filter({
           word_id: word.id,
-          user_email: user.email
+          created_by: user.email
         });
         if (notes.length > 0) {
           setUserNote(notes[0].content);
@@ -63,7 +65,7 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
         // Load favorite status
         const favorites = await supabaseClient.entities.FavoriteWord.filter({
           word_id: word.id,
-          user_email: user.email
+          created_by: user.email
         });
         setIsFavorite(favorites.length > 0);
       } catch (error) {
@@ -73,13 +75,45 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
     loadNoteAndFavorite();
   }, [word]);
 
+  // ✅ تسجيل عناصر audio عند التحميل
+  useEffect(() => {
+    if (audioRef1.current) registerAudio(audioRef1.current);
+    if (audioRef2.current) registerAudio(audioRef2.current);
+
+    // ✅ إيقاف الأصوات الأخرى عند تشغيل أي صوت
+    const handleAudio1Play = () => {
+      stopAll(audioRef1.current);
+    };
+
+    const handleAudio2Play = () => {
+      stopAll(audioRef2.current);
+    };
+
+    const audio1 = audioRef1.current;
+    const audio2 = audioRef2.current;
+
+    if (audio1) audio1.addEventListener('play', handleAudio1Play);
+    if (audio2) audio2.addEventListener('play', handleAudio2Play);
+
+    return () => {
+      if (audio1) {
+        audio1.removeEventListener('play', handleAudio1Play);
+        unregisterAudio(audio1);
+      }
+      if (audio2) {
+        audio2.removeEventListener('play', handleAudio2Play);
+        unregisterAudio(audio2);
+      }
+    };
+  }, [registerAudio, unregisterAudio, stopAll]);
+
   const handleToggleFavorite = async () => {
     if (!word) return;
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const favorites = await supabaseClient.entities.FavoriteWord.filter({
         word_id: word.id,
-        user_email: user.email
+        created_by: user.email
       });
 
       if (favorites.length > 0) {
@@ -97,10 +131,10 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
   const handleSaveNote = async () => {
     if (!word) return;
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const existingNotes = await supabaseClient.entities.UserNote.filter({
         word_id: word.id,
-        user_email: user.email
+        created_by: user.email
       });
 
       if (existingNotes.length > 0) {
@@ -122,6 +156,7 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
       alert('⚠️ معلومات الآية غير متوفرة لهذه الكلمة.');
       return;
     }
+    // ✅ سيتم إيقاف جميع الأصوات داخل playAyah
     playAyah(word.surah_number, word.ayah_number, word);
   };
 
@@ -130,27 +165,15 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
       alert('⚠️ معلومات الكلمة غير مكتملة.');
       return;
     }
+    // ✅ سيتم إيقاف جميع الأصوات داخل playWord
     playWord(word.surah_number, word.ayah_number, word.word, word);
   };
 
   const handleSpeakMeaning = () => {
     if (!word?.meaning) return;
+    // ✅ سيتم إيقاف جميع الأصوات داخل playMeaning
     const textToSpeak = `${word.meaning}. ${word.alternative_meanings?.join('، ') || ''}`;
     playMeaning(textToSpeak);
-  };
-
-  const handlePlayAudio1 = () => {
-    if (word?.audio_url) {
-      const audio = new Audio(word.audio_url);
-      audio.play();
-    }
-  };
-
-  const handlePlayAudio2 = () => {
-    if (word?.audio2_url) {
-      const audio = new Audio(word.audio2_url);
-      audio.play();
-    }
   };
 
   const isElementVisible = (elementId) => {
@@ -436,50 +459,49 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
                     </div>
                   )}
 
-                  {/* فيديو يوتيوب */}
+                  {/* فيديو */}
                   {word.youtube_url && isElementVisible("youtube") && (
                     <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-xl border border-red-200 dark:border-red-800">
                       <h3 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-3">
                         📹 فيديو تعليمي
                       </h3>
-                      <a
-                        href={word.youtube_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        شاهد على يوتيوب
-                      </a>
+                      {word.youtube_url.includes('youtube.com') || word.youtube_url.includes('youtu.be') ? (
+                        <div className="aspect-video">
+                          <iframe
+                            className="w-full h-full rounded-lg"
+                            src={word.youtube_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                            title="فيديو تعليمي"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : (
+                        <video controls className="w-full rounded-lg">
+                          <source src={word.youtube_url} type="video/mp4" />
+                          متصفحك لا يدعم تشغيل الفيديو
+                        </video>
+                      )}
                     </div>
                   )}
 
                   {/* صوت 1 */}
                   {word.audio_url && isElementVisible("audio1") && (
                     <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-xl border border-indigo-200 dark:border-indigo-800">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-indigo-800 dark:text-indigo-300">
-                          🎵 صوت 1
-                        </h3>
-                        <Button onClick={handlePlayAudio1} size="sm" className="bg-indigo-600 hover:bg-indigo-700">
-                          <Volume2 className="w-4 h-4 ml-2" />
-                          تشغيل
-                        </Button>
-                      </div>
+                      <h3 className="text-lg font-semibold text-indigo-800 dark:text-indigo-300 mb-3">
+                        🎵 الشرح بالفصحى
+                      </h3>
+                      <audio ref={audioRef1} controls src={word.audio_url} className="w-full" />
                     </div>
                   )}
 
                   {/* صوت 2 */}
                   {word.audio2_url && isElementVisible("audio2") && (
                     <div className="bg-teal-50 dark:bg-teal-900/20 p-6 rounded-xl border border-teal-200 dark:border-teal-800">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-teal-800 dark:text-teal-300">
-                          🎵 صوت 2
-                        </h3>
-                        <Button onClick={handlePlayAudio2} size="sm" className="bg-teal-600 hover:bg-teal-700">
-                          <Volume2 className="w-4 h-4 ml-2" />
-                          تشغيل
-                        </Button>
-                      </div>
+                      <h3 className="text-lg font-semibold text-teal-800 dark:text-teal-300 mb-3">
+                        🎵 الشرح بالعامية
+                      </h3>
+                      <audio ref={audioRef2} controls src={word.audio2_url} className="w-full" />
                     </div>
                   )}
                 </div>

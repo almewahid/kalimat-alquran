@@ -273,15 +273,28 @@ export default function Quiz() {
     setQuizMode(mode);
     setIsLoading(true);
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       
-      // ✅ تحميل إعدادات الوقت من تفضيلات المستخدم
-      const timeLimit = user?.preferences?.quiz_time_limit !== undefined 
-        ? user.preferences.quiz_time_limit 
-        : 60; // ✅ تغيير الافتراضي من 30 إلى 60
+      // قراءة المستوى من user_profiles
+      let level = "مبتدئ"; // ✅ القيمة الافتراضية مبتدئ
+      let timeLimit = 60;
+      
+      if (user) {
+        const { data: profile } = await supabaseClient.supabase
+          .from('user_profiles')
+          .select('preferences')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile?.preferences) {
+          level = profile.preferences.learning_level || "مبتدئ";
+          timeLimit = profile.preferences.quiz_time_limit !== undefined 
+            ? profile.preferences.quiz_time_limit 
+            : 60;
+        }
+      }
+      
       setQuizTimeLimit(timeLimit);
-      
-      const level = user?.preferences?.learning_level || "all";
       setUserLevel(level);
       
       const [allWords, allFlashCards] = await Promise.all([

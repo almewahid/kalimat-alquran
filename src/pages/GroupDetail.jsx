@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Crown, Users, Trophy, Plus, Calendar, Target, Loader2, Copy, Check, ArrowLeft, Brain, BarChart3, Medal, Trash2, LogOut, UserX } from "lucide-react";
+import { Crown, Users, Trophy, Plus, Loader2, Copy, Check, ArrowLeft, Brain, BarChart3, Medal, Trash2, LogOut, UserX } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 import CreateChallengeModal from "../components/challenges/CreateChallengeModal";
 import ChallengeCard from "../components/challenges/ChallengeCard";
+import UpdateGroupAvatar from "../components/groups/UpdateGroupAvatar";
 
 export default function GroupDetail() {
   const { toast } = useToast();
@@ -38,6 +39,7 @@ export default function GroupDetail() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [suggestedWords, setSuggestedWords] = useState([]);
   const [isSendingNotification, setIsSendingNotification] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
 
   const urlParams = new URLSearchParams(window.location.search);
   const groupId = urlParams.get('id');
@@ -49,7 +51,7 @@ export default function GroupDetail() {
 
   const loadGroupData = async () => {
     try {
-      const currentUser = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       
       const groupData = await supabaseClient.entities.Group.filter({ id: groupId });
@@ -71,7 +73,7 @@ export default function GroupDetail() {
       const membersWithProgress = await Promise.all(
         groupMembers.map(async (member) => {
           const [progress] = await supabaseClient.entities.UserProgress.filter({ 
-            user_email: member.email 
+            created_by: member.email 
           });
           return {
             ...member,
@@ -269,14 +271,29 @@ export default function GroupDetail() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
+          {group.avatar_url && (
+            <div className="w-20 h-20 rounded-lg overflow-hidden border-2 border-primary/20">
+              <img src={group.avatar_url} alt={group.name} className="w-full h-full object-cover" />
+            </div>
+          )}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold gradient-text">{group.name}</h1>
               {isLeader && (
-                <Badge className="bg-amber-100 text-amber-700">
-                  <Crown className="w-3 h-3 ml-1" />
-                  رئيس
-                </Badge>
+                <>
+                  <Badge className="bg-amber-100 text-amber-700">
+                    <Crown className="w-3 h-3 ml-1" />
+                    رئيس
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAvatarModal(true)}
+                    className="text-xs"
+                  >
+                    تغيير الصورة
+                  </Button>
+                </>
               )}
             </div>
             <p className="text-foreground/70">{group.description}</p>
@@ -580,12 +597,20 @@ export default function GroupDetail() {
 
         {/* Create Challenge Modal */}
         {isLeader && (
-          <CreateChallengeModal
-            isOpen={showCreateChallenge}
-            onClose={() => setShowCreateChallenge(false)}
-            groupId={groupId}
-            onSuccess={loadGroupData}
-          />
+          <>
+            <CreateChallengeModal
+              isOpen={showCreateChallenge}
+              onClose={() => setShowCreateChallenge(false)}
+              groupId={groupId}
+              onSuccess={loadGroupData}
+            />
+            <UpdateGroupAvatar
+              group={group}
+              isOpen={showAvatarModal}
+              onClose={() => setShowAvatarModal(false)}
+              onSuccess={loadGroupData}
+            />
+          </>
         )}
       </motion.div>
     </div>

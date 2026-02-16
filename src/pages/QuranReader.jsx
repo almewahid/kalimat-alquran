@@ -21,7 +21,6 @@ import {
   Loader2,
   Type,
   BookMarked,
-  Sparkles,
   Settings2,
   PlusCircle,
   Gauge
@@ -180,6 +179,7 @@ const removeArabicDiacritics = (text) => {
 export default function QuranReader() {
   const { toast } = useToast();
   const audioRef = useRef(null);
+  const wordByWordStopRef = useRef(false); // ✅ للتحكم بإيقاف الكلمات
   
   const [selectedSurah, setSelectedSurah] = useState(1);
   const [ayahs, setAyahs] = useState([]);
@@ -214,6 +214,7 @@ export default function QuranReader() {
   const [isWordByWordMode, setIsWordByWordMode] = useState(false);
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
   const [currentPlayingAyah, setCurrentPlayingAyah] = useState(null);
+  const [currentPlayingWords, setCurrentPlayingWords] = useState([]); // ✅ حفظ الكلمات من API
 
   useEffect(() => {
     loadSurah(selectedSurah);
@@ -223,7 +224,7 @@ export default function QuranReader() {
   }, [selectedSurah]);
 
   useEffect(() => {
-    if (showTafsir) {
+    if (showTafsir && ayahs.length > 0) {
       selectedTafsirs.forEach((tafsir, index) => {
         if (tafsir !== "none") {
           loadTafsir(selectedSurah, tafsir, index);
@@ -235,9 +236,11 @@ export default function QuranReader() {
   const loadSurah = async (surahNumber) => {
     setIsLoading(true);
     try {
-      const ayahsData = await supabaseClient.entities.QuranAyah.filter({
-        surah_number: surahNumber
-      });
+      const ayahsData = await supabaseClient.entities.QuranAyah.filter(
+  { surah_number: surahNumber },
+  'ayah_number', // ترتيب تصاعدي
+  500 // ← كافي لأطول سورة (البقرة 286 آية)
+);
       
       const sortedAyahs = ayahsData.sort((a, b) => a.ayah_number - b.ayah_number);
       setAyahs(sortedAyahs);
@@ -259,7 +262,7 @@ export default function QuranReader() {
   // تحميل كل آيات القرآن للبحث الشامل
   const loadAllAyahs = async () => {
     try {
-      const allData = await supabaseClient.entities.QuranAyah.list('-id', 10000); // Increased limit to fetch more
+      const allData = await supabaseClient.entities.QuranAyah.list('-id', 7000); // 7000 آية (القرآن كاملاً)
       setAllAyahs(allData);
     } catch (error) {
       console.error("Error loading all ayahs:", error);
@@ -348,7 +351,7 @@ export default function QuranReader() {
 
   const loadBookmarks = async () => {
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const userBookmarks = user.preferences?.quran_bookmarks || [];
       setBookmarks(userBookmarks);
     } catch (error) {
@@ -358,7 +361,7 @@ export default function QuranReader() {
 
   const toggleBookmark = async (surahNum, ayahNum) => {
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const bookmarkId = `${surahNum}_${ayahNum}`;
       const currentBookmarks = user.preferences?.quran_bookmarks || [];
       
@@ -411,6 +414,14 @@ export default function QuranReader() {
       if (surahNum !== selectedSurah && searchScope === "all") {
         setSelectedSurah(surahNum);
       }
+      
+      // التمرير التلقائي للآية
+      setTimeout(() => {
+        const ayahElement = document.getElementById(`ayah-${ayahNum}`);
+        if (ayahElement) {
+          ayahElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
     }
   };
 
@@ -465,6 +476,7 @@ export default function QuranReader() {
     setIsWordByWordMode(true);
     setCurrentPlayingAyah(ayahNumber);
     setCurrentWordIndex(0);
+    wordByWordStopRef.current = false; // ✅ السماح بالتشغيل
     
     try {
       const response = await fetch(
@@ -489,13 +501,22 @@ export default function QuranReader() {
         return;
       }
       
+      // ✅ حفظ الكلمات من API
+      setCurrentPlayingWords(words.map(w => w.text_uthmani));
+      
+      // ✅ تحميل أول كلمة مسبقاً للحصول على user interaction
+      if (words[0]?.audio_url) {
+        const firstAudio = new Audio(words[0].audio_url);
+        firstAudio.load();
+      }
+      
       for (let i = 0; i < words.length; i++) {
-        if (!isWordByWordMode) break; // للسماح بالإيقاف
+        if (wordByWordStopRef.current) break; // ✅ التحقق من ref
         
         const word = words[i];
-        setCurrentWordIndex(i);
         
         if (word.audio_url) {
+          setCurrentWordIndex(i); // ✅ تحديث الآن قبل التشغيل
           await playWordAudio(word.audio_url);
           await new Promise(resolve => setTimeout(resolve, 400));
         }
@@ -504,6 +525,7 @@ export default function QuranReader() {
       setIsWordByWordMode(false);
       setCurrentWordIndex(-1);
       setCurrentPlayingAyah(null);
+      setCurrentPlayingWords([]); // ✅ مسح الكلمات
       
     } catch (error) {
       console.error("Error in word-by-word playback:", error);
@@ -515,19 +537,35 @@ export default function QuranReader() {
       setIsWordByWordMode(false);
       setCurrentWordIndex(-1);
       setCurrentPlayingAyah(null);
+      setCurrentPlayingWords([]);
     }
   };
 
   const playWordAudio = (audioUrl) => {
     return new Promise((resolve, reject) => {
-      const audio = new Audio(audioUrl);
+      // ✅ إضافة base URL إذا كان الرابط نسبياً
+      const fullUrl = audioUrl.startsWith('http') 
+        ? audioUrl 
+        : `https://verses.quran.com/${audioUrl}`;
+      
+      const audio = new Audio(fullUrl);
       audio.onended = () => resolve();
-      audio.onerror = () => reject(new Error('Audio playback failed'));
-      audio.play().catch(reject);
+      audio.onerror = (error) => {
+        console.warn('Audio playback failed:', fullUrl, error);
+        resolve(); // ✅ نستمر بدلاً من reject
+      };
+      
+      // ✅ محاولة التشغيل مع معالجة الخطأ
+      audio.play().catch((err) => {
+        console.warn('Play rejected:', err);
+        resolve(); // ✅ نستمر بدلاً من reject
+      });
     });
   };
 
   const stopWordByWord = () => {
+    wordByWordStopRef.current = true; // ✅ إيقاف التشغيل
+    
     // If an audio is playing through audioRef, stop it.
     if (audioRef.current && !audioRef.current.paused) {
       audioRef.current.pause();
@@ -561,12 +599,31 @@ export default function QuranReader() {
     return words.map((word, index) => {
       if (/^\s+$/.test(word)) return word;
       
-      const cleanWord = word.replace(/[\u064B-\u065F\u0670]/g, '');
+      // ✅ تنظيف شامل للكلمة (إزالة كل التشكيل)
+      const cleanWord = word
+        .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '') // كل التشكيل
+        .replace(/[أإآا]/g, 'ا') // توحيد الألف
+        .replace(/[ىي]/g, 'ي') // توحيد الياء
+        .replace(/ة/g, 'ه'); // تاء مربوطة
+      
       const meaning = wordMeanings[cleanWord];
       
-      const isCurrentWord = isWordByWordMode && 
-                           currentPlayingAyah === ayahNumber && 
-                           currentWordIndex === index;
+      // ✅ مطابقة الكلمة مع الكلمات من API
+      let isCurrentWord = false;
+      if (isWordByWordMode && 
+          currentPlayingAyah === ayahNumber && 
+          currentPlayingWords.length > 0 &&
+          currentWordIndex >= 0 &&
+          currentWordIndex < currentPlayingWords.length) {
+        
+        const apiWord = currentPlayingWords[currentWordIndex]
+          .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+          .replace(/[أإآا]/g, 'ا')
+          .replace(/[ىي]/g, 'ي')
+          .replace(/ة/g, 'ه');
+        
+        isCurrentWord = cleanWord === apiWord;
+      }
       
       if (meaning || isCurrentWord) {
         return (
@@ -574,7 +631,7 @@ export default function QuranReader() {
             key={index}
             className={`
               inline-block cursor-pointer px-1 rounded transition-all duration-300 relative
-              ${isCurrentWord ? 'bg-blue-400 text-white scale-125 shadow-lg' : 'hover:bg-yellow-200 dark:hover:bg-yellow-700'}
+              ${isCurrentWord ? 'bg-blue-500 text-white scale-110 shadow-xl ring-4 ring-blue-300 animate-pulse' : 'hover:bg-yellow-200 dark:hover:bg-yellow-700'}
             `}
             onMouseEnter={() => !isCurrentWord && setHoveredWord({ word, meaning, index })}
             onMouseLeave={() => setHoveredWord(null)}
@@ -759,7 +816,7 @@ export default function QuranReader() {
                   <label className="text-sm">إلى آية:</label>
                   <Input
                     type="number"
-                    min="1"
+                    min={fromAyah}
                     max={ayahs.length}
                     value={toAyah}
                     onChange={(e) => setToAyah(Number(e.target.value))}
@@ -919,7 +976,8 @@ export default function QuranReader() {
 
                   return (
                     <motion.div
-                      key={ayah.id || `${ayah.surah_number}-${ayah.ayah_number}`} // Ensure unique key even if `id` is missing in `allAyahs`
+                      key={ayah.id || `${ayah.surah_number}-${ayah.ayah_number}`}
+                      id={`ayah-${ayah.ayah_number}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
@@ -969,7 +1027,7 @@ export default function QuranReader() {
                                   disabled={isWordByWordMode}
                                   className="hover:bg-blue-50 hover:text-blue-600"
                                 >
-                                  <Type className="w-4 h-4" />
+                                  <Gauge className="w-4 h-4" />
                                 </Button>
                               )}
                               
@@ -1004,7 +1062,19 @@ export default function QuranReader() {
                                 <div className="space-y-3 border-t lg:border-t-0 lg:border-r lg:pr-6 pt-4 lg:pt-0">
                                   {selectedTafsirs.map((tafsir, idx) => {
                                 const currentAyahSurah = searchScope === "all" ? ayah.surah_number : selectedSurah;
-                                if (tafsir === "none" || !tafsirData[idx] || !tafsirData[idx][ayah.ayah_number]) return null;
+                                if (tafsir === "none") return null;
+                                if (!tafsirData[idx] || !tafsirData[idx][ayah.ayah_number]) {
+                                  return (
+                                    <div key={idx} className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                      <p className="text-sm text-amber-800 dark:text-amber-300 font-medium mb-2">
+                                        📥 لا يوجد تفسير متاح لهذه الآية
+                                      </p>
+                                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                                        💡 تحتاج لتحميل التفسير من <strong>الإعدادات → إدارة التفاسير</strong>
+                                      </p>
+                                    </div>
+                                  );
+                                }
                                 
                                 const colors = [
                                   { bg: "bg-blue-50 dark:bg-blue-900/20", border: "border-blue-200 dark:border-blue-800", text: "text-blue-700 dark:text-blue-300", content: "text-blue-900 dark:text-blue-200" },

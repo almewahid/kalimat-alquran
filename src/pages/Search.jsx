@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
 import {
   Card,
@@ -24,7 +24,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import debounce from "lodash/debounce";
 
-/* ---------- مساعدة: إزالة التشكيل وتوحيد الحروف ---------- */
+/* ---------- إزالة التشكيل وتوحيد الحروف ---------- */
 const removeArabicDiacritics = (text) => {
   if (!text) return "";
   return String(text)
@@ -34,16 +34,13 @@ const removeArabicDiacritics = (text) => {
     .replace(/ؤ/g, "و")
     .replace(/ئ/g, "ي")
     .replace(/[ًٌٍَُِّْ]/g, "")
-     // تحويل الألف الخنجرية (ـٰ) إلى ألف عادية
     .replace(/ٰ/g, "ا")
-    // إزالة التطويل
     .replace(/ـ/g, "")
-    // إزالة رموز الوقف القرآنية إن وجدت
-    .replace(/[۞۩۝ۣ۪ۭ۟۠ۡۧ۫۬]/g, "")
+    .replace(/[۞۩۝ۣ۪ۭ۟۠ۡۧ۫۬]/g, "")
     .trim();
 };
 
-/* ---------- مقارنة الآية مع المصطلح (بدون استخراج الجذر) ---------- */
+/* ---------- مقارنة الآية مع المصطلح ---------- */
 const ayahContainsTerm = (ayahText, searchTerm, matchMode = "partial") => {
   if (!ayahText || !searchTerm) return false;
   const cleanAyah = removeArabicDiacritics(ayahText);
@@ -74,7 +71,8 @@ const countOccurrences = (text, term) => {
   const m = cleanText.match(rx);
   return m ? m.length : 0;
 };
-/* ---------- تمييز النص (تطابق تام = أصفر، جزئي = برتقالي) ---------- */
+
+/* ---------- تمييز النص ---------- */
 const highlightMatch = (text, term) => {
   if (!term) return text;
 
@@ -88,7 +86,7 @@ const highlightMatch = (text, term) => {
       {words.map((word, i) => {
         const cleanWord = removeArabicDiacritics(word);
 
-        // ✅ تطابق تام
+        // تطابق تام
         if (cleanWord === cleanTerm) {
           return (
             <span key={i} className="bg-yellow-300 text-black px-1 rounded font-semibold">
@@ -97,9 +95,8 @@ const highlightMatch = (text, term) => {
           );
         }
 
-        // 🔶 تطابق جزئي داخل الكلمة
+        // تطابق جزئي
         if (cleanWord.includes(cleanTerm) && cleanWord !== cleanTerm) {
-          // نستخدم regex يطابق الحروف الجزئية بعد إزالة التشكيل
           const pattern = new RegExp(`(${cleanTerm})`, "gi");
           const parts = word.split(pattern);
 
@@ -119,14 +116,13 @@ const highlightMatch = (text, term) => {
           );
         }
 
-        // بدون تطابق
         return <span key={i}>{word}</span>;
       })}
     </>
   );
 };
 
-/* ---------- Toast بسيط لعرض الرسائل الصغيرة أسفل الصفحة ---------- */
+/* ---------- Toast ---------- */
 function Toast({ message, onClose }) {
   useEffect(() => {
     if (!message) return;
@@ -156,22 +152,21 @@ export default function Search() {
   const [loadingWords, setLoadingWords] = useState(true);
   const [activeTab, setActiveTab] = useState("words");
   const [selectedSurah, setSelectedSurah] = useState("all");
-
-  const [internalWordQuery, setInternalWordQuery] = useState("");
-  const [internalAyahQuery, setInternalAyahQuery] = useState("");
   const [toastMessage, setToastMessage] = useState("");
 
-  /* ---------- تحميل البيانات من base44 ---------- */
+  /* ---------- تحميل البيانات ---------- */
   useEffect(() => {
     let mounted = true;
     const load = async () => {
+      // تحميل الآيات
       try {
         setLoadingAyahs(true);
         const ayahs = await supabaseClient.entities.QuranAyah.list("-id", 10000);
+        
         if (!mounted) return;
         const processed = ayahs.map((a) => ({
           ...a,
-          clean_text: removeArabicDiacritics(a.ayah_text),
+          clean_text: removeArabicDiacritics(a.ayah_text_simple || a.ayah_text),
         }));
         setAllAyahs(processed);
       } catch (err) {
@@ -181,9 +176,10 @@ export default function Search() {
         setLoadingAyahs(false);
       }
 
+      // تحميل الكلمات
       try {
         setLoadingWords(true);
-        const words = await supabaseClient.entities.QuranicWord.list();
+        const words = await supabaseClient.entities.QuranicWord.list("-id", 10000);
         if (!mounted) return;
         setAllWords(words || []);
       } catch (err) {
@@ -199,23 +195,27 @@ export default function Search() {
     };
   }, []);
 
-  /* ---------- ترتيب أسماء السور ---------- */
+  /* ---------- قائمة السور مرتبة ---------- */
   const allSurahList = useMemo(() => {
-    const map = {};
+    // استخراج أرقام السور الفريدة
+    const uniqueNumbers = [...new Set(allAyahs.map(a => a.surah_number))].filter(Boolean);
+    
+    // بناء خريطة رقم -> اسم
+    const surahMap = {};
     allAyahs.forEach((a) => {
-      if (a.surah_name && typeof a.surah_number !== "undefined") {
-        if (!map[a.surah_name]) map[a.surah_name] = a.surah_number;
+      if (a.surah_number && a.surah_name && !surahMap[a.surah_number]) {
+        surahMap[a.surah_number] = a.surah_name;
       }
     });
-    const uniques = Array.from(new Set(allAyahs.map((a) => a.surah_name))).map((name) => ({
-      name,
-      num: map[name] ?? 9999,
-    }));
-    uniques.sort((x, y) => x.num - y.num || x.name.localeCompare(y.name));
-    return uniques.map((u) => u.name);
+    
+    // ترتيب وإرجاع الأسماء
+    return uniqueNumbers
+      .sort((a, b) => a - b)
+      .map(num => surahMap[num])
+      .filter(Boolean);
   }, [allAyahs]);
 
-  /* ---------- الدالة الرئيسية للبحث ---------- */
+  /* ---------- دالة البحث ---------- */
   const performSearch = useMemo(
     () =>
       debounce((term, useSurah = selectedSurah, mode = matchMode) => {
@@ -227,7 +227,7 @@ export default function Search() {
         try {
           const cleanTerm = removeArabicDiacritics(term);
 
-          // فلترة الكلمات (بدون الجذر)
+          // فلترة الكلمات
           const filteredWords = (allWords || []).filter((w) => {
             if (useSurah !== "all" && w.surah_name !== useSurah) return false;
             const cw = removeArabicDiacritics(w.word || "");
@@ -244,11 +244,11 @@ export default function Search() {
           const filteredAyahs = (allAyahs || [])
             .filter((a) => {
               if (useSurah !== "all" && a.surah_name !== useSurah) return false;
-              return ayahContainsTerm(a.ayah_text, term, mode);
+              return ayahContainsTerm(a.ayah_text_simple || a.ayah_text, term, mode);
             })
             .map((a) => ({
               ...a,
-              occurrences: countOccurrences(a.ayah_text, term),
+              occurrences: countOccurrences(a.ayah_text_simple || a.ayah_text, term),
             }))
             .sort((x, y) => {
               if (x.surah_number && y.surah_number) {
@@ -307,13 +307,21 @@ export default function Search() {
               <div className="flex gap-2 border rounded-lg p-1 bg-muted/40">
                 <button
                   onClick={() => setMatchMode("exact")}
-                  className={`px-3 py-1 rounded-md ${matchMode === "exact" ? "bg-yellow-200 text-black font-semibold" : "hover:bg-muted"}`}
+                  className={`px-3 py-1 rounded-md transition-colors ${
+                    matchMode === "exact" 
+                      ? "bg-yellow-200 text-black font-semibold" 
+                      : "hover:bg-muted"
+                  }`}
                 >
                   🔹 تطابق دقيق
                 </button>
                 <button
                   onClick={() => setMatchMode("partial")}
-                  className={`px-3 py-1 rounded-md ${matchMode === "partial" ? "bg-orange-200 text-black font-semibold" : "hover:bg-muted"}`}
+                  className={`px-3 py-1 rounded-md transition-colors ${
+                    matchMode === "partial" 
+                      ? "bg-orange-200 text-black font-semibold" 
+                      : "hover:bg-muted"
+                  }`}
                 >
                   🔸 تطابق جزئي
                 </button>
@@ -324,7 +332,7 @@ export default function Search() {
                 value={selectedSurah}
                 onChange={(e) => setSelectedSurah(e.target.value)}
               >
-                <option value="all">كل السور</option>
+                <option value="all">كل السور ({allSurahList.length})</option>
                 {allSurahList.map((s, i) => (
                   <option key={i} value={s}>{s}</option>
                 ))}
@@ -336,55 +344,56 @@ export default function Search() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="words"><BookOpen className="w-4 h-4" /> الكلمات ({searchResults.words.length})</TabsTrigger>
-            <TabsTrigger value="ayahs"><FileText className="w-4 h-4" /> الآيات ({searchResults.ayahs.length})</TabsTrigger>
+            <TabsTrigger value="words">
+              <BookOpen className="w-4 h-4 ml-2" /> 
+              الكلمات ({searchResults.words.length})
+            </TabsTrigger>
+            <TabsTrigger value="ayahs">
+              <FileText className="w-4 h-4 ml-2" /> 
+              الآيات ({searchResults.ayahs.length})
+            </TabsTrigger>
           </TabsList>
 
           {/* تبويب الكلمات */}
           <TabsContent value="words">
             <AnimatePresence>
               {searchResults.words.length > 0 ? (
-                <>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Input
-                      placeholder="🔍 ابحث داخل نتائج الكلمات..."
-                      value={internalWordQuery}
-                      onChange={(e) => setInternalWordQuery(e.target.value)}
-                      className="text-right"
-                    />
-                    {internalWordQuery && (
-                      <button onClick={() => setInternalWordQuery("")} className="px-3 py-1 rounded-md bg-muted/20">❌</button>
-                    )}
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {searchResults.words.map((word) => (
-                      <motion.div key={word.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                        <Card className="bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all">
-                          <CardHeader className="flex items-center justify-between">
-                            <CardTitle className="text-2xl text-primary arabic-font">{word.word}</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-foreground mb-2">{word.meaning}</p>
-                            {word.root && (
-                              <p className="text-sm text-gray-500 mb-2">
-                                <strong>الجذر:</strong> {word.root}
-                              </p>
-                            )}
-                            <div className="flex gap-2 flex-wrap mt-2">
-                              <Badge variant="outline">{word.surah_name}</Badge>
-                              <Badge variant="outline">الآية {word.ayah_number}</Badge>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))}
-                  </div>
-                </>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {searchResults.words.map((word) => (
+                    <motion.div 
+                      key={word.id} 
+                      initial={{ opacity: 0, y: 10 }} 
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Card className="bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all">
+                        <CardHeader>
+                          <CardTitle className="text-2xl text-primary arabic-font">
+                            {word.word}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-foreground mb-2">{word.meaning}</p>
+                          {word.root && (
+                            <p className="text-sm text-gray-500 mb-2">
+                              <strong>الجذر:</strong> {word.root}
+                            </p>
+                          )}
+                          <div className="flex gap-2 flex-wrap mt-2">
+                            <Badge variant="outline">{word.surah_name}</Badge>
+                            <Badge variant="outline">الآية {word.ayah_number}</Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
               ) : (
                 <div className="text-center py-12">
                   {!loadingAll && searchTerm.trim().length >= 2 && !isSearching ? (
                     <p className="text-foreground/70">لم يتم العثور على كلمات</p>
+                  ) : !searchTerm.trim() ? (
+                    <p className="text-foreground/50">ابدأ البحث للحصول على النتائج</p>
                   ) : null}
                 </div>
               )}
@@ -397,23 +406,28 @@ export default function Search() {
               {searchResults.ayahs.length > 0 ? (
                 <div className="space-y-4">
                   {searchResults.ayahs.map((ayah) => (
-                    <motion.div key={`${ayah.surah_number}-${ayah.ayah_number}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                      <Card className="bg-white border border-gray-200 shadow-md hover:shadow-lg">
+                    <motion.div 
+                      key={`${ayah.surah_number}-${ayah.ayah_number}`} 
+                      initial={{ opacity: 0, y: 10 }} 
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Card className="bg-white border border-gray-200 shadow-md hover:shadow-lg transition-shadow">
                         <CardHeader>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge className="bg-primary text-primary-foreground">{ayah.surah_name}</Badge>
+                            <Badge className="bg-primary text-primary-foreground">
+                              {ayah.surah_name}
+                            </Badge>
                             <Badge variant="outline">الآية {ayah.ayah_number}</Badge>
                             <Badge variant="outline">الجزء {ayah.juz_number}</Badge>
+                            <Badge variant="secondary" className="mr-auto">
+                              {ayah.occurrences} مرة
+                            </Badge>
                           </div>
                         </CardHeader>
                         <CardContent>
                           <p className="text-lg text-foreground arabic-font leading-loose text-right">
-                            {highlightMatch(ayah.ayah_text, searchTerm, matchMode)}
-                          </p>
-                          <p className="text-sm text-muted-foreground text-right mt-2">
-                            ظهرت الكلمة{" "}
-                            <strong>{ayah.occurrences ?? countOccurrences(ayah.ayah_text, searchTerm)}</strong>{" "}
-                            مرة/مرات في هذه الآية
+                            {highlightMatch(ayah.ayah_text_simple || ayah.ayah_text, searchTerm)}
                           </p>
                         </CardContent>
                       </Card>
@@ -424,6 +438,8 @@ export default function Search() {
                 <div className="text-center py-12">
                   {!loadingAll && searchTerm.trim().length >= 2 && !isSearching ? (
                     <p className="text-foreground/70">لم يتم العثور على آيات</p>
+                  ) : !searchTerm.trim() ? (
+                    <p className="text-foreground/50">ابدأ البحث للحصول على النتائج</p>
                   ) : null}
                 </div>
               )}

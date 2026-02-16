@@ -96,7 +96,7 @@ const SURAHS = [
 ];
 
 export default function QuizTypes() {
-  const [userLevel, setUserLevel] = useState("متوسط");
+  const [userLevel, setUserLevel] = useState("مبتدئ"); // ✅ الافتراضي مبتدئ
   const [practiceModeOpen, setPracticeModeOpen] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
   const [practiceOptions, setPracticeOptions] = useState({
@@ -111,11 +111,21 @@ export default function QuizTypes() {
 
   const loadUserLevel = async () => {
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
-      const level = user?.preferences?.learning_level || "متوسط";
-      setUserLevel(level);
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      
+      if (user) {
+        const { data: profile } = await supabaseClient.supabase
+          .from('user_profiles')
+          .select('preferences')
+          .eq('user_id', user.id)
+          .single();
+        
+        const level = profile?.preferences?.learning_level || "مبتدئ"; // ✅ الافتراضي مبتدئ
+        setUserLevel(level);
+      }
     } catch (error) {
       console.error("Error loading user level:", error);
+      setUserLevel("مبتدئ");
     }
   };
 

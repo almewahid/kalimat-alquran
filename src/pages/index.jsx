@@ -57,6 +57,10 @@ import ManageGroups from "./ManageGroups";
 import ManageNotes from "./ManageNotes";
 import StoreDetails from "./StoreDetails";
 import PrivacyPolicy from "./PrivacyPolicy";
+import CreateChallengeFromPath from "./CreateChallengeFromPath";
+import CustomLearningPaths from "./CustomLearningPaths";
+import CustomPathLearn from "./CustomPathLearn";
+import KidsGames from "./KidsGames";
 import Login from "./Login";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
@@ -121,6 +125,10 @@ const PAGES = {
     ManageNotes: ManageNotes,
     StoreDetails: StoreDetails,
     PrivacyPolicy: PrivacyPolicy,
+    CreateChallengeFromPath: CreateChallengeFromPath,
+    CustomLearningPaths: CustomLearningPaths,
+    KidsGames: KidsGames,
+    CustomPathLearn: CustomPathLearn
 }
 
 function _getCurrentPage(url) {
@@ -203,6 +211,10 @@ function PagesContent() {
                 <Route path="/ManageNotes" element={<ManageNotes />} />
                 <Route path="/StoreDetails" element={<StoreDetails />} />
                 <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+                <Route path="/CreateChallengeFromPath" element={<CreateChallengeFromPath />} />
+                <Route path="/CustomLearningPaths" element={<CustomLearningPaths />} />
+                <Route path="/KidsGames" element={<KidsGames />} />
+                <Route path="/CustomPathLearn" element={<CustomPathLearn />} />
             </Routes>
         </Layout>
     );

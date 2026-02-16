@@ -39,7 +39,7 @@ export default function Settings() {
         theme: 'light',
         color_scheme: 'default',
         background_style: 'soft',
-        learning_level: 'متوسط',
+        learning_level: 'مبتدئ', // ✅ الافتراضي مبتدئ
         learning_categories: [],
         daily_new_words_goal: 10,
         daily_review_words_goal: 20,
@@ -80,7 +80,7 @@ export default function Settings() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const currentUser = await supabaseClient.supabase.auth.getUser();
+                const currentUser = await supabaseClient.auth.me();
                 setUser(currentUser);
                 if (currentUser.preferences) {
                     const fetchedPreferences = currentUser.preferences;
@@ -137,25 +137,38 @@ export default function Settings() {
     const handleSaveChanges = async () => {
         if (!user) return;
         try {
+            // تحديث بيانات المستخدم الأساسية
             await supabaseClient.auth.updateMe({ 
-                preferences,
                 phone_number: user.phone_number,
                 country: user.country,
                 affiliation_type: user.affiliation_type,
-                affiliation: user.affiliation
+                affiliation: user.affiliation,
+                preferences: preferences
             });
 
+            // حفظ المستوى في جدول user_profiles
+            const { data: { user: authUser } } = await supabaseClient.supabase.auth.getUser();
+            if (authUser) {
+                await supabaseClient.supabase
+                    .from('user_profiles')
+                    .update({ preferences: preferences })
+                    .eq('user_id', authUser.id);
+            }
+
             toast({
-                title: isArabic ? "تم الحفظ!" : "Saved!",
+                title: isArabic ? "✅ تم الحفظ!" : "✅ Saved!",
                 description: isArabic ? "تم حفظ تفضيلاتك بنجاح." : "Your preferences have been saved successfully.",
                 className: "bg-green-100 text-green-800"
             });
 
-            setTimeout(() => window.location.reload(), 500);
+            // تحديث الحالة المحلية
+            setUser(prev => ({ ...prev, preferences }));
+            
+            setTimeout(() => window.location.reload(), 800);
         } catch (error) {
             console.error("Failed to save preferences:", error);
             toast({
-                title: isArabic ? "خطأ" : "Error",
+                title: isArabic ? "❌ خطأ" : "❌ Error",
                 description: isArabic ? "لم يتم حفظ التفضيلات. حاول مرة أخرى." : "Failed to save preferences. Try again.",
                 variant: "destructive"
             });

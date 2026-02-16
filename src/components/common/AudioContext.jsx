@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { supabaseClient } from "@/components/api/supabaseClient";
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 const AudioContext = createContext();
 
@@ -62,8 +63,11 @@ export const AudioProvider = ({ children }) => {
   
   // 🆕 قائمة تشغيل للمقاطع الصوتية المتتابعة (للكلمات المركبة)
   const [playlist, setPlaylist] = useState([]);
+  
+  // ✅ مرجع لحفظ عناصر audio الخارجية (الفصحى/العامية)
+  const externalAudiosRef = useRef(new Set());
 
-  // ✅ 1. تلاوة الآية
+  // ✅ 1. تلاوة الآية (مع حالة تحميل)
   const playAyah = useCallback(async (surahNumber, ayahNumber, wordData) => {
     if (!surahNumber || !ayahNumber) {
       const msg = 'معلومات الآية غير متوفرة (رقم السورة أو الآية مفقود)';
@@ -74,6 +78,12 @@ export const AudioProvider = ({ children }) => {
 
     console.log(`[AudioContext] 🎵 Playing ayah: ${surahNumber}:${ayahNumber}`);
     setPlaylist([]); // Clear playlist for single ayah
+    
+    // إظهار حالة تحميل
+    setCurrentWord(wordData);
+    setCurrentType('ayah');
+    setError('⏳ جارٍ تحميل الصوت...');
+    setIsPlaying(false);
 
     try {
       audioRef.current.pause();
@@ -91,12 +101,32 @@ export const AudioProvider = ({ children }) => {
         try {
           audioRef.current.src = sources[i];
           audioRef.current.volume = volume;
+          
+          // انتظار تحميل البيانات الكافية للتشغيل
+          await new Promise((resolve, reject) => {
+            const handleCanPlay = () => {
+              audioRef.current.removeEventListener('canplay', handleCanPlay);
+              audioRef.current.removeEventListener('error', handleError);
+              resolve();
+            };
+            
+            const handleError = (e) => {
+              audioRef.current.removeEventListener('canplay', handleCanPlay);
+              audioRef.current.removeEventListener('error', handleError);
+              reject(e);
+            };
+            
+            audioRef.current.addEventListener('canplay', handleCanPlay, { once: true });
+            audioRef.current.addEventListener('error', handleError, { once: true });
+            audioRef.current.load();
+          });
+          
           await audioRef.current.play();
           
           setIsPlaying(true);
           setCurrentWord(wordData);
           setCurrentType('ayah');
-          setError(null);
+          setError(null); // إزالة رسالة التحميل
           
           console.log(`[AudioContext] ✅ Playing from source ${i + 1}`);
           played = true;
@@ -109,12 +139,14 @@ export const AudioProvider = ({ children }) => {
       if (!played) {
         const msg = 'فشل تشغيل صوت الآية من جميع المصادر';
         setError(`❌ ${msg}`);
+        setIsPlaying(false);
         logErrorToBackend('AudioContext/playAyah', msg, { surahNumber, ayahNumber, sources });
       }
 
     } catch (err) {
       const msg = 'حدث خطأ غير متوقع أثناء تشغيل تلاوة الآية';
       setError(`⚠️ ${msg}`);
+      setIsPlaying(false);
       logErrorToBackend('AudioContext/playAyah', msg, err);
     }
   }, [volume]);
@@ -130,6 +162,12 @@ export const AudioProvider = ({ children }) => {
 
     console.log(`[AudioContext] 🔵 Fetching word audio: ${surahNumber}:${ayahNumber} word: ${word}`);
     setPlaylist([]); // Reset playlist
+    
+    // إظهار حالة تحميل
+    setCurrentWord(wordData || { word, surah_number: surahNumber, ayah_number: ayahNumber });
+    setCurrentType('word');
+    setError('⏳ جارٍ تحميل الصوت...');
+    setIsPlaying(false);
 
     try {
       // استخدام API Quran.com
@@ -246,7 +284,7 @@ export const AudioProvider = ({ children }) => {
             setIsPlaying(true);
             setCurrentWord(wordData || { word, surah_number: surahNumber, ayah_number: ayahNumber });
             setCurrentType('word');
-            setError(null);
+            setError(null); // إزالة رسالة التحميل
           } catch (playErr) {
             throw new Error(`Playback failed: ${playErr.message}`);
           }
@@ -257,6 +295,7 @@ export const AudioProvider = ({ children }) => {
         const msg = `لم يتم العثور على الكلمة/العبارة في نص الآية (${word})`;
         console.warn(`[AudioContext] ${msg}`);
         setError(`⚠️ ${msg}`);
+        setIsPlaying(false);
         logErrorToBackend('AudioContext/playWord', msg, { 
           surahNumber, ayahNumber, word, targetParts, 
           apiWords: words.map(w => w.text_uthmani)
@@ -265,58 +304,89 @@ export const AudioProvider = ({ children }) => {
     } catch (error) {
       const msg = 'فشل تحميل أو تشغيل صوت الكلمة';
       setError(`❌ ${msg}`);
+      setIsPlaying(false);
       logErrorToBackend('AudioContext/playWord', msg, { 
         error: error.message, surahNumber, ayahNumber, word 
       });
     }
   }, [volume]);
 
-  // ✅ 3. TTS للمعنى
-  const playMeaning = useCallback((meaningText) => {
-    if (!('speechSynthesis' in window)) {
-      setError('❌ TTS غير مدعوم في هذا المتصفح');
-      return;
-    }
+  // ✅ 3. TTS للمعنى - يعمل على الموبايل والكمبيوتر
+  const playMeaning = useCallback(async (meaningText) => {
+    console.log('[AudioContext/TTS] Starting playMeaning');
+    
+    setPlaylist([]);
+    setIsPlaying(true);
+    setCurrentType('meaning');
+    setError(null);
 
-    setPlaylist([]); // Clear playlist
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(meaningText);
-    utterance.lang = 'ar-SA';
-    utterance.rate = 0.8;
-    utterance.pitch = 0.7;
-    utterance.volume = volume;
-
-    const voices = window.speechSynthesis.getVoices();
-    const maleVoice = voices.find(voice =>
-      voice.lang.startsWith('ar') &&
-      (voice.name.toLowerCase().includes('male') || voice.name.includes('Majed') || voice.name.includes('Tarik'))
-    );
-
-    if (maleVoice) {
-      utterance.voice = maleVoice;
-    } else {
-      const anyArabicVoice = voices.find(voice => voice.lang.startsWith('ar'));
-      if (anyArabicVoice) {
-        utterance.voice = anyArabicVoice;
-        utterance.pitch = 0.5;
+    try {
+      // ✅ استخدام Capacitor TTS (يعمل على الموبايل والكمبيوتر)
+      console.log('[AudioContext/TTS] Using Capacitor TTS');
+      
+      await TextToSpeech.speak({
+        text: meaningText,
+        lang: 'ar-SA',
+        rate: 0.8,
+        pitch: 1.0,
+        volume: 1.0,
+        category: 'ambient',
+      });
+      
+      console.log('[AudioContext/TTS] Capacitor TTS completed successfully');
+      
+      // تحديث الحالة بعد الانتهاء
+      setIsPlaying(false);
+      setCurrentWord(null);
+      setCurrentType(null);
+      
+    } catch (error) {
+      console.error('[AudioContext/TTS] Capacitor TTS Error:', error);
+      
+      // ⚡ Fallback للمتصفحات التي لا تدعم Capacitor
+      console.log('[AudioContext/TTS] Trying Web Speech API fallback...');
+      
+      if ('speechSynthesis' in window) {
+        try {
+          await playMeaningWebSpeech(meaningText);
+        } catch (webError) {
+          console.error('[AudioContext/TTS] Web Speech API also failed:', webError);
+          setError('❌ فشل النطق');
+          setIsPlaying(false);
+        }
+      } else {
+        setError('⚠️ النطق الصوتي غير متاح');
+        setIsPlaying(false);
       }
     }
+  }, [volume]);
 
-    utterance.onstart = () => {
-      setIsPlaying(true);
-      setCurrentType('meaning');
-      setError(null);
-    };
+  // ✅ Fallback: Web Speech API (للمتصفحات العادية)
+  const playMeaningWebSpeech = useCallback(async (meaningText) => {
+    return new Promise((resolve, reject) => {
+      window.speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(meaningText);
+      utterance.lang = 'ar-SA';
+      utterance.rate = 0.8;
+      utterance.pitch = 0.7;
+      utterance.volume = volume;
 
-    utterance.onend = () => {
-      // عند انتهاء نطق المعنى، نخفي المشغل تلقائياً
-      setIsPlaying(false);
-      setCurrentWord(null); // Auto-hide
-      setCurrentType(null);
-    };
+      utterance.onend = () => {
+        console.log('[AudioContext/TTS] Web Speech ended');
+        setIsPlaying(false);
+        setCurrentWord(null);
+        setCurrentType(null);
+        resolve();
+      };
 
-    window.speechSynthesis.speak(utterance);
+      utterance.onerror = (event) => {
+        console.error('[AudioContext/TTS] Web Speech error:', event);
+        reject(event);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    });
   }, [volume]);
 
   // ✅ التحكم بالتشغيل
@@ -350,6 +420,47 @@ export const AudioProvider = ({ children }) => {
     setCurrentType(null);
     setError(null); // Clear error on close
   }, [currentType]);
+
+  // ✅ إيقاف جميع الأصوات (AudioContext + الأصوات الخارجية)
+  // exceptAudio: عنصر audio لا نريد إيقافه (للفصحى/العامية)
+  const stopAll = useCallback((exceptAudio = null) => {
+    // إيقاف AudioContext فقط إذا لم يكن في وضع التشغيل النشط
+    setPlaylist([]);
+    window.speechSynthesis.cancel();
+    
+    // لا نوقف audioRef.current إذا كان في وضع التحميل أو التشغيل
+    if (audioRef.current.paused || audioRef.current.ended) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.src = '';
+    }
+    
+    setIsPlaying(false);
+    setCurrentWord(null);
+    setCurrentType(null);
+    setError(null);
+    
+    // إيقاف جميع الأصوات المسجلة (ما عدا المستثنى)
+    externalAudiosRef.current.forEach(audio => {
+      if (audio && audio !== exceptAudio && !audio.paused) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    });
+  }, []);
+
+  // ✅ تسجيل عنصر audio خارجي
+  const registerAudio = useCallback((audioElement) => {
+    if (audioElement) {
+      externalAudiosRef.current.add(audioElement);
+    }
+  }, []);
+
+  // ✅ إلغاء تسجيل عنصر audio خارجي
+  const unregisterAudio = useCallback((audioElement) => {
+    if (audioElement) {
+      externalAudiosRef.current.delete(audioElement);
+    }
+  }, []);
 
   const changeVolume = useCallback((newVolume) => {
     setVolume(newVolume);
@@ -387,7 +498,7 @@ export const AudioProvider = ({ children }) => {
 
     const handleError = () => {
       setIsPlaying(false);
-      setError('⚠️ حدث خطأ أثناء تشغيل الصوت');
+      setError('⚠️جاري تحميل الصوت...');
     };
 
     audio.addEventListener('ended', handleEnded);
@@ -411,6 +522,9 @@ export const AudioProvider = ({ children }) => {
     pause,
     resume,
     stop,
+    stopAll, // ✅ إيقاف جميع الأصوات
+    registerAudio, // ✅ تسجيل audio خارجي
+    unregisterAudio, // ✅ إلغاء تسجيل audio
     changeVolume,
     clearError: () => setError(null)
   };
