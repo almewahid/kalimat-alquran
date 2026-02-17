@@ -174,7 +174,6 @@ const createEntityWrapper = (tableName) => {
       }
       
       enrichedData[dateColumn] = new Date().toISOString()
-      delete enrichedData.user_email
       
       const { data: result, error } = await supabase
         .from(tableName)
@@ -198,7 +197,6 @@ const createEntityWrapper = (tableName) => {
         }
         
         enriched[dateColumn] = new Date().toISOString()
-        delete enriched.user_email
         
         return enriched
       })
@@ -217,8 +215,6 @@ const createEntityWrapper = (tableName) => {
         ...data, 
         [updateColumn]: new Date().toISOString() 
       }
-      
-      delete updateData.user_email
       
       const { data: result, error } = await supabase
         .from(tableName)
