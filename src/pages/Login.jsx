@@ -45,6 +45,7 @@ export default function Login() {
 
             if (sessionData?.user) {
               try {
+                await trackAppVersion(sessionData.user);
                 const { data: profile } = await supabaseClient.supabase
                   .from('user_profiles')
                   .select('user_id')
@@ -89,6 +90,22 @@ export default function Login() {
     };
   }, []);
 
+  const trackAppVersion = async (user) => {
+    try {
+      const platform = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : 'web';
+      await supabaseClient.supabase.from('app_users_version').upsert({
+        user_id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم',
+        app_version: '1.0.4',
+        platform: platform,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+    } catch (err) {
+      console.error('tracking error:', err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -122,12 +139,13 @@ export default function Login() {
           window.location.href = '/Dashboard';
         }
       } else {
-        const { error } = await supabaseClient.supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error) throw error;
+        if (data.user) await trackAppVersion(data.user);
         window.location.href = '/Dashboard';
       }
     } catch (err) {

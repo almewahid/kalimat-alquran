@@ -64,6 +64,7 @@ import {
   SidebarHeader,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -136,6 +137,20 @@ const adminItems = [
   { title: "اختبار الصوت", url: createPageUrl("AudioTest"), icon: Volume2 },
 ];
 
+// Component صغير يغلق القائمة تلقائياً في الموبايل عند تغيير الصفحة
+function MobileCloser() {
+  const { setOpenMobile, isMobile } = useSidebar();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [location.pathname, isMobile]);
+
+  return null;
+}
+
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [theme, setTheme] = useState("light");
@@ -177,7 +192,8 @@ export default function Layout({ children, currentPageName }) {
     fetchUserPreferences();
   }, [location.pathname]);
 
-  // إغلاق القائمة على الموبيل عند تغيير الصفحة
+  // إغلاق القائمة على الموبيل عند تغيير الصفحة - تم نقله لـ MobileCloser
+
   useEffect(() => {
     if (isMobile) {
       setSidebarOpen(false);
@@ -347,6 +363,7 @@ export default function Layout({ children, currentPageName }) {
         `}</style>
 
         <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <MobileCloser />
           <div className="min-h-screen flex w-full" dir="rtl">
             <Sidebar className="sidebar-right border-l border-border bg-card/95 backdrop-blur-md" side="right" variant="sidebar" collapsible="icon">
               <SidebarHeader className="border-b border-border p-6">
@@ -431,7 +448,7 @@ export default function Layout({ children, currentPageName }) {
                                 : "hover:bg-primary/5 hover:text-primary/90"
                             }`}
                           >
-                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
+                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3" onClick={() => isMobile && setSidebarOpen(false)}>
                               <item.icon className="w-5 h-5" />
                               <span className="font-medium">{item.title}</span>
                             </Link>
@@ -526,7 +543,11 @@ export default function Layout({ children, currentPageName }) {
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      onClick={() => setShowLogoutDialog(true)}
+                      onClick={async () => {
+                        if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                          await supabaseClient.auth.logout();
+                        }
+                      }}
                     >
                       <LogOut className="w-5 h-5 ml-2" />
                       تسجيل الخروج
@@ -553,34 +574,6 @@ export default function Layout({ children, currentPageName }) {
         </SidebarProvider>
 
         <GlobalAudioPlayer />
-        <AppUpdateChecker />
-
-        {/* Logout Confirmation Dialog */}
-        <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-          <AlertDialogContent className="max-w-md">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl text-center">
-                هل أنت متأكد من تسجيل الخروج؟
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-center">
-                سيتم تسجيل خروجك من التطبيق
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex gap-2 sm:gap-0">
-              <AlertDialogCancel className="mt-0">
-                إلغاء
-              </AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700"
-                onClick={async () => {
-                  await supabaseClient.auth.logout();
-                }}
-              >
-                تسجيل الخروج
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </AudioProvider>
     </QueryClientProvider>

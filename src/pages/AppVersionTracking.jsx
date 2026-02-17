@@ -16,6 +16,8 @@ export default function AppVersionTracking() {
   const [usersCount, setUsersCount] = useState(0);
   const [versionStats, setVersionStats] = useState([]);
   const [users, setUsers] = useState([]);
+  const [selectedVersion, setSelectedVersion] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -25,14 +27,10 @@ export default function AppVersionTracking() {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      
-      // جلب الإعداد الحالي
       const settings = await supabaseClient.entities.AppSettings.filter({
         key: 'track_app_version'
       });
-
       if (settings.length === 0) {
-        // إنشاء السجل الافتراضي
         await supabaseClient.entities.AppSettings.create({ 
           key: 'track_app_version', 
           value: false 
@@ -43,11 +41,7 @@ export default function AppVersionTracking() {
       }
     } catch (error) {
       console.error('Error in loadSettings:', error);
-      toast({
-        title: "خطأ",
-        description: "فشل في تحميل الإعدادات",
-        variant: "destructive"
-      });
+      toast({ title: "خطأ", description: "فشل في تحميل الإعدادات", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -58,27 +52,15 @@ export default function AppVersionTracking() {
       const users = await supabaseClient.entities.AppUsersVersion.list();
       setUsersCount(users.length);
       setUsers(users);
-      
-      // حساب إحصائيات الإصدارات
       const stats = users.reduce((acc, user) => {
         const key = `${user.app_version}-${user.platform}`;
         if (!acc[key]) {
-          acc[key] = {
-            app_version: user.app_version,
-            platform: user.platform,
-            count: 0,
-            users: []
-          };
+          acc[key] = { app_version: user.app_version, platform: user.platform, count: 0, users: [] };
         }
         acc[key].count++;
-        acc[key].users.push({
-          email: user.email,
-          full_name: user.full_name,
-          updated_at: user.updated_at
-        });
+        acc[key].users.push({ email: user.email, full_name: user.full_name, updated_at: user.updated_at });
         return acc;
       }, {});
-      
       setVersionStats(Object.values(stats));
     } catch (error) {
       console.error('Error loading users count:', error);
@@ -89,39 +71,35 @@ export default function AppVersionTracking() {
     setUpdating(true);
     try {
       const newValue = !trackingEnabled;
-
-      // جلب السجل الحالي
-      const settings = await supabaseClient.entities.AppSettings.filter({
-        key: 'track_app_version'
-      });
-
+      const settings = await supabaseClient.entities.AppSettings.filter({ key: 'track_app_version' });
       if (settings.length > 0) {
-        await supabaseClient.entities.AppSettings.update(settings[0].id, { 
-          value: newValue
-        });
+        await supabaseClient.entities.AppSettings.update(settings[0].id, { value: newValue });
       }
-
       setTrackingEnabled(newValue);
-      
       toast({
         title: newValue ? "✅ تم التفعيل" : "⏸️ تم الإيقاف",
-        description: newValue 
-          ? "تم تفعيل تتبع نسخة التطبيق" 
-          : "تم إيقاف تتبع نسخة التطبيق",
+        description: newValue ? "تم تفعيل تتبع نسخة التطبيق" : "تم إيقاف تتبع نسخة التطبيق",
         duration: 3000
       });
-
     } catch (error) {
       console.error('Error toggling tracking:', error);
-      toast({
-        title: "خطأ",
-        description: "فشل في تحديث الإعداد",
-        variant: "destructive"
-      });
+      toast({ title: "خطأ", description: "فشل في تحديث الإعداد", variant: "destructive" });
     } finally {
       setUpdating(false);
     }
   };
+
+  const filteredStats = versionStats
+    .filter(s => selectedVersion === 'all' || s.app_version === selectedVersion)
+    .map(s => ({
+      ...s,
+      users: s.users.filter(u =>
+        !searchQuery ||
+        u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }))
+    .filter(s => s.users.length > 0);
 
   if (loading) {
     return (
@@ -138,12 +116,9 @@ export default function AppVersionTracking() {
           <Smartphone className="w-8 h-8 text-primary" />
           تتبع نسخة التطبيق
         </h1>
-        <p className="text-muted-foreground">
-          تحكم في تفعيل أو تعطيل تتبع نسخ التطبيق للمستخدمين
-        </p>
+        <p className="text-muted-foreground">تحكم في تفعيل أو تعطيل تتبع نسخ التطبيق للمستخدمين</p>
       </div>
 
-      {/* بطاقة التحكم الرئيسية */}
       <Card className="mb-6">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -155,50 +130,26 @@ export default function AppVersionTracking() {
                   : "التتبع معطّل حالياً - لن يتم تسجيل أي بيانات"}
               </CardDescription>
             </div>
-            <Badge 
-              variant={trackingEnabled ? "default" : "secondary"}
-              className="text-lg px-4 py-2 flex items-center gap-2"
-            >
-              {trackingEnabled ? (
-                <>
-                  <CheckCircle className="w-5 h-5" />
-                  مُفعّل
-                </>
-              ) : (
-                <>
-                  <XCircle className="w-5 h-5" />
-                  معطّل
-                </>
-              )}
+            <Badge variant={trackingEnabled ? "default" : "secondary"} className="text-lg px-4 py-2 flex items-center gap-2">
+              {trackingEnabled ? (<><CheckCircle className="w-5 h-5" />مُفعّل</>) : (<><XCircle className="w-5 h-5" />معطّل</>)}
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between p-6 bg-muted rounded-lg">
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                trackingEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-600"
-              }`}>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${trackingEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-600"}`}>
                 <Smartphone className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
                   {trackingEnabled ? "تتبع نسخة التطبيق نشط" : "تتبع نسخة التطبيق متوقف"}
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  انقر على المفتاح للتبديل
-                </p>
+                <p className="text-sm text-muted-foreground">انقر على المفتاح للتبديل</p>
               </div>
             </div>
-            
-            <Switch
-              checked={trackingEnabled}
-              onCheckedChange={toggleTracking}
-              disabled={updating}
-              className="scale-150"
-            />
+            <Switch checked={trackingEnabled} onCheckedChange={toggleTracking} disabled={updating} className="scale-150" />
           </div>
-
           {updating && (
             <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -208,7 +159,6 @@ export default function AppVersionTracking() {
         </CardContent>
       </Card>
 
-      {/* إحصائيات */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>الإحصائيات</CardTitle>
@@ -226,7 +176,6 @@ export default function AppVersionTracking() {
                 </div>
               </div>
             </div>
-
             <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-purple-100 dark:bg-purple-800 rounded-full flex items-center justify-center">
@@ -234,57 +183,62 @@ export default function AppVersionTracking() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">حالة النظام</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {trackingEnabled ? "يعمل" : "متوقف"}
-                  </p>
+                  <p className="text-2xl font-bold text-purple-600">{trackingEnabled ? "يعمل" : "متوقف"}</p>
                 </div>
               </div>
             </div>
           </div>
-
-          <Button
-            onClick={() => {
-              loadSettings();
-              loadUsersCount();
-            }}
-            variant="outline"
-            className="w-full mt-4"
-          >
+          <Button onClick={() => { loadSettings(); loadUsersCount(); }} variant="outline" className="w-full mt-4">
             <RefreshCw className="w-4 h-4 ml-2" />
             تحديث البيانات
           </Button>
         </CardContent>
       </Card>
 
-      {/* جدول تفاصيل الإصدارات */}
       {versionStats.length > 0 && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>تفاصيل الإصدارات</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>تفاصيل الإصدارات</CardTitle>
+              <div className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  placeholder="بحث بالاسم أو البريد..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="border rounded-lg px-3 py-2 text-sm bg-background flex-1"
+                />
+                <select
+                  value={selectedVersion}
+                  onChange={(e) => setSelectedVersion(e.target.value)}
+                  className="border rounded-lg px-3 py-2 text-sm bg-background"
+                >
+                  <option value="all">كل الإصدارات</option>
+                  {[...new Set(versionStats.map(s => s.app_version))].map(v => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {versionStats.map((stat, index) => (
+              {filteredStats.map((stat, index) => (
                 <div key={index} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <Badge variant="default" className="text-lg">
-                        {stat.app_version}
-                      </Badge>
+                      <Badge variant="default" className="text-lg">{stat.app_version}</Badge>
                       <Badge variant="secondary">
                         {stat.platform === 'web' ? '🌐 ويب' : 
                          stat.platform === 'android' ? '📱 أندرويد' : 
                          stat.platform === 'ios' ? '🍎 iOS' : stat.platform}
                       </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {stat.count} مستخدم
-                      </span>
+                      <span className="text-sm text-muted-foreground">{stat.count} مستخدم</span>
                     </div>
                   </div>
-                  
                   <details className="mt-2">
                     <summary className="cursor-pointer text-sm text-primary hover:underline">
-                      عرض المستخدمين ({stat.count})
+                      عرض المستخدمين ({stat.users.length})
                     </summary>
                     <div className="mt-3 space-y-2 bg-muted p-3 rounded">
                       {stat.users.map((user, idx) => (
@@ -307,12 +261,11 @@ export default function AppVersionTracking() {
         </Card>
       )}
 
-      {/* معلومات إضافية */}
       <Alert>
         <Info className="w-4 h-4" />
         <AlertDescription>
-          <strong>ملاحظة:</strong> عند تفعيل التتبع، سيتم تسجيل نسخة التطبيق تلقائياً لكل مستخدم يقوم بتسجيل الدخول أو التحديث. 
-          يتم حفظ البيانات في جدول <code className="bg-muted px-1 py-0.5 rounded">app_user_version</code>.
+          <strong>ملاحظة:</strong> عند تفعيل التتبع، سيتم تسجيل نسخة التطبيق تلقائياً لكل مستخدم يقوم بتسجيل الدخول.
+          يتم حفظ البيانات في جدول <code className="bg-muted px-1 py-0.5 rounded">app_users_version</code>.
         </AlertDescription>
       </Alert>
     </div>
