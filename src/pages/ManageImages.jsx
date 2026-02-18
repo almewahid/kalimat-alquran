@@ -131,14 +131,14 @@ if (!isAdminUser) {
   };
 
   const loadImages = async () => {
-    const res = await supabaseClient.entities.images.list("-created_date", 1000);
+    const res = await supabaseClient.entities.Image.list("-created_date", 1000);
     setImages(res);
   };
 
   const loadCategories = async () => {
     try {
       // ✅ جلب الفئات (صور أو غير محدد)
-      const res = await supabaseClient.entities.categories.list("-created_date", 1000);
+      const res = await supabaseClient.entities.Category.list("-created_date", 1000);
       // ✅ تصفية الفئات: الصور فقط
       setCategories(res.filter(c => c.type === 'image'));
     } catch (error) {
@@ -251,7 +251,7 @@ if (!isAdminUser) {
                 });
 
                 if (res && res.tags) {
-                    await supabaseClient.entities.images.update(img.id, { tags: res.tags });
+                    await supabaseClient.entities.Image.update(img.id, { tags: res.tags });
                     successCount++;
                 }
             } catch (e) {
@@ -279,7 +279,7 @@ if (!isAdminUser) {
           if (Object.keys(updates).length === 0) return;
 
           const promises = Array.from(selectedIds).map(id => 
-              supabaseClient.entities.images.update(id, updates)
+              supabaseClient.entities.Image.update(id, updates)
           );
           
           await Promise.all(promises);
@@ -316,7 +316,7 @@ if (!isAdminUser) {
               const potentialUrl = `${CLOUD_BASE}${finalPath}${fileName}`;
               
               if (await checkUrlExists(potentialUrl)) {
-                  await supabaseClient.entities.images.update(img.id, { url: potentialUrl });
+                  await supabaseClient.entities.Image.update(img.id, { url: potentialUrl });
                   fixedCount++;
               }
           }
@@ -392,7 +392,7 @@ if (!isAdminUser) {
         const data = await res.json();
 
         if (data.secure_url) {
-          await supabaseClient.entities.images.create({
+          await supabaseClient.entities.Image.create({
             url: data.secure_url,
             title: file.name,
             description: "",
@@ -545,7 +545,7 @@ if (!isAdminUser) {
              }
 
              if (foundUrl) {
-                 await supabaseClient.entities.images.update(img.id, { url: foundUrl });
+                 await supabaseClient.entities.Image.update(img.id, { url: foundUrl });
                  updatedCount++;
              }
         }
@@ -572,7 +572,7 @@ if (!isAdminUser) {
 
   const handleSaveEdit = async () => {
     try {
-      await supabaseClient.entities.images.update(editingImage.id, {
+      await supabaseClient.entities.Image.update(editingImage.id, {
         title: editingImage.title,
         description: editingImage.description,
         category: editingImage.category,
@@ -591,7 +591,7 @@ if (!isAdminUser) {
   const handleDelete = async (imageId) => {
     if (!confirm("هل أنت متأكد من حذف هذه الصورة؟")) return;
     try {
-      await supabaseClient.entities.images.delete(imageId);
+      await supabaseClient.entities.Image.delete(imageId);
       toast({ title: "✅ تم حذف الصورة" });
       checkAdminAndLoadAll();
     } catch (error) {
@@ -613,7 +613,7 @@ if (!isAdminUser) {
       return;
     }
     try {
-      await supabaseClient.entities.categories.create({
+      await supabaseClient.entities.Category.create({
         name: newCategory.name.trim(),
         description: newCategory.description.trim(),
         type: 'image', // ✅ تحديد النوع كصورة
@@ -630,7 +630,7 @@ if (!isAdminUser) {
   const handleDeleteCategory = async (id) => {
     if (!confirm("هل تريد حذف هذه الفئة؟")) return;
     try {
-      await supabaseClient.entities.categories.delete(id);
+      await supabaseClient.entities.Category.delete(id);
       toast({ title: "✅ تم حذف الفئة" });
       loadCategories();
     } catch (error) {
