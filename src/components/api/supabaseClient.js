@@ -297,6 +297,9 @@ supabaseClient.entities = {
       }
     }
   },
+  Category: createEntityWrapper('categories'),
+  Image: createEntityWrapper('images'),
+  Audio: createEntityWrapper('audios'),
   AppUsersVersion: createEntityWrapper('app_users_version'),
   LearningPath: createEntityWrapper('learning_paths'),
   UserLearningPath: createEntityWrapper('user_learning_paths'),
