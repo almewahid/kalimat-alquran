@@ -94,14 +94,20 @@ export default function AdminPanel() {
 
   const checkAdminAndLoadData = async () => {
     try {
-      const currentUser = await supabaseClient.supabase.auth.getUser();
-      setUser(currentUser);
+      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+setUser(currentUser);
 
-      if (currentUser.role !== 'admin') {
-        setIsAdmin(false);
-        setIsLoading(false);
-        return;
-      }
+const { data: roleData } = await supabaseClient.supabase
+  .from('user_roles')
+  .select('role')
+  .eq('user_id', currentUser.id)
+  .single();
+
+if (!roleData || roleData.role !== 'admin') {
+  setIsAdmin(false);
+  setIsLoading(false);
+  return;
+}
 
       setIsAdmin(true);
 
