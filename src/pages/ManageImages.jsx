@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { supabaseClient } from "@/components/api/supabaseClient"; // ✅ نحتفظ بالاتصال الأصلي
+import { supabaseClient } from "@/components/api/supabaseClient";
+// ✅ نحتفظ بالاتصال الأصلي
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,6 @@ import {
   Sparkles,
   Tags,
   Scissors,
-  Layers,
   Wand2,
   AlertTriangle,
   Download,
@@ -101,21 +101,13 @@ export default function ManageImages() {
 
   const checkAdminAndLoadAll = async () => {
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
+      setIsAdmin(user.role === "admin");
 
-const { data: roleData } = await supabaseClient.supabase
-  .from('user_roles')
-  .select('role')
-  .eq('user_id', user.id)
-  .single();
-
-const isAdminUser = roleData?.role === 'admin';
-setIsAdmin(isAdminUser);
-
-if (!isAdminUser) {
-  setIsLoading(false);
-  return;
-}
+      if (user.role !== "admin") {
+        setIsLoading(false);
+        return;
+      }
 
       await Promise.all([loadImages(), loadCategories()]);
     } catch (error) {
@@ -131,14 +123,14 @@ if (!isAdminUser) {
   };
 
   const loadImages = async () => {
-    const res = await supabaseClient.entities.Image.list("-created_date", 1000);
+    const res = await supabaseClient.entities.images.list("-created_date", 1000);
     setImages(res);
   };
 
   const loadCategories = async () => {
     try {
       // ✅ جلب الفئات (صور أو غير محدد)
-      const res = await supabaseClient.entities.Category.list("-created_date", 1000);
+      const res = await supabaseClient.entities.categories.list("-created_date", 1000);
       // ✅ تصفية الفئات: الصور فقط
       setCategories(res.filter(c => c.type === 'image'));
     } catch (error) {
@@ -251,7 +243,7 @@ if (!isAdminUser) {
                 });
 
                 if (res && res.tags) {
-                    await supabaseClient.entities.Image.update(img.id, { tags: res.tags });
+                    await supabaseClient.entities.images.update(img.id, { tags: res.tags });
                     successCount++;
                 }
             } catch (e) {
@@ -279,7 +271,7 @@ if (!isAdminUser) {
           if (Object.keys(updates).length === 0) return;
 
           const promises = Array.from(selectedIds).map(id => 
-              supabaseClient.entities.Image.update(id, updates)
+              supabaseClient.entities.images.update(id, updates)
           );
           
           await Promise.all(promises);
@@ -316,7 +308,7 @@ if (!isAdminUser) {
               const potentialUrl = `${CLOUD_BASE}${finalPath}${fileName}`;
               
               if (await checkUrlExists(potentialUrl)) {
-                  await supabaseClient.entities.Image.update(img.id, { url: potentialUrl });
+                  await supabaseClient.entities.images.update(img.id, { url: potentialUrl });
                   fixedCount++;
               }
           }
@@ -392,7 +384,7 @@ if (!isAdminUser) {
         const data = await res.json();
 
         if (data.secure_url) {
-          await supabaseClient.entities.Image.create({
+          await supabaseClient.entities.images.create({
             url: data.secure_url,
             title: file.name,
             description: "",
@@ -545,7 +537,7 @@ if (!isAdminUser) {
              }
 
              if (foundUrl) {
-                 await supabaseClient.entities.Image.update(img.id, { url: foundUrl });
+                 await supabaseClient.entities.images.update(img.id, { url: foundUrl });
                  updatedCount++;
              }
         }
@@ -572,7 +564,7 @@ if (!isAdminUser) {
 
   const handleSaveEdit = async () => {
     try {
-      await supabaseClient.entities.Image.update(editingImage.id, {
+      await supabaseClient.entities.images.update(editingImage.id, {
         title: editingImage.title,
         description: editingImage.description,
         category: editingImage.category,
@@ -591,7 +583,7 @@ if (!isAdminUser) {
   const handleDelete = async (imageId) => {
     if (!confirm("هل أنت متأكد من حذف هذه الصورة؟")) return;
     try {
-      await supabaseClient.entities.Image.delete(imageId);
+      await supabaseClient.entities.images.delete(imageId);
       toast({ title: "✅ تم حذف الصورة" });
       checkAdminAndLoadAll();
     } catch (error) {
@@ -613,7 +605,7 @@ if (!isAdminUser) {
       return;
     }
     try {
-      await supabaseClient.entities.Category.create({
+      await supabaseClient.entities.categories.create({
         name: newCategory.name.trim(),
         description: newCategory.description.trim(),
         type: 'image', // ✅ تحديد النوع كصورة
@@ -630,7 +622,7 @@ if (!isAdminUser) {
   const handleDeleteCategory = async (id) => {
     if (!confirm("هل تريد حذف هذه الفئة؟")) return;
     try {
-      await supabaseClient.entities.Category.delete(id);
+      await supabaseClient.entities.categories.delete(id);
       toast({ title: "✅ تم حذف الفئة" });
       loadCategories();
     } catch (error) {
