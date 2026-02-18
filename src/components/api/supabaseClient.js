@@ -23,18 +23,11 @@ export const supabaseClient = {
           .eq('user_id', user.id)
           .maybeSingle()
         
-        // جلب الـ role من user_roles
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle()
-
         return {
           id: user.id,
           email: user.email,
           full_name: profile?.full_name || user.email,
-          role: roleData?.role || profile?.role || 'user',
+          role: profile?.role || 'user',
           preferences: profile?.preferences || {},
           phone_number: profile?.phone_number,
           country: profile?.country,
@@ -311,6 +304,12 @@ supabaseClient.entities = {
   LearningPath: createEntityWrapper('learning_paths'),
   UserLearningPath: createEntityWrapper('user_learning_paths'),
   CustomLearningPath: createEntityWrapper('custom_learning_paths'),
+  ActivityLog: createEntityWrapper('activity_logs'),
+  UserBadge: createEntityWrapper('user_badges'),
+  WeeklyReport: createEntityWrapper('weekly_reports'),
+  GroupMessage: createEntityWrapper('group_messages'),
+  UserCourseProgress: createEntityWrapper('user_course_progress'),
+  QuranTafsir: createEntityWrapper('quran_tafsirs'),
 }
 
 export default supabaseClient
