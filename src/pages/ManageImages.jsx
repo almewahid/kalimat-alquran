@@ -101,13 +101,21 @@ export default function ManageImages() {
 
   const checkAdminAndLoadAll = async () => {
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
-      setIsAdmin(user.role === "admin");
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
 
-      if (user.role !== "admin") {
-        setIsLoading(false);
-        return;
-      }
+const { data: roleData } = await supabaseClient.supabase
+  .from('user_roles')
+  .select('role')
+  .eq('user_id', user.id)
+  .single();
+
+const isAdminUser = roleData?.role === 'admin';
+setIsAdmin(isAdminUser);
+
+if (!isAdminUser) {
+  setIsLoading(false);
+  return;
+}
 
       await Promise.all([loadImages(), loadCategories()]);
     } catch (error) {
