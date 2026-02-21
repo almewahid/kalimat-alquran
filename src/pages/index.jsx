@@ -63,73 +63,7 @@ import CustomPathLearn from "./CustomPathLearn";
 import KidsGames from "./KidsGames";
 import Login from "./Login";
 
-import { BrowserRouter as Router, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-
-const PAGES = {
-    Login: Login,
-    Dashboard: Dashboard,
-    Learn: Learn,
-    Quiz: Quiz,
-    Progress: Progress,
-    AppVersionTracking: AppVersionTracking,
-    Settings: Settings,
-    Help: Help,
-    Favorites: Favorites,
-    Search: Search,
-    GenerateWords: GenerateWords,
-    ImportQuran: ImportQuran,
-    QuranReader: QuranReader,
-    Groups: Groups,
-    GroupDetail: GroupDetail,
-    ChallengeDetail: ChallengeDetail,
-    Leaderboard: Leaderboard,
-    AdminPanel: AdminPanel,
-    Achievements: Achievements,
-    Shop: Shop,
-    LearningPaths: LearningPaths,
-    DailyChallenges: DailyChallenges,
-    Friends: Friends,
-    Notifications: Notifications,
-    Analytics: Analytics,
-    NotificationManager: NotificationManager,
-    WeeklyReports: WeeklyReports,
-    QuizTypes: QuizTypes,
-    KidsMode: KidsMode,
-    ReferralSystem: ReferralSystem,
-    LanguageSettings: LanguageSettings,
-    PrivacySettings: PrivacySettings,
-    RootQuiz: RootQuiz,
-    ContextQuiz: ContextQuiz,
-    ListeningQuiz: ListeningQuiz,
-    SourceQuiz: SourceQuiz,
-    TranslationHelper: TranslationHelper,
-    ManageImages: ManageImages,
-    ManageQuran: ManageQuran,
-    UpdateWords: UpdateWords,
-    ImportTafsir: ImportTafsir,
-    AudioTest: AudioTest,
-    ManageAudios: ManageAudios,
-    SmartReview: SmartReview,
-    ErrorLogs: ErrorLogs,
-    Support: Support,
-    Courses: Courses,
-    CourseDetail: CourseDetail,
-    CertificateView: CertificateView,
-    ManageCertificates: ManageCertificates,
-    UserProfile: UserProfile,
-    Reports: Reports,
-    CreateCustomChallenge: CreateCustomChallenge,
-    ManageLandingPages: ManageLandingPages,
-    ManageUsers: ManageUsers,
-    ManageGroups: ManageGroups,
-    ManageNotes: ManageNotes,
-    StoreDetails: StoreDetails,
-    PrivacyPolicy: PrivacyPolicy,
-    CreateChallengeFromPath: CreateChallengeFromPath,
-    CustomLearningPaths: CustomLearningPaths,
-    KidsGames: KidsGames,
-    CustomPathLearn: CustomPathLearn
-}
+import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
 
 function NotFound() {
     const navigate = useNavigate();
@@ -148,25 +82,9 @@ function NotFound() {
     );
 }
 
-function _getCurrentPage(url) {
-    if (url.endsWith('/')) {
-        url = url.slice(0, -1);
-    }
-    let urlLastPart = url.split('/').pop();
-    if (urlLastPart.includes('?')) {
-        urlLastPart = urlLastPart.split('?')[0];
-    }
-
-    const pageName = Object.keys(PAGES).find(page => page.toLowerCase() === urlLastPart.toLowerCase());
-    return pageName || Object.keys(PAGES)[0];
-}
-
 function PagesContent() {
-    const location = useLocation();
-    const currentPage = _getCurrentPage(location.pathname);
-    
     return (
-        <Layout currentPageName={currentPage}>
+        <Layout>
             <Routes>            
                 <Route path="/" element={<Login />} />
                 <Route path="/Login" element={<Login />} />

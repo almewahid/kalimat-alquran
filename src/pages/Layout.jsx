@@ -151,7 +151,7 @@ function MobileCloser() {
   return null;
 }
 
-export default function Layout({ children, currentPageName }) {
+export default function Layout({ children }) {
   const location = useLocation();
   const [theme, setTheme] = useState("light");
   const [colorScheme, setColorScheme] = useState("default");
