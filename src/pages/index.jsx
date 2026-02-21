@@ -1,71 +1,73 @@
-import Layout from "./Layout.jsx";
-import Dashboard from "./Dashboard";
-import Learn from "./Learn";
-import Quiz from "./Quiz";
-import Progress from "./Progress";
-import AppVersionTracking from './AppVersionTracking';
-import Settings from "./Settings";
-import Help from "./Help";
-import Favorites from "./Favorites";
-import Search from "./Search";
-import GenerateWords from "./GenerateWords";
-import ImportQuran from "./ImportQuran";
-import QuranReader from "./QuranReader";
-import Groups from "./Groups";
-import GroupDetail from "./GroupDetail";
-import ChallengeDetail from "./ChallengeDetail";
-import Leaderboard from "./Leaderboard";
-import AdminPanel from "./AdminPanel";
-import Achievements from "./Achievements";
-import Shop from "./Shop";
-import LearningPaths from "./LearningPaths";
-import DailyChallenges from "./DailyChallenges";
-import Friends from "./Friends";
-import Notifications from "./Notifications";
-import Analytics from "./Analytics";
-import NotificationManager from "./NotificationManager";
-import WeeklyReports from "./WeeklyReports";
-import QuizTypes from "./QuizTypes";
-import KidsMode from "./KidsMode";
-import ReferralSystem from "./ReferralSystem";
-import LanguageSettings from "./LanguageSettings";
-import PrivacySettings from "./PrivacySettings";
-import RootQuiz from "./RootQuiz";
-import ContextQuiz from "./ContextQuiz";
-import ListeningQuiz from "./ListeningQuiz";
-import SourceQuiz from "./SourceQuiz";
-import TranslationHelper from "./TranslationHelper";
-import ManageImages from "./ManageImages";
-import ManageQuran from "./ManageQuran";
-import UpdateWords from "./UpdateWords";
-import ImportTafsir from "./ImportTafsir";
-import AudioTest from "./AudioTest";
-import ManageAudios from "./ManageAudios";
-import SmartReview from "./SmartReview";
-import ErrorLogs from "./ErrorLogs";
-import Support from "./Support";
-import Courses from "./Courses";
-import CourseDetail from "./CourseDetail";
-import CertificateView from "./CertificateView";
-import ManageCertificates from "./ManageCertificates";
-import UserProfile from "./UserProfile";
-import Reports from "./Reports";
-import CreateCustomChallenge from "./CreateCustomChallenge";
-import ManageLandingPages from "./ManageLandingPages";
-import ManageUsers from "./ManageUsers";
-import ManageGroups from "./ManageGroups";
-import ManageNotes from "./ManageNotes";
-import StoreDetails from "./StoreDetails";
-import PrivacyPolicy from "./PrivacyPolicy";
-import CreateChallengeFromPath from "./CreateChallengeFromPath";
-import CustomLearningPaths from "./CustomLearningPaths";
-import CustomPathLearn from "./CustomPathLearn";
-import KidsGames from "./KidsGames";
-import Login from "./Login";
-
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, useNavigate, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import Layout from "./Layout.jsx";
 import { supabase } from '@/components/api/supabaseClient';
+
+// تحميل الصفحات عند الطلب فقط (Code Splitting)
+const Login                = lazy(() => import("./Login"));
+const Dashboard            = lazy(() => import("./Dashboard"));
+const Learn                = lazy(() => import("./Learn"));
+const Quiz                 = lazy(() => import("./Quiz"));
+const Progress             = lazy(() => import("./Progress"));
+const Settings             = lazy(() => import("./Settings"));
+const Help                 = lazy(() => import("./Help"));
+const Favorites            = lazy(() => import("./Favorites"));
+const Search               = lazy(() => import("./Search"));
+const QuranReader          = lazy(() => import("./QuranReader"));
+const Groups               = lazy(() => import("./Groups"));
+const GroupDetail          = lazy(() => import("./GroupDetail"));
+const ChallengeDetail      = lazy(() => import("./ChallengeDetail"));
+const Leaderboard          = lazy(() => import("./Leaderboard"));
+const Achievements         = lazy(() => import("./Achievements"));
+const Shop                 = lazy(() => import("./Shop"));
+const LearningPaths        = lazy(() => import("./LearningPaths"));
+const DailyChallenges      = lazy(() => import("./DailyChallenges"));
+const Friends              = lazy(() => import("./Friends"));
+const Notifications        = lazy(() => import("./Notifications"));
+const QuizTypes            = lazy(() => import("./QuizTypes"));
+const KidsMode             = lazy(() => import("./KidsMode"));
+const KidsGames            = lazy(() => import("./KidsGames"));
+const ReferralSystem       = lazy(() => import("./ReferralSystem"));
+const LanguageSettings     = lazy(() => import("./LanguageSettings"));
+const PrivacySettings      = lazy(() => import("./PrivacySettings"));
+const RootQuiz             = lazy(() => import("./RootQuiz"));
+const ContextQuiz          = lazy(() => import("./ContextQuiz"));
+const ListeningQuiz        = lazy(() => import("./ListeningQuiz"));
+const SourceQuiz           = lazy(() => import("./SourceQuiz"));
+const SmartReview          = lazy(() => import("./SmartReview"));
+const Courses              = lazy(() => import("./Courses"));
+const CourseDetail         = lazy(() => import("./CourseDetail"));
+const CertificateView      = lazy(() => import("./CertificateView"));
+const UserProfile          = lazy(() => import("./UserProfile"));
+const ManageNotes          = lazy(() => import("./ManageNotes"));
+const Support              = lazy(() => import("./Support"));
+const StoreDetails         = lazy(() => import("./StoreDetails"));
+const CreateCustomChallenge    = lazy(() => import("./CreateCustomChallenge"));
+const CreateChallengeFromPath  = lazy(() => import("./CreateChallengeFromPath"));
+const CustomLearningPaths      = lazy(() => import("./CustomLearningPaths"));
+const CustomPathLearn          = lazy(() => import("./CustomPathLearn"));
+const TranslationHelper        = lazy(() => import("./TranslationHelper"));
+const PrivacyPolicy            = lazy(() => import("./PrivacyPolicy"));
+// صفحات المدير
+const AdminPanel           = lazy(() => import("./AdminPanel"));
+const Analytics            = lazy(() => import("./Analytics"));
+const ManageUsers          = lazy(() => import("./ManageUsers"));
+const ManageGroups         = lazy(() => import("./ManageGroups"));
+const GenerateWords        = lazy(() => import("./GenerateWords"));
+const ImportQuran          = lazy(() => import("./ImportQuran"));
+const ManageQuran          = lazy(() => import("./ManageQuran"));
+const ManageImages         = lazy(() => import("./ManageImages"));
+const ManageAudios         = lazy(() => import("./ManageAudios"));
+const ManageCertificates   = lazy(() => import("./ManageCertificates"));
+const ManageLandingPages   = lazy(() => import("./ManageLandingPages"));
+const AppVersionTracking   = lazy(() => import("./AppVersionTracking"));
+const ErrorLogs            = lazy(() => import("./ErrorLogs"));
+const AudioTest            = lazy(() => import("./AudioTest"));
+const ImportTafsir         = lazy(() => import("./ImportTafsir"));
+const UpdateWords          = lazy(() => import("./UpdateWords"));
+const NotificationManager  = lazy(() => import("./NotificationManager"));
+const WeeklyReports        = lazy(() => import("./WeeklyReports"));
+const Reports              = lazy(() => import("./Reports"));
 
 function ProtectedRoute({ children }) {
     const [status, setStatus] = useState('loading'); // 'loading' | 'auth' | 'unauth'
@@ -135,6 +137,11 @@ function NotFound() {
 function PagesContent() {
     return (
         <Layout>
+            <Suspense fallback={
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+            }>
             <Routes>
                 {/* مسارات مفتوحة */}
                 <Route path="/" element={<Login />} />
@@ -208,6 +215,7 @@ function PagesContent() {
 
                 <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
         </Layout>
     );
 }
