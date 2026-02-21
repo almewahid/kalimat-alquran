@@ -63,7 +63,57 @@ import CustomPathLearn from "./CustomPathLearn";
 import KidsGames from "./KidsGames";
 import Login from "./Login";
 
-import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useNavigate, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/components/api/supabaseClient';
+
+function ProtectedRoute({ children }) {
+    const [status, setStatus] = useState('loading'); // 'loading' | 'auth' | 'unauth'
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            setStatus(user ? 'auth' : 'unauth');
+        });
+    }, []);
+
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    return status === 'auth' ? children : <Navigate to="/Login" replace />;
+}
+
+function AdminRoute({ children }) {
+    const [status, setStatus] = useState('loading'); // 'loading' | 'admin' | 'unauth' | 'forbidden'
+
+    useEffect(() => {
+        supabase.auth.getUser().then(async ({ data: { user } }) => {
+            if (!user) { setStatus('unauth'); return; }
+            const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('role')
+                .eq('user_id', user.id)
+                .maybeSingle();
+            setStatus(profile?.role === 'admin' ? 'admin' : 'forbidden');
+        });
+    }, []);
+
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    if (status === 'unauth') return <Navigate to="/Login" replace />;
+    if (status === 'forbidden') return <Navigate to="/Dashboard" replace />;
+    return children;
+}
 
 function NotFound() {
     const navigate = useNavigate();
@@ -85,71 +135,77 @@ function NotFound() {
 function PagesContent() {
     return (
         <Layout>
-            <Routes>            
+            <Routes>
+                {/* مسارات مفتوحة */}
                 <Route path="/" element={<Login />} />
                 <Route path="/Login" element={<Login />} />
-                <Route path="/Dashboard" element={<Dashboard />} />
-                <Route path="/Learn" element={<Learn />} />
-                <Route path="/Quiz" element={<Quiz />} />
-                <Route path="/Progress" element={<Progress />} />
-                <Route path="/AppVersionTracking" element={<AppVersionTracking />} />
-                <Route path="/Settings" element={<Settings />} />
-                <Route path="/Help" element={<Help />} />
-                <Route path="/Favorites" element={<Favorites />} />
-                <Route path="/Search" element={<Search />} />
-                <Route path="/GenerateWords" element={<GenerateWords />} />
-                <Route path="/ImportQuran" element={<ImportQuran />} />
-                <Route path="/QuranReader" element={<QuranReader />} />
-                <Route path="/Groups" element={<Groups />} />
-                <Route path="/GroupDetail" element={<GroupDetail />} />
-                <Route path="/ChallengeDetail" element={<ChallengeDetail />} />
-                <Route path="/Leaderboard" element={<Leaderboard />} />
-                <Route path="/AdminPanel" element={<AdminPanel />} />
-                <Route path="/Achievements" element={<Achievements />} />
-                <Route path="/Shop" element={<Shop />} />
-                <Route path="/LearningPaths" element={<LearningPaths />} />
-                <Route path="/DailyChallenges" element={<DailyChallenges />} />
-                <Route path="/Friends" element={<Friends />} />
-                <Route path="/Notifications" element={<Notifications />} />
-                <Route path="/Analytics" element={<Analytics />} />
-                <Route path="/NotificationManager" element={<NotificationManager />} />
-                <Route path="/WeeklyReports" element={<WeeklyReports />} />
-                <Route path="/QuizTypes" element={<QuizTypes />} />
-                <Route path="/KidsMode" element={<KidsMode />} />
-                <Route path="/ReferralSystem" element={<ReferralSystem />} />
-                <Route path="/LanguageSettings" element={<LanguageSettings />} />
-                <Route path="/PrivacySettings" element={<PrivacySettings />} />
-                <Route path="/RootQuiz" element={<RootQuiz />} />
-                <Route path="/ContextQuiz" element={<ContextQuiz />} />
-                <Route path="/ListeningQuiz" element={<ListeningQuiz />} />
-                <Route path="/SourceQuiz" element={<SourceQuiz />} />
-                <Route path="/TranslationHelper" element={<TranslationHelper />} />
-                <Route path="/ManageImages" element={<ManageImages />} />
-                <Route path="/ManageQuran" element={<ManageQuran />} />
-                <Route path="/UpdateWords" element={<UpdateWords />} />
-                <Route path="/ImportTafsir" element={<ImportTafsir />} />
-                <Route path="/AudioTest" element={<AudioTest />} />
-                <Route path="/ManageAudios" element={<ManageAudios />} />
-                <Route path="/SmartReview" element={<SmartReview />} />
-                <Route path="/ErrorLogs" element={<ErrorLogs />} />
-                <Route path="/Support" element={<Support />} />
-                <Route path="/Courses" element={<Courses />} />
-                <Route path="/CourseDetail" element={<CourseDetail />} />
-                <Route path="/CertificateView" element={<CertificateView />} />
-                <Route path="/ManageCertificates" element={<ManageCertificates />} />
-                <Route path="/UserProfile" element={<UserProfile />} />
-                <Route path="/Reports" element={<Reports />} />
-                <Route path="/CreateCustomChallenge" element={<CreateCustomChallenge />} />
-                <Route path="/ManageLandingPages" element={<ManageLandingPages />} />
-                <Route path="/ManageUsers" element={<ManageUsers />} />
-                <Route path="/ManageGroups" element={<ManageGroups />} />
-                <Route path="/ManageNotes" element={<ManageNotes />} />
-                <Route path="/StoreDetails" element={<StoreDetails />} />
                 <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
-                <Route path="/CreateChallengeFromPath" element={<CreateChallengeFromPath />} />
-                <Route path="/CustomLearningPaths" element={<CustomLearningPaths />} />
-                <Route path="/KidsGames" element={<KidsGames />} />
-                <Route path="/CustomPathLearn" element={<CustomPathLearn />} />
+
+                {/* مسارات المستخدم المسجّل */}
+                <Route path="/Dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/Learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
+                <Route path="/Quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+                <Route path="/Progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
+                <Route path="/Settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/Help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+                <Route path="/Favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+                <Route path="/Search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+                <Route path="/QuranReader" element={<ProtectedRoute><QuranReader /></ProtectedRoute>} />
+                <Route path="/Groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
+                <Route path="/GroupDetail" element={<ProtectedRoute><GroupDetail /></ProtectedRoute>} />
+                <Route path="/ChallengeDetail" element={<ProtectedRoute><ChallengeDetail /></ProtectedRoute>} />
+                <Route path="/Leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+                <Route path="/Achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
+                <Route path="/Shop" element={<ProtectedRoute><Shop /></ProtectedRoute>} />
+                <Route path="/LearningPaths" element={<ProtectedRoute><LearningPaths /></ProtectedRoute>} />
+                <Route path="/DailyChallenges" element={<ProtectedRoute><DailyChallenges /></ProtectedRoute>} />
+                <Route path="/Friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
+                <Route path="/Notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                <Route path="/QuizTypes" element={<ProtectedRoute><QuizTypes /></ProtectedRoute>} />
+                <Route path="/KidsMode" element={<ProtectedRoute><KidsMode /></ProtectedRoute>} />
+                <Route path="/KidsGames" element={<ProtectedRoute><KidsGames /></ProtectedRoute>} />
+                <Route path="/ReferralSystem" element={<ProtectedRoute><ReferralSystem /></ProtectedRoute>} />
+                <Route path="/LanguageSettings" element={<ProtectedRoute><LanguageSettings /></ProtectedRoute>} />
+                <Route path="/PrivacySettings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
+                <Route path="/RootQuiz" element={<ProtectedRoute><RootQuiz /></ProtectedRoute>} />
+                <Route path="/ContextQuiz" element={<ProtectedRoute><ContextQuiz /></ProtectedRoute>} />
+                <Route path="/ListeningQuiz" element={<ProtectedRoute><ListeningQuiz /></ProtectedRoute>} />
+                <Route path="/SourceQuiz" element={<ProtectedRoute><SourceQuiz /></ProtectedRoute>} />
+                <Route path="/SmartReview" element={<ProtectedRoute><SmartReview /></ProtectedRoute>} />
+                <Route path="/Courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
+                <Route path="/CourseDetail" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
+                <Route path="/CertificateView" element={<ProtectedRoute><CertificateView /></ProtectedRoute>} />
+                <Route path="/UserProfile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+                <Route path="/ManageNotes" element={<ProtectedRoute><ManageNotes /></ProtectedRoute>} />
+                <Route path="/Support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+                <Route path="/StoreDetails" element={<ProtectedRoute><StoreDetails /></ProtectedRoute>} />
+                <Route path="/CreateCustomChallenge" element={<ProtectedRoute><CreateCustomChallenge /></ProtectedRoute>} />
+                <Route path="/CreateChallengeFromPath" element={<ProtectedRoute><CreateChallengeFromPath /></ProtectedRoute>} />
+                <Route path="/CustomLearningPaths" element={<ProtectedRoute><CustomLearningPaths /></ProtectedRoute>} />
+                <Route path="/CustomPathLearn" element={<ProtectedRoute><CustomPathLearn /></ProtectedRoute>} />
+                <Route path="/TranslationHelper" element={<ProtectedRoute><TranslationHelper /></ProtectedRoute>} />
+
+                {/* مسارات المدير فقط */}
+                <Route path="/AdminPanel" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+                <Route path="/Analytics" element={<AdminRoute><Analytics /></AdminRoute>} />
+                <Route path="/ManageUsers" element={<AdminRoute><ManageUsers /></AdminRoute>} />
+                <Route path="/ManageGroups" element={<AdminRoute><ManageGroups /></AdminRoute>} />
+                <Route path="/GenerateWords" element={<AdminRoute><GenerateWords /></AdminRoute>} />
+                <Route path="/ImportQuran" element={<AdminRoute><ImportQuran /></AdminRoute>} />
+                <Route path="/ManageQuran" element={<AdminRoute><ManageQuran /></AdminRoute>} />
+                <Route path="/ManageImages" element={<AdminRoute><ManageImages /></AdminRoute>} />
+                <Route path="/ManageAudios" element={<AdminRoute><ManageAudios /></AdminRoute>} />
+                <Route path="/ManageCertificates" element={<AdminRoute><ManageCertificates /></AdminRoute>} />
+                <Route path="/ManageLandingPages" element={<AdminRoute><ManageLandingPages /></AdminRoute>} />
+                <Route path="/AppVersionTracking" element={<AdminRoute><AppVersionTracking /></AdminRoute>} />
+                <Route path="/ErrorLogs" element={<AdminRoute><ErrorLogs /></AdminRoute>} />
+                <Route path="/AudioTest" element={<AdminRoute><AudioTest /></AdminRoute>} />
+                <Route path="/ImportTafsir" element={<AdminRoute><ImportTafsir /></AdminRoute>} />
+                <Route path="/UpdateWords" element={<AdminRoute><UpdateWords /></AdminRoute>} />
+                <Route path="/NotificationManager" element={<AdminRoute><NotificationManager /></AdminRoute>} />
+                <Route path="/WeeklyReports" element={<AdminRoute><WeeklyReports /></AdminRoute>} />
+                <Route path="/Reports" element={<AdminRoute><Reports /></AdminRoute>} />
+
                 <Route path="*" element={<NotFound />} />
             </Routes>
         </Layout>
