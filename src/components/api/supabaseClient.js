@@ -127,11 +127,7 @@ const createEntityWrapper = (tableName) => {
       let query = supabase.from(tableName).select('*')
       
       const processedConditions = { ...conditions }
-      if (processedConditions.user_email) {
-        processedConditions.user_email = processedConditions.user_email
-        delete processedConditions.user_email
-      }
-      
+
       Object.entries(processedConditions).forEach(([key, value]) => {
         if (Array.isArray(value)) {
           query = query.in(key, value)
