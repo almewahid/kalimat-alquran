@@ -1,7 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://idivxuxznyrslzjxhtzb.supabase.co'
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    'متغيرات البيئة مفقودة: VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY مطلوبان.\n' +
+    'انسخ .env.example إلى .env.local وضع القيم الصحيحة.'
+  )
+}
 
 // Create Supabase client
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
