@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabaseClient } from "@/components/api/supabaseClient";
+import { useAuth } from "@/contexts/AuthContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient({
@@ -137,6 +138,8 @@ const adminItems = [
   { title: "اختبار الصوت", url: createPageUrl("AudioTest"), icon: Volume2 },
 ];
 
+const LOGO_URL = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68b74ae8214aa5bfcb70e378/6d983cb3c_.png";
+
 // Component صغير يغلق القائمة تلقائياً في الموبايل عند تغيير الصفحة
 function MobileCloser() {
   const { setOpenMobile, isMobile } = useSidebar();
@@ -153,10 +156,10 @@ function MobileCloser() {
 
 export default function Layout({ children }) {
   const location = useLocation();
+  const { user, isAdmin, preferences } = useAuth();
   const [theme, setTheme] = useState("light");
   const [colorScheme, setColorScheme] = useState("default");
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -166,52 +169,39 @@ export default function Layout({ children }) {
       setIsMobile(window.innerWidth < 768);
       setSidebarOpen(window.innerWidth >= 768);
     };
-    
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // مزامنة الثيم مع تفضيلات المستخدم من AuthContext
   useEffect(() => {
-    const fetchUserPreferences = async () => {
-      try {
-        const user = await supabaseClient.auth.me();
-        setTheme(user?.preferences?.theme || "light");
-        setColorScheme(user?.preferences?.color_scheme || "default");
-        setIsAdmin(user?.role === 'admin');
-      } catch (error) {
-        console.log("User not logged in or error fetching preferences.", error);
-      }
-    };
-    fetchUserPreferences();
-  }, []);
+    setTheme(preferences.theme || "light");
+    setColorScheme(preferences.color_scheme || "default");
+  }, [preferences]);
 
+  // إشعارات: جلب مرة + تحديث كل 60 ثانية
   useEffect(() => {
+    if (!user) return;
     let interval;
     const fetchNotifications = async () => {
       try {
-        const user = await supabaseClient.auth.me();
-        if (!user) return;
         const notifications = await supabaseClient.entities.Notification.filter({
           user_email: user.email,
           is_read: false
         });
         setUnreadNotifications(notifications.length);
-      } catch (error) {
-        // المستخدم غير مسجل أو خطأ في الشبكة
+      } catch {
+        // خطأ في الشبكة
       }
     };
     fetchNotifications();
     interval = setInterval(fetchNotifications, 60_000);
     return () => clearInterval(interval);
-  }, []);
-
-  // إغلاق القائمة على الموبيل عند تغيير الصفحة - تم نقله لـ MobileCloser
+  }, [user]);
 
   useEffect(() => {
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
+    if (isMobile) setSidebarOpen(false);
   }, [location.pathname, isMobile]);
 
   useEffect(() => {
@@ -234,7 +224,7 @@ export default function Layout({ children }) {
               <SidebarHeader className="border-b border-border p-6">
                 <div className="text-center">
                   <img
-                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68b74ae8214aa5bfcb70e378/6d983cb3c_.png"
+                    src={LOGO_URL}
                     alt="شعار كلمات القرآن"
                     className="w-20 h-20 mx-auto mb-3"
                   />

@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useEffect, Component } from 'react';
 import { BrowserRouter as Router, Route, Routes, useNavigate, Navigate } from 'react-router-dom';
 import Layout from "./Layout.jsx";
 import { supabase } from '@/components/api/supabaseClient';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
 // تحميل الصفحات عند الطلب فقط (Code Splitting)
 const Login                = lazy(() => import("./Login"));
@@ -99,51 +100,23 @@ class ErrorBoundary extends Component {
     }
 }
 
+const Spinner = () => (
+    <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+);
+
 function ProtectedRoute({ children }) {
-    const [status, setStatus] = useState('loading'); // 'loading' | 'auth' | 'unauth'
-
-    useEffect(() => {
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            setStatus(user ? 'auth' : 'unauth');
-        });
-    }, []);
-
-    if (status === 'loading') {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
-    }
-
-    return status === 'auth' ? children : <Navigate to="/Login" replace />;
+    const { user, isLoading } = useAuth();
+    if (isLoading) return <Spinner />;
+    return user ? children : <Navigate to="/Login" replace />;
 }
 
 function AdminRoute({ children }) {
-    const [status, setStatus] = useState('loading'); // 'loading' | 'admin' | 'unauth' | 'forbidden'
-
-    useEffect(() => {
-        supabase.auth.getUser().then(async ({ data: { user } }) => {
-            if (!user) { setStatus('unauth'); return; }
-            const { data: profile } = await supabase
-                .from('user_profiles')
-                .select('role')
-                .eq('user_id', user.id)
-                .maybeSingle();
-            setStatus(profile?.role === 'admin' ? 'admin' : 'forbidden');
-        });
-    }, []);
-
-    if (status === 'loading') {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
-    }
-
-    if (status === 'unauth') return <Navigate to="/Login" replace />;
-    if (status === 'forbidden') return <Navigate to="/Dashboard" replace />;
+    const { user, isAdmin, isLoading } = useAuth();
+    if (isLoading) return <Spinner />;
+    if (!user) return <Navigate to="/Login" replace />;
+    if (!isAdmin) return <Navigate to="/Dashboard" replace />;
     return children;
 }
 
@@ -254,8 +227,10 @@ function PagesContent() {
 
 export default function Pages() {
     return (
-        <Router>
-            <PagesContent />
-        </Router>
+        <AuthProvider>
+            <Router>
+                <PagesContent />
+            </Router>
+        </AuthProvider>
     );
 }
