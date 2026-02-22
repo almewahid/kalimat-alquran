@@ -179,18 +179,32 @@ export default function Layout({ children }) {
         setTheme(user?.preferences?.theme || "light");
         setColorScheme(user?.preferences?.color_scheme || "default");
         setIsAdmin(user?.role === 'admin');
-        
+      } catch (error) {
+        console.log("User not logged in or error fetching preferences.", error);
+      }
+    };
+    fetchUserPreferences();
+  }, []);
+
+  useEffect(() => {
+    let interval;
+    const fetchNotifications = async () => {
+      try {
+        const user = await supabaseClient.auth.me();
+        if (!user) return;
         const notifications = await supabaseClient.entities.Notification.filter({
           user_email: user.email,
           is_read: false
         });
         setUnreadNotifications(notifications.length);
       } catch (error) {
-        console.log("User not logged in or error fetching preferences.", error);
+        // المستخدم غير مسجل أو خطأ في الشبكة
       }
     };
-    fetchUserPreferences();
-  }, [location.pathname]);
+    fetchNotifications();
+    interval = setInterval(fetchNotifications, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // إغلاق القائمة على الموبيل عند تغيير الصفحة - تم نقله لـ MobileCloser
 
