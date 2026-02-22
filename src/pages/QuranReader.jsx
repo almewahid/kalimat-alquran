@@ -53,11 +53,16 @@ export default function QuranReader() {
   const [currentPlayingAyah, setCurrentPlayingAyah] = useState(null);
   const [currentPlayingWords, setCurrentPlayingWords] = useState([]);
 
+  // تحميل كل آيات القرآن مرة واحدة عند أول تشغيل فقط (للبحث الشامل)
+  useEffect(() => {
+    loadAllAyahs();
+    loadBookmarks();
+  }, []);
+
+  // إعادة تحميل بيانات السورة عند تغييرها
   useEffect(() => {
     loadSurah(selectedSurah);
-    loadBookmarks();
     loadWordMeanings();
-    loadAllAyahs();
   }, [selectedSurah]);
 
   useEffect(() => {
