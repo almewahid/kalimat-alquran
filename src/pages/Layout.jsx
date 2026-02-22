@@ -557,11 +557,7 @@ export default function Layout({ children }) {
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      onClick={async () => {
-                        if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-                          await supabaseClient.auth.logout();
-                        }
-                      }}
+                      onClick={() => setShowLogoutDialog(true)}
                     >
                       <LogOut className="w-5 h-5 ml-2" />
                       تسجيل الخروج
@@ -588,6 +584,26 @@ export default function Layout({ children }) {
         </SidebarProvider>
 
         <GlobalAudioPlayer />
+
+        <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>تسجيل الخروج</AlertDialogTitle>
+              <AlertDialogDescription>
+                هل أنت متأكد من تسجيل الخروج من حسابك؟
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => supabaseClient.auth.logout()}
+              >
+                تسجيل الخروج
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AudioProvider>
     </QueryClientProvider>
