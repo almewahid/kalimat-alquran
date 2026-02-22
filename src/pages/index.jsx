@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect, Component } from 'react';
 import { BrowserRouter as Router, Route, Routes, useNavigate, Navigate } from 'react-router-dom';
 import Layout from "./Layout.jsx";
 import { supabase } from '@/components/api/supabaseClient';
@@ -69,6 +69,36 @@ const NotificationManager  = lazy(() => import("./NotificationManager"));
 const WeeklyReports        = lazy(() => import("./WeeklyReports"));
 const Reports              = lazy(() => import("./Reports"));
 
+class ErrorBoundary extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-center p-8" dir="rtl">
+                    <div className="text-6xl">⚠️</div>
+                    <h1 className="text-2xl font-bold">فشل تحميل الصفحة</h1>
+                    <p className="text-muted-foreground">حدث خطأ أثناء تحميل هذه الصفحة. تحقق من اتصالك بالإنترنت.</p>
+                    <button
+                        onClick={() => this.setState({ hasError: false })}
+                        className="mt-2 px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                        إعادة المحاولة
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
 function ProtectedRoute({ children }) {
     const [status, setStatus] = useState('loading'); // 'loading' | 'auth' | 'unauth'
 
@@ -137,6 +167,7 @@ function NotFound() {
 function PagesContent() {
     return (
         <Layout>
+            <ErrorBoundary>
             <Suspense fallback={
                 <div className="flex items-center justify-center min-h-screen">
                     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -216,6 +247,7 @@ function PagesContent() {
                 <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
+            </ErrorBoundary>
         </Layout>
     );
 }
