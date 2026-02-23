@@ -58,7 +58,6 @@ const GenerateWords        = lazy(() => import("./GenerateWords"));
 const ImportQuran          = lazy(() => import("./ImportQuran"));
 const ManageQuran          = lazy(() => import("./ManageQuran"));
 const ManageImages         = lazy(() => import("./ManageImages"));
-const MigrateFromBase44    = lazy(() => import("./MigrateFromBase44"));
 const ManageAudios         = lazy(() => import("./ManageAudios"));
 const ManageCertificates   = lazy(() => import("./ManageCertificates"));
 const ManageLandingPages   = lazy(() => import("./ManageLandingPages"));
@@ -207,7 +206,6 @@ function PagesContent() {
                 <Route path="/ImportQuran" element={<AdminRoute><ImportQuran /></AdminRoute>} />
                 <Route path="/ManageQuran" element={<AdminRoute><ManageQuran /></AdminRoute>} />
                 <Route path="/ManageImages" element={<AdminRoute><ManageImages /></AdminRoute>} />
-                <Route path="/MigrateFromBase44" element={<AdminRoute><MigrateFromBase44 /></AdminRoute>} />
                 <Route path="/ManageAudios" element={<AdminRoute><ManageAudios /></AdminRoute>} />
                 <Route path="/ManageCertificates" element={<AdminRoute><ManageCertificates /></AdminRoute>} />
                 <Route path="/ManageLandingPages" element={<AdminRoute><ManageLandingPages /></AdminRoute>} />

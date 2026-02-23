@@ -4,7 +4,10 @@
       "Bash(wc:*)",
       "Bash(find:*)",
       "Bash(cd:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(tail:*)",
+      "Bash(cd \"D:/work/2 unziptoastudio/kalimat-alquran\" && supabase --version 2>&1)",
+      "Bash(cd \"D:/work/2 unziptoastudio/kalimat-alquran\" && supabase projects list 2>&1)"
     ]
   }
 }
