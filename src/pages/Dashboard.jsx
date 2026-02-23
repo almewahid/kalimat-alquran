@@ -237,8 +237,8 @@ export default function Dashboard() {
         <StatsGrid
           wordsLearned={userProgress.words_learned || 0}
           quizStreak={userProgress.quiz_streak || 0}
-          loginStreak={userProgress.consecutive_login_days || 1}
-          recentQuizzes={recentQuizzes}
+          consecutiveLoginDays={userProgress.consecutive_login_days || 1}
+          recentSessions={recentQuizzes}
         />
 
         {/* الكلمات الأخيرة */}

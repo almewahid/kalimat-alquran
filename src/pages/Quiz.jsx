@@ -90,7 +90,7 @@ export default function Quiz() {
 
   const finishQuiz = useCallback(async (finalAnswers) => {
     setQuizEnded(true);
-    setQuizState('results'); // ✅ الانتقال فوراً للنتائج قبل عمليات DB
+    setIsLoading(true); // عرض spinner أثناء حفظ البيانات
 
     const correctCount = finalAnswers.filter(a => a.is_correct).length;
     const totalTime = Math.floor((Date.now() - startTime) / 1000);
@@ -163,6 +163,9 @@ export default function Quiz() {
         description: "حدث خطأ أثناء حفظ النتائج.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
+      setQuizState('results'); // الانتقال للنتائج بعد اكتمال الحفظ
     }
   }, [startTime, questions, hearts, userPreferences, toast]);
 
@@ -548,16 +551,25 @@ export default function Quiz() {
               />
             )}
 
-            {quizEnded && !showTasbihModal && (
+            {quizEnded && isLoading && (
+              <Card className="bg-card border-border">
+                <CardContent className="p-8 text-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-3" />
+                  <p className="text-foreground/70">جارٍ حفظ النتائج...</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {quizEnded && !isLoading && !showTasbihModal && hearts <= 0 && (
               <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
                 <CardContent className="p-8 text-center">
                   <h3 className="text-xl font-bold text-red-700 dark:text-red-400 mb-2">انتهت الجلسة</h3>
                   <p className="text-red-600 dark:text-red-500 mb-4">
                     لقد استنفدت كل قلوبك. يمكنك مراجعة النتائج.
                   </p>
-                   <Button onClick={() => finishQuiz(answers)} className="bg-primary text-primary-foreground">
-                        عرض النتائج
-                    </Button>
+                  <Button onClick={() => finishQuiz(answers)} className="bg-primary text-primary-foreground">
+                    عرض النتائج
+                  </Button>
                 </CardContent>
               </Card>
             )}
