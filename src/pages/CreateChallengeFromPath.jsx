@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,9 +37,9 @@ export default function CreateChallengeFromPath() {
 
   const loadData = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       
-      const pathData = await base44.entities.CustomLearningPath.filter({ id: pathId });
+      const pathData = await supabaseClient.entities.CustomLearningPath.filter({ id: pathId });
       if (pathData.length === 0) {
         toast({ title: "❌ المسار غير موجود", variant: "destructive" });
         return;
@@ -48,7 +48,7 @@ export default function CreateChallengeFromPath() {
       const currentPath = pathData[0];
       setPath(currentPath);
 
-      const allGroups = await base44.entities.Group.list();
+      const allGroups = await supabaseClient.entities.Group.list();
       const myGroups = allGroups.filter(g => g.leader_email === user.email);
       setUserGroups(myGroups);
 
@@ -76,7 +76,7 @@ export default function CreateChallengeFromPath() {
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + parseInt(challengeData.duration_days));
 
-      await base44.entities.GroupChallenge.create({
+      await supabaseClient.entities.GroupChallenge.create({
         group_id: challengeData.group_id,
         title: challengeData.title,
         description: challengeData.description,

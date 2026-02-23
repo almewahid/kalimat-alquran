@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,15 +61,15 @@ export default function CustomLearningPaths() {
 
   const loadData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
-      const userPaths = await base44.entities.CustomLearningPath.filter({ 
+      const userPaths = await supabaseClient.entities.CustomLearningPath.filter({ 
         user_email: currentUser.email 
       });
       setPaths(userPaths);
 
-      const words = await base44.entities.QuranicWord.list();
+      const words = await supabaseClient.entities.QuranicWord.list();
       setAllWords(words);
     } catch (error) {
       console.error(error);
@@ -108,7 +108,7 @@ export default function CustomLearningPaths() {
 
     setIsCreating(true);
     try {
-      await base44.entities.CustomLearningPath.create({
+      await supabaseClient.entities.CustomLearningPath.create({
         user_email: user.email,
         ...newPath,
         selected_words: newPath.source_type === "words" ? newPath.selected_words : filteredWords.map(w => w.id),
@@ -143,7 +143,7 @@ export default function CustomLearningPaths() {
     if (!confirm("هل تريد حذف هذا المسار؟")) return;
 
     try {
-      await base44.entities.CustomLearningPath.delete(pathId);
+      await supabaseClient.entities.CustomLearningPath.delete(pathId);
       toast({ title: "✅ تم حذف المسار" });
       loadData();
     } catch (error) {

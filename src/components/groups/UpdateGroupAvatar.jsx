@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, Upload, Image as ImageIcon } from "lucide-react";
@@ -36,7 +36,7 @@ export default function UpdateGroupAvatar({ group, isOpen, onClose, onSuccess })
       const { file_url } = await base44.integrations.Core.UploadFile({ file: selectedFile });
 
       // Update group
-      await base44.entities.Group.update(group.id, { avatar_url: file_url });
+      await supabaseClient.entities.Group.update(group.id, { avatar_url: file_url });
 
       toast({ title: "✅ تم تحديث صورة المجموعة" });
       onSuccess?.();

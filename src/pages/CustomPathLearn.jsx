@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -31,9 +31,9 @@ export default function CustomPathLearn() {
 
   const loadPath = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await supabaseClient.auth.me();
       
-      const pathData = await base44.entities.CustomLearningPath.filter({ id: pathId });
+      const pathData = await supabaseClient.entities.CustomLearningPath.filter({ id: pathId });
       if (pathData.length === 0) {
         toast({ title: "❌ المسار غير موجود", variant: "destructive" });
         return;
@@ -43,17 +43,17 @@ export default function CustomPathLearn() {
       setPath(currentPath);
 
       // جلب الكلمات
-      const allWords = await base44.entities.QuranicWord.list();
+      const allWords = await supabaseClient.entities.QuranicWord.list();
       const pathWords = allWords.filter(w => currentPath.selected_words?.includes(w.id));
       setWords(pathWords);
 
       // جلب المجموعات
-      const allGroups = await base44.entities.Group.list();
+      const allGroups = await supabaseClient.entities.Group.list();
       const myGroups = allGroups.filter(g => g.leader_email === user.email);
       setUserGroups(myGroups);
 
       // تحديث آخر وصول
-      await base44.entities.CustomLearningPath.update(pathId, {
+      await supabaseClient.entities.CustomLearningPath.update(pathId, {
         last_accessed: new Date().toISOString()
       });
     } catch (error) {
@@ -71,7 +71,7 @@ export default function CustomPathLearn() {
       const newLearnedCount = (path.learned_words_count || 0) + 1;
       const newProgress = (newLearnedCount / path.total_words_count) * 100;
 
-      await base44.entities.CustomLearningPath.update(path.id, {
+      await supabaseClient.entities.CustomLearningPath.update(path.id, {
         learned_words_count: newLearnedCount,
         progress_percentage: newProgress
       });
