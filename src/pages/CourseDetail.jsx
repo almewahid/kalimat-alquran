@@ -105,10 +105,23 @@ export default function CourseDetail() {
         let certificateId = progress?.certificate_id;
 
         if (isCompleted && !progress?.is_completed && course.enable_certificate) {
-          const { issueCertificate } = await import('@/api/functions');
-          const result = await issueCertificate({ courseId: course.id });
-          if (result.data?.certificate) {
-            certificateId = result.data.certificate.id;
+          const actualUser = user?.data?.user;
+          let userName = actualUser?.email || "مستخدم";
+          try {
+            const profileData = await supabaseClient.entities.User.filter({ user_id: actualUser?.id });
+            if (profileData?.[0]?.full_name) userName = profileData[0].full_name;
+          } catch (e) { /* استخدام الإيميل كبديل */ }
+
+          const certificate = await supabaseClient.entities.Certificate.create({
+            course_id: course.id,
+            course_title: course.title,
+            user_name: userName,
+            issue_date: new Date().toISOString(),
+            code: `CERT-${course.id.slice(0, 8).toUpperCase()}-${Date.now()}`,
+          });
+
+          if (certificate) {
+            certificateId = certificate.id;
             triggerConfetti("achievement");
             toast({ title: "🎉 مبروك! أتممت الدورة وحصلت على الشهادة" });
           }
