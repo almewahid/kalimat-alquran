@@ -7,7 +7,6 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     hostname: 'app',
-    cleartext: true
   },
   plugins: {
     Browser: {
@@ -23,9 +22,6 @@ const config: CapacitorConfig = {
       forceCodeForRefreshToken: true
     }
   },
-  android: {
-    allowMixedContent: true
-  }
 };
 
 export default config;
