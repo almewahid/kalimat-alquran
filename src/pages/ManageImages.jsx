@@ -72,7 +72,7 @@ export default function ManageImages() {
   };
 
   const loadCategories = async () => {
-    const res = await supabaseClient.entities.categories.list("-created_date", 1000);
+    const res = await supabaseClient.entities.Category.list("-created_date", 1000);
     setCategories(res.filter(c => c.type === 'image'));
   };
 
@@ -373,7 +373,7 @@ export default function ManageImages() {
   const handleAddCategory = async () => {
     if (!newCategory.name.trim()) { toast({ title: "⚠️ أدخل اسم الفئة" }); return; }
     try {
-      await supabaseClient.entities.categories.create({ name: newCategory.name.trim(), description: newCategory.description.trim(), type: 'image' });
+      await supabaseClient.entities.Category.create({ name: newCategory.name.trim(), description: newCategory.description.trim(), type: 'image' });
       toast({ title: "✅ تمت إضافة الفئة بنجاح" });
       setNewCategory({ name: "", description: "" });
       loadCategories();
@@ -385,7 +385,7 @@ export default function ManageImages() {
   const handleDeleteCategory = async (id) => {
     if (!confirm("هل تريد حذف هذه الفئة؟")) return;
     try {
-      await supabaseClient.entities.categories.delete(id);
+      await supabaseClient.entities.Category.delete(id);
       toast({ title: "✅ تم حذف الفئة" });
       loadCategories();
     } catch {

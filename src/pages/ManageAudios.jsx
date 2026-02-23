@@ -105,7 +105,7 @@ export default function ManageAudios() {
   const loadCategories = async () => {
     try {
       // ✅ جلب فئات الصوتيات فقط
-      const res = await supabaseClient.entities.categories.list("-created_date", 1000);
+      const res = await supabaseClient.entities.Category.list("-created_date", 1000);
       setCategories(res.filter(c => c.type === 'audio'));
     } catch (error) {
       console.error("Error loading categories:", error);
@@ -258,7 +258,7 @@ export default function ManageAudios() {
       return;
     }
     try {
-      await supabaseClient.entities.categories.create({
+      await supabaseClient.entities.Category.create({
         name: newCategory.name.trim(),
         description: newCategory.description.trim(),
         type: 'audio', // ✅ تحديد النوع كصوتيات
@@ -275,7 +275,7 @@ export default function ManageAudios() {
   const handleDeleteCategory = async (id) => {
     if (!confirm("هل تريد حذف هذه الفئة؟")) return;
     try {
-      await supabaseClient.entities.categories.delete(id);
+      await supabaseClient.entities.Category.delete(id);
       toast({ title: "✅ تم حذف الفئة" });
       loadCategories();
     } catch (error) {
