@@ -118,12 +118,11 @@ function GenerateWords() {
 
   const logError = async (context, message, details) => {
     try {
-      await supabaseClient.functions.invoke("logAppError", {
+      await supabaseClient.entities.ErrorLog.create({
         error_message: message,
         error_details: details ? JSON.stringify(details, Object.getOwnPropertyNames(details)) : "",
         context: context,
-        user_email: user?.email || "unknown",
-        additional_data: { page: "GenerateWords" }
+        additional_data: { page: "GenerateWords" },
       });
     } catch (err) {
       console.error("Failed to log error to backend:", err);

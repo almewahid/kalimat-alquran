@@ -41,12 +41,10 @@ const logErrorToBackend = async (context, message, details) => {
       if (user) userEmail = user.email;
     } catch (e) { /* ignore auth error */ }
 
-    await supabaseClient.functions.invoke("logAppError", {
+    await supabaseClient.entities.ErrorLog.create({
       error_message: message,
       error_details: typeof details === 'object' ? JSON.stringify(details) : String(details),
       context: context,
-      user_email: userEmail,
-      timestamp: new Date().toISOString()
     });
   } catch (err) {
     console.error("Failed to send error log to backend:", err);
