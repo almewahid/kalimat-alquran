@@ -40,6 +40,7 @@ const CourseDetail         = lazy(() => import("./CourseDetail"));
 const CertificateView      = lazy(() => import("./CertificateView"));
 const UserProfile          = lazy(() => import("./UserProfile"));
 const ManageNotes          = lazy(() => import("./ManageNotes"));
+const WordProgressStats    = lazy(() => import("./WordProgressStats"));
 const Support              = lazy(() => import("./Support"));
 const StoreDetails         = lazy(() => import("./StoreDetails"));
 const CreateCustomChallenge    = lazy(() => import("./CreateCustomChallenge"));
@@ -187,6 +188,7 @@ function PagesContent() {
                 <Route path="/CertificateView" element={<ProtectedRoute><CertificateView /></ProtectedRoute>} />
                 <Route path="/UserProfile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
                 <Route path="/ManageNotes" element={<ProtectedRoute><ManageNotes /></ProtectedRoute>} />
+                <Route path="/WordProgressStats" element={<ProtectedRoute><WordProgressStats /></ProtectedRoute>} />
                 <Route path="/Support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                 <Route path="/StoreDetails" element={<ProtectedRoute><StoreDetails /></ProtectedRoute>} />
                 <Route path="/CreateCustomChallenge" element={<ProtectedRoute><CreateCustomChallenge /></ProtectedRoute>} />
