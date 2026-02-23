@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabaseClient } from "@/components/api/supabaseClient";
+import { supabaseClient, supabase } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,11 +66,77 @@ export default function Settings() {
     const [smartAnalysis, setSmartAnalysis] = useState(null);
 
     useEffect(() => {
-        if (activeTab === 'notifications') {
-            supabaseClient.functions.invoke("analyzeUserBehavior").then(res => {
-                if (res.data) setSmartAnalysis(res.data);
-            });
-        }
+        if (activeTab !== 'notifications') return;
+
+        (async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const [
+                    { data: progress },
+                    { data: sessions },
+                ] = await Promise.all([
+                    supabase
+                        .from("user_progress")
+                        .select("words_learned, consecutive_login_days, total_xp, last_quiz_date")
+                        .eq("user_id", user.id)
+                        .maybeSingle(),
+                    supabase
+                        .from("quiz_sessions")
+                        .select("score, created_date")
+                        .eq("user_id", user.id)
+                        .order("created_date", { ascending: false })
+                        .limit(30),
+                ]);
+
+                const alerts = [];
+
+                // تحليل الاستمرارية
+                const streak = progress?.consecutive_login_days || 0;
+                if (streak >= 7) {
+                    alerts.push(`🔥 رائع! حافظت على ${streak} يوماً متتالياً. فعّل الإشعار اليومي للحفاظ على هذا الإنجاز.`);
+                } else if (streak === 0) {
+                    alerts.push("⚠️ لم تدرس منذ فترة. فعّل تذكير يومي لمساعدتك على الاستمرار.");
+                } else {
+                    alerts.push(`📅 تتابعك الحالي ${streak} أيام. فعّل الإشعارات للوصول إلى 7 أيام متتالية.`);
+                }
+
+                // تحليل وقت آخر كويز
+                const lastQuizDate = progress?.last_quiz_date;
+                if (lastQuizDate) {
+                    const daysSince = Math.floor((Date.now() - new Date(lastQuizDate)) / 86400000);
+                    if (daysSince >= 3) {
+                        alerts.push(`📚 مضى ${daysSince} أيام على آخر اختبار. نوصي بتفعيل إشعار المراجعة الدورية.`);
+                    }
+                }
+
+                // تحليل دقة الكويز
+                const sessionList = sessions || [];
+                if (sessionList.length > 0) {
+                    const avgScore = Math.round(sessionList.reduce((s, q) => s + (q.score || 0), 0) / sessionList.length);
+                    if (avgScore < 60) {
+                        alerts.push(`💡 متوسط دقتك ${avgScore}%. فعّل إشعارات المراجعة الذكية لتحسين أدائك.`);
+                    } else if (avgScore >= 85) {
+                        alerts.push(`✅ دقتك ${avgScore}% ممتازة! يمكنك تقليل تكرار الإشعارات والاكتفاء بتذكير يومي واحد.`);
+                    }
+
+                    // تحليل أوقات النشاط
+                    const hours = sessionList.map(s => new Date(s.created_date).getHours());
+                    const avgHour = Math.round(hours.reduce((a, b) => a + b, 0) / hours.length);
+                    const period = avgHour < 12 ? "الصباح" : avgHour < 17 ? "بعد الظهر" : "المساء";
+                    alerts.push(`🕐 معظم جلساتك في ${period}. نوصي بضبط إشعاراتك حول الساعة ${avgHour}:00.`);
+                } else {
+                    alerts.push("🚀 لم تبدأ أي اختبار بعد. فعّل الإشعارات لتذكيرك ببدء رحلة التعلم.");
+                }
+
+                if (alerts.length > 0) {
+                    setSmartAnalysis({ smartAlerts: alerts });
+                }
+            } catch (e) {
+                console.error("analyzeUserBehavior error:", e);
+            }
+        })();
     }, [activeTab]);
 
     // Get current language
