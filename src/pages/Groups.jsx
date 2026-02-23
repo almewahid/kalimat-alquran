@@ -104,8 +104,12 @@ export default function Groups() {
       const { data: sessionData } = await supabaseClient.supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
 
+      const { data: sessionData } = await supabaseClient.supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
       const { data: result, error: fnError } = await supabaseClient.supabase.functions.invoke('join-group', {
         body: { join_code: joinCode.trim() },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (fnError) {
