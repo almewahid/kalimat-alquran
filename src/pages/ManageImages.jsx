@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
+import { invokeLLMWithImage } from "@/api/gemini";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Image as ImageIcon } from "lucide-react";
@@ -278,12 +279,12 @@ export default function ManageImages() {
       for (const img of imagesToTag) {
         try {
           if (brokenImageIds.has(img.id) || !img.url) continue;
-          const res = await supabaseClient.integrations.Core.InvokeLLM({
-            prompt: "Analyze this image and provide 5-8 relevant tags in Arabic as a simple JSON array of strings. Example: [\"قرآن\", \"طبيعة\"]. Do not include explanation.",
-            file_urls: [img.url],
-            response_json_schema: { type: "object", properties: { tags: { type: "array", items: { type: "string" } } } }
-          });
-          if (res?.tags) { await supabaseClient.entities.images.update(img.id, { tags: res.tags }); successCount++; }
+          const res = await invokeLLMWithImage(
+            "حلل هذه الصورة وأعطني 5-8 وسوم ذات صلة باللغة العربية كـ JSON array. مثال: [\"قرآن\", \"طبيعة\"]. أعد فقط الـ array بدون شرح.",
+            img.url
+          );
+          const tags = Array.isArray(res) ? res : res?.tags;
+          if (tags?.length) { await supabaseClient.entities.Image.update(img.id, { tags }); successCount++; }
         } catch {}
       }
       toast({ title: "✅ تم إنشاء الوسوم", description: `تم تحديث ${successCount} صورة بنجاح.` });

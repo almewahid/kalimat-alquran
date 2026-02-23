@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
+import { invokeLLM } from "@/api/gemini";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -239,22 +240,7 @@ Fields required: meaning, category, root, aya_text (context), example_usage, ref
 Ensure aya_text is the full ayah text if Level is 'متقدم'.
 `;
           
-          const llmRes = await supabaseClient.integrations.Core.InvokeLLM({
-            prompt,
-            response_json_schema: {
-              type: "object",
-              properties: {
-                meaning: {type: "string"},
-                category: {type: "string"},
-                root: {type: "string"},
-                aya_text: {type: "string"},
-                example_usage: {type: "string"},
-                reflection_question: {type: "string"},
-                reflection_answer: {type: "string"},
-                alternative_meanings: {type: "array", items: {type: "string"}}
-              }
-            }
-          });
+          const llmRes = await invokeLLM(prompt);
 
           parsedWords.push({
             word: word,
