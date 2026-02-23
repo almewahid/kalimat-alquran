@@ -90,6 +90,8 @@ export default function Quiz() {
 
   const finishQuiz = useCallback(async (finalAnswers) => {
     setQuizEnded(true);
+    setQuizState('results'); // ✅ الانتقال فوراً للنتائج قبل عمليات DB
+
     const correctCount = finalAnswers.filter(a => a.is_correct).length;
     const totalTime = Math.floor((Date.now() - startTime) / 1000);
     const baseXP = correctCount * 15;
@@ -143,13 +145,11 @@ export default function Quiz() {
           });
         }
       }
-
-      setQuizState('results');
     } catch (error) {
       console.error("Error finishing quiz:", error);
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء إنهاء الاختبار.",
+        description: "حدث خطأ أثناء حفظ النتائج.",
         variant: "destructive",
       });
     }
