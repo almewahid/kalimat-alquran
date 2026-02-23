@@ -1,7 +1,6 @@
-import { lazy, Suspense, useState, useEffect, Component } from 'react';
+import { lazy, Suspense, Component } from 'react';
 import { BrowserRouter as Router, Route, Routes, useNavigate, Navigate } from 'react-router-dom';
 import Layout from "./Layout.jsx";
-import { supabase } from '@/components/api/supabaseClient';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
 // تحميل الصفحات عند الطلب فقط (Code Splitting)
