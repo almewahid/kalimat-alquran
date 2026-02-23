@@ -16,7 +16,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 // Wrapper for compatibility
 export const supabaseClient = {
   supabase: supabase,
-  
+  functions: supabase.functions,
+
   auth: {
     me: async () => {
       try {
@@ -279,7 +280,7 @@ supabaseClient.entities = {
         if (!session) throw new Error('غير مسجل دخول')
 
         const response = await fetch(
-          'https://idivxuxznyrslzjxhtzb.supabase.co/functions/v1/admin-settings',
+          `${SUPABASE_URL}/functions/v1/admin-settings`,
           {
             method: 'POST',
             headers: {
