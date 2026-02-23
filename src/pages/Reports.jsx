@@ -43,6 +43,8 @@ export default function Reports() {
     queryKey: ["reportsData"],
     queryFn: async () => {
       const response = await supabaseClient.functions.invoke("getReportsData");
+      if (response.error) throw new Error(response.error.message || "فشل تحميل بيانات التقرير");
+      if (!response.data) throw new Error("لم يتم استلام بيانات من الخادم");
       return response.data;
     }
   });
@@ -55,7 +57,7 @@ export default function Reports() {
     );
   }
 
-  if (error) {
+  if (error || !data) {
     return (
       <div className="p-6 text-center">
         <p className="text-red-500">حدث خطأ أثناء تحميل التقرير. يرجى المحاولة لاحقاً.</p>
