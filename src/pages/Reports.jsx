@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabaseClient } from "@/components/api/supabaseClient";
+import { supabase } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,10 +42,101 @@ export default function Reports() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["reportsData"],
     queryFn: async () => {
-      const response = await supabaseClient.functions.invoke("getReportsData");
-      if (response.error) throw new Error(response.error.message || "فشل تحميل بيانات التقرير");
-      if (!response.data) throw new Error("لم يتم استلام بيانات من الخادم");
-      return response.data;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("غير مسجل دخول");
+
+      // جلب بيانات المستخدم الحالي
+      const [
+        { data: userProgress, error: progressError },
+        { data: quizSessions, error: quizError },
+        { data: allProgress, error: allProgressError },
+        { data: allQuizSessions, error: allQuizError },
+      ] = await Promise.all([
+        supabase
+          .from("user_progress")
+          .select("total_xp, current_level, words_learned, consecutive_login_days")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("quiz_sessions")
+          .select("score, correct_answers, created_date")
+          .eq("user_id", user.id)
+          .order("created_date", { ascending: true }),
+        supabase
+          .from("user_progress")
+          .select("total_xp, words_learned"),
+        supabase
+          .from("quiz_sessions")
+          .select("score"),
+      ]);
+
+      if (progressError) throw progressError;
+      if (quizError) throw quizError;
+      if (allProgressError) throw allProgressError;
+      if (allQuizError) throw allQuizError;
+
+      // إحصائيات المستخدم
+      const userQuizSessions = quizSessions || [];
+      const stats = {
+        wordsLearned: userProgress?.words_learned || 0,
+        totalXP: userProgress?.total_xp || 0,
+        level: userProgress?.current_level || 1,
+        streak: userProgress?.consecutive_login_days || 0,
+        quizAvg: userQuizSessions.length > 0
+          ? Math.round(userQuizSessions.reduce((sum, s) => sum + (s.score || 0), 0) / userQuizSessions.length)
+          : 0,
+      };
+
+      // المتوسطات العامة
+      const progressList = allProgress || [];
+      const quizList = allQuizSessions || [];
+      const averages = {
+        words: progressList.length > 0
+          ? Math.round(progressList.reduce((sum, p) => sum + (p.words_learned || 0), 0) / progressList.length)
+          : 0,
+        xp: progressList.length > 0
+          ? Math.round(progressList.reduce((sum, p) => sum + (p.total_xp || 0), 0) / progressList.length)
+          : 0,
+        quizAvg: quizList.length > 0
+          ? Math.round(quizList.reduce((sum, s) => sum + (s.score || 0), 0) / quizList.length)
+          : 0,
+      };
+
+      // سجل التعلم الشهري (آخر 6 أشهر)
+      const monthNames = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+      const monthlyMap = {};
+      userQuizSessions.forEach(session => {
+        const date = new Date(session.created_date);
+        const key = `${date.getFullYear()}-${date.getMonth()}`;
+        if (!monthlyMap[key]) {
+          monthlyMap[key] = { name: monthNames[date.getMonth()], words: 0, _ts: date.getTime() };
+        }
+        monthlyMap[key].words += session.correct_answers || 0;
+      });
+      const history = Object.values(monthlyMap)
+        .sort((a, b) => a._ts - b._ts)
+        .slice(-6)
+        .map(({ name, words }) => ({ name, words }));
+
+      // التوصيات
+      const suggestions = [];
+      if (stats.streak >= 7) {
+        suggestions.push({ type: "success", title: "استمرارية رائعة!", description: `حافظت على ${stats.streak} يوماً متتالياً. أنت في المسار الصحيح!` });
+      } else if (stats.streak < 3) {
+        suggestions.push({ type: "warning", title: "حافظ على استمراريتك", description: "حاول الدراسة يومياً لبناء عادة قوية.", actionLink: "/Learn", actionLabel: "ابدأ الآن" });
+      }
+      if (stats.quizAvg >= averages.quizAvg) {
+        suggestions.push({ type: "success", title: "دقة ممتازة في الاختبارات", description: `دقتك ${stats.quizAvg}% تفوق متوسط المستخدمين ${averages.quizAvg}%.` });
+      } else {
+        suggestions.push({ type: "info", title: "حسّن دقتك في الاختبارات", description: "راجع الكلمات الصعبة وكررها أكثر.", actionLink: "/SmartReview", actionLabel: "مراجعة ذكية" });
+      }
+      if (stats.wordsLearned >= averages.words) {
+        suggestions.push({ type: "success", title: "تقدم ممتاز في الكلمات", description: `تعلمت ${stats.wordsLearned} كلمة، أكثر من المتوسط العام ${averages.words}.` });
+      } else {
+        suggestions.push({ type: "info", title: "تعلّم المزيد من الكلمات", description: "ابدأ جلسة تعلم جديدة لزيادة عدد الكلمات التي تتقنها.", actionLink: "/Learn", actionLabel: "تعلّم الآن" });
+      }
+
+      return { stats, averages, history, suggestions };
     }
   });
 
@@ -59,8 +150,9 @@ export default function Reports() {
 
   if (error || !data) {
     return (
-      <div className="p-6 text-center">
+      <div className="p-6 text-center space-y-2">
         <p className="text-red-500">حدث خطأ أثناء تحميل التقرير. يرجى المحاولة لاحقاً.</p>
+        {error && <p className="text-xs text-muted-foreground font-mono">{error.message}</p>}
       </div>
     );
   }
