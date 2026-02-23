@@ -100,33 +100,39 @@ export default function Groups() {
 
     setIsJoining(true);
     try {
-      const foundGroup = await supabaseClient.entities.Group.filter({ join_code: joinCode.toUpperCase() });
-      
-      if (foundGroup.length === 0) {
-        toast({ title: "❌ كود غير صحيح", variant: "destructive" });
+      // استخدام Edge Function تتجاوز RLS وتبحث بالكود مباشرة
+      const { data: sessionData } = await supabaseClient.supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const { data: result, error: fnError } = await supabaseClient.supabase.functions.invoke('join-group', {
+        body: { join_code: joinCode.trim() },
+      });
+
+      if (fnError) {
+        console.error("Function error:", fnError);
+        toast({ title: "❌ خطأ في الاتصال بالخادم", variant: "destructive" });
         return;
       }
 
-      const group = foundGroup[0];
-      
-      if (group.banned_members && group.banned_members.includes(user.email)) {
-        toast({ title: "⛔ تم حظرك من هذه المجموعة", variant: "destructive" });
-        return;
-      }
-      
-      if (group.members && group.members.includes(user.email)) {
-        toast({ title: "ℹ️ أنت عضو بالفعل في هذه المجموعة" });
+      if (!result?.success) {
+        const msg = result?.error || "خطأ غير معروف";
+        if (msg === 'محظور') {
+          toast({ title: "⛔ تم حظرك من هذه المجموعة", variant: "destructive" });
+        } else if (msg === 'عضو مسبقاً') {
+          toast({ title: "ℹ️ أنت عضو بالفعل في هذه المجموعة" });
+          setShowJoinModal(false);
+          setJoinCode("");
+        } else {
+          toast({ title: `❌ ${msg}`, variant: "destructive" });
+        }
         return;
       }
 
-      const updatedMembers = [...(group.members || []), user.email];
-      await supabaseClient.entities.Group.update(group.id, { members: updatedMembers });
-      
-      toast({ 
+      toast({
         title: "✅ تم الانضمام للمجموعة بنجاح",
         className: "bg-green-100 text-green-800"
       });
-      
+
       setShowJoinModal(false);
       setJoinCode("");
       loadData();
