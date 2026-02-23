@@ -98,7 +98,7 @@ export default function ManageAudios() {
   };
 
   const loadAudios = async () => {
-    const res = await supabaseClient.entities.audios.list("-created_date", 1000);
+    const res = await supabaseClient.entities.Audio.list("-created_date", 1000);
     setAudios(res);
   };
 
@@ -165,7 +165,7 @@ export default function ManageAudios() {
         const data = await res.json();
 
         if (data.secure_url) {
-          await supabaseClient.entities.audios.create({
+          await supabaseClient.entities.Audio.create({
             url: data.secure_url,
             title: file.name,
             description: "",
@@ -204,7 +204,7 @@ export default function ManageAudios() {
 
   const handleSaveEdit = async () => {
     try {
-      await supabaseClient.entities.audios.update(editingAudio.id, {
+      await supabaseClient.entities.Audio.update(editingAudio.id, {
         title: editingAudio.title,
         description: editingAudio.description,
         category: editingAudio.category,
@@ -222,7 +222,7 @@ export default function ManageAudios() {
   const handleDelete = async (audioId) => {
     if (!confirm("هل أنت متأكد من حذف هذا الملف الصوتي؟")) return;
     try {
-      await supabaseClient.entities.audios.delete(audioId);
+      await supabaseClient.entities.Audio.delete(audioId);
       toast({ title: "✅ تم حذف الملف الصوتي" });
       checkAdminAndLoadAll();
     } catch (error) {

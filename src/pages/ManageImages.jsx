@@ -67,7 +67,7 @@ export default function ManageImages() {
   };
 
   const loadImages = async () => {
-    const res = await supabaseClient.entities.images.list("-created_date", 1000);
+    const res = await supabaseClient.entities.Image.list("-created_date", 1000);
     setImages(res);
   };
 
@@ -175,7 +175,7 @@ export default function ManageImages() {
         const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: "POST", body: formData });
         const data = await res.json();
         if (data.secure_url) {
-          await supabaseClient.entities.images.create({ url: data.secure_url, title: file.name, description: "", file_size: file.size, width: data.width, height: data.height, category });
+          await supabaseClient.entities.Image.create({ url: data.secure_url, title: file.name, description: "", file_size: file.size, width: data.width, height: data.height, category });
         }
       }
       toast({ title: "✅ تم الرفع بنجاح", description: `تم رفع الصور إلى فئة "${category}"`, className: "bg-green-100 text-green-800" });
@@ -193,7 +193,7 @@ export default function ManageImages() {
 
   const handleSaveEdit = async () => {
     try {
-      await supabaseClient.entities.images.update(editingImage.id, { title: editingImage.title, description: editingImage.description, category: editingImage.category, url: editingImage.url });
+      await supabaseClient.entities.Image.update(editingImage.id, { title: editingImage.title, description: editingImage.description, category: editingImage.category, url: editingImage.url });
       toast({ title: "✅ تم تحديث بيانات الصورة" });
       setShowEditDialog(false);
       checkAdminAndLoadAll();
@@ -205,7 +205,7 @@ export default function ManageImages() {
   const handleDelete = async (imageId) => {
     if (!confirm("هل أنت متأكد من حذف هذه الصورة؟")) return;
     try {
-      await supabaseClient.entities.images.delete(imageId);
+      await supabaseClient.entities.Image.delete(imageId);
       toast({ title: "✅ تم حذف الصورة" });
       checkAdminAndLoadAll();
     } catch {
@@ -257,7 +257,7 @@ export default function ManageImages() {
       if (bulkEditData.category) updates.category = bulkEditData.category;
       if (bulkEditData.description) updates.description = bulkEditData.description;
       if (Object.keys(updates).length === 0) return;
-      await Promise.all(Array.from(selectedIds).map(id => supabaseClient.entities.images.update(id, updates)));
+      await Promise.all(Array.from(selectedIds).map(id => supabaseClient.entities.Image.update(id, updates)));
       toast({ title: "✅ تم التعديل الجماعي", description: `تم تحديث ${selectedIds.size} صورة.` });
       setShowBulkEdit(false);
       setSelectedIds(new Set());
@@ -322,7 +322,7 @@ export default function ManageImages() {
         for (const url of candidates) {
           if (url !== img.url && await checkUrlExists(url)) { foundUrl = url; break; }
         }
-        if (foundUrl) { await supabaseClient.entities.images.update(img.id, { url: foundUrl }); updatedCount++; }
+        if (foundUrl) { await supabaseClient.entities.Image.update(img.id, { url: foundUrl }); updatedCount++; }
       }
       toast(updatedCount > 0
         ? { title: "✅ نجاح البحث الذكي", description: `تم العثور على ${updatedCount} صورة وإصلاح روابطها!` }
@@ -350,7 +350,7 @@ export default function ManageImages() {
         const finalPath = cleanPath.replace(/^v\d+\//, '');
         const potentialUrl = `${CLOUD_BASE}${finalPath}${fileName}`;
         if (await checkUrlExists(potentialUrl)) {
-          await supabaseClient.entities.images.update(img.id, { url: potentialUrl });
+          await supabaseClient.entities.Image.update(img.id, { url: potentialUrl });
           fixedCount++;
         }
       }

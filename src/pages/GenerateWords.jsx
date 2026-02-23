@@ -296,7 +296,7 @@ Ensure aya_text is the full ayah text if Level is 'متقدم'.
   const openImageGallery = async (formType) => {
     setSelectedImageFor(formType);
     try {
-      const images = await supabaseClient.entities.images.list("-created_date", 50);
+      const images = await supabaseClient.entities.Image.list("-created_date", 50);
       setGalleryImages(images);
       setShowImageGallery(true);
     } catch (error) {

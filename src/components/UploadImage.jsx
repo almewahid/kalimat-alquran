@@ -48,7 +48,7 @@ export default function UploadImage() {
 
       // 🟢 حفظ الرابط في جدول Base44 (جدول اسمه images)
       try {
-        await supabaseClient.entities.images.create({ url: imageUrl });
+        await supabaseClient.entities.Image.create({ url: imageUrl });
         setSaved(true);
       } catch (dbError) {
         setError("تم رفع الصورة، لكن لم تُحفظ في قاعدة البيانات: " + dbError.message);
