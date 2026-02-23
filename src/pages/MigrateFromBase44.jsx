@@ -51,9 +51,10 @@ export default function MigrateFromBase44() {
       // استيراد الصور
       for (const img of (parsed.images || [])) {
         try {
-          const { data: existing } = await supabase.from("images").select("id").eq("url", img.url).maybeSingle();
+          const { data: existing, error: selErr } = await supabase.from("images").select("id").eq("url", img.url).maybeSingle();
+          if (selErr) throw selErr;
           if (existing) { res.images.skip++; continue; }
-          await supabase.from("images").insert({
+          const { error: insErr } = await supabase.from("images").insert({
             url: img.url || "",
             title: img.title || "",
             description: img.description || "",
@@ -66,16 +67,18 @@ export default function MigrateFromBase44() {
             created_by: img.created_by || img.user_email || "",
             created_date: img.created_date || new Date().toISOString(),
           });
+          if (insErr) throw insErr;
           res.images.success++;
-        } catch { res.images.fail++; }
+        } catch (e) { res.images.fail++; res.images.lastError = e.message; }
       }
 
       // استيراد الصوتيات
       for (const audio of (parsed.audios || [])) {
         try {
-          const { data: existing } = await supabase.from("audios").select("id").eq("url", audio.url).maybeSingle();
+          const { data: existing, error: selErr } = await supabase.from("audios").select("id").eq("url", audio.url).maybeSingle();
+          if (selErr) throw selErr;
           if (existing) { res.audios.skip++; continue; }
-          await supabase.from("audios").insert({
+          const { error: insErr } = await supabase.from("audios").insert({
             url: audio.url || "",
             title: audio.title || "",
             description: audio.description || "",
@@ -86,8 +89,9 @@ export default function MigrateFromBase44() {
             created_by: audio.created_by || audio.user_email || "",
             created_date: audio.created_date || new Date().toISOString(),
           });
+          if (insErr) throw insErr;
           res.audios.success++;
-        } catch { res.audios.fail++; }
+        } catch (e) { res.audios.fail++; res.audios.lastError = e.message; }
       }
 
       setResults(res);
@@ -200,12 +204,19 @@ export default function MigrateFromBase44() {
             {results && (
               <div className="space-y-2 pt-2">
                 {[["الصور", results.images], ["الصوتيات", results.audios]].map(([label, r]) => (
-                  <div key={label} className="flex items-center gap-3 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    <span>{label}:</span>
-                    <Badge className="bg-green-100 text-green-700">{r.success} تم</Badge>
-                    <Badge variant="outline">{r.skip} موجود مسبقاً</Badge>
-                    {r.fail > 0 && <Badge variant="destructive">{r.fail} فشل</Badge>}
+                  <div key={label} className="space-y-1">
+                    <div className="flex items-center gap-3 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      <span>{label}:</span>
+                      <Badge className="bg-green-100 text-green-700">{r.success} تم</Badge>
+                      <Badge variant="outline">{r.skip} موجود مسبقاً</Badge>
+                      {r.fail > 0 && <Badge variant="destructive">{r.fail} فشل</Badge>}
+                    </div>
+                    {r.lastError && (
+                      <p className="text-xs text-red-500 font-mono bg-red-50 p-2 rounded mr-7">
+                        ⚠️ {r.lastError}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
