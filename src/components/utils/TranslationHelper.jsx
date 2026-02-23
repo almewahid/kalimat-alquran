@@ -19,19 +19,22 @@ export default function TranslationHelper() {
 
   const translateText = async () => {
     if (!arabicText.trim()) return;
-    
+
     setIsTranslating(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Translate the following Arabic text to English. Keep the JSON structure intact if it exists. Only translate the Arabic values, not the keys.
-
-Arabic Text:
-${arabicText}
-
-Return ONLY the English translation, maintaining the same format and structure.`,
-      });
-
-      setEnglishText(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
+      // MyMemory API مجاني بدون مفتاح - حد 500 حرف لكل طلب
+      const chunks = arabicText.match(/.{1,500}/gs) || [];
+      const translations = await Promise.all(
+        chunks.map(async (chunk) => {
+          const res = await fetch(
+            `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=ar|en`
+          );
+          const json = await res.json();
+          if (json.responseStatus !== 200) throw new Error(json.responseDetails || "فشل الترجمة");
+          return json.responseData.translatedText;
+        })
+      );
+      setEnglishText(translations.join(""));
     } catch (error) {
       console.error("Translation error:", error);
       alert("خطأ في الترجمة: " + error.message);
