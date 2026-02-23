@@ -64,7 +64,7 @@ export default function Quiz() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+        const user = await supabaseClient.auth.me();
         if (user.preferences) {
           setUserPreferences({
             sound_effects_enabled: user.preferences.sound_effects_enabled !== false,
@@ -119,7 +119,7 @@ export default function Quiz() {
       });
 
       // ✅ إصلاح: destructuring صحيح للـ user (كان user.email = undefined)
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       let [currentProgress] = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
 
       // ✅ إنشاء سجل UserProgress لو لم يكن موجوداً
@@ -193,7 +193,7 @@ export default function Quiz() {
       const { word_id } = pendingAnswerData;
 
       try {
-        const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+        const user = await supabaseClient.auth.me();
         let [flashcard] = await supabaseClient.entities.FlashCard.filter({ word_id, user_email: user.email });
 
         if (!flashcard) {
@@ -294,7 +294,7 @@ export default function Quiz() {
     setQuizMode(mode);
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       
       // قراءة المستوى من user_profiles
       let level = "مبتدئ"; // ✅ القيمة الافتراضية مبتدئ

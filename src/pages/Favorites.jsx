@@ -19,7 +19,7 @@ export default function FavoritesPage() {
   const loadFavorites = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const level = user?.preferences?.learning_level || "متوسط";
       setUserLevel(level);
 
@@ -51,7 +51,7 @@ export default function FavoritesPage() {
 
   const handleRemoveFavorite = async (wordId) => {
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const favoriteRecords = await supabaseClient.entities.FavoriteWord.filter({
         word_id: wordId,
         user_email: user.email

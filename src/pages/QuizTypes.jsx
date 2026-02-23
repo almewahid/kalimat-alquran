@@ -111,7 +111,7 @@ export default function QuizTypes() {
 
   const loadUserLevel = async () => {
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       
       if (user) {
         const { data: profile } = await supabaseClient.supabase

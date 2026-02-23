@@ -47,7 +47,7 @@ export default function SourceQuiz() {
 
   const loadPreviousResults = async () => {
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const results = await supabaseClient.entities.SourceQuiz.filter({
         user_email: user.email,
         completed: true
@@ -73,7 +73,7 @@ export default function SourceQuiz() {
 
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       
       // جلب الكلمات حسب المصدر
       let words = [];
@@ -148,7 +148,7 @@ export default function SourceQuiz() {
 
     // تحديث WordProgress
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const wordId = questions[currentQuestionIndex].word.id;
       
       const [existingProgress] = await supabaseClient.entities.WordProgress.filter({
@@ -210,7 +210,7 @@ export default function SourceQuiz() {
     const scorePercentage = (correctCount / questions.length) * 100;
 
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       await supabaseClient.entities.SourceQuiz.create({
         user_email: user.email,
         source_type: sourceType,

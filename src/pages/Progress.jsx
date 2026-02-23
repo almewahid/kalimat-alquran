@@ -38,7 +38,7 @@ export default function Progress() {
 
   const loadProgressData = async () => {
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       if (!user?.email) {
         console.warn("User email not found");
         setIsLoading(false);

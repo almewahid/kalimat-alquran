@@ -44,7 +44,7 @@ export default function WeeklyReports() {
   const loadWeeklyReport = async () => {
     setIsLoading(true);
     try {
-      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
       const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 6 });

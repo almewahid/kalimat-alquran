@@ -60,7 +60,7 @@ export default function Analytics() {
 
   const checkAdminAndLoadData = async () => {
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       if (user.role !== 'admin') {
         setIsAdmin(false);
         setIsLoading(false);

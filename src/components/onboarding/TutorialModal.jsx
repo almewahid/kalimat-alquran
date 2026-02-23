@@ -94,7 +94,7 @@ export default function TutorialModal({ isOpen, onClose }) {
   const handleFinish = async () => {
     try {
       // حفظ الإعدادات في user_preferences
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       
       if (user) {
         // تحديث user_profiles مع الإعدادات

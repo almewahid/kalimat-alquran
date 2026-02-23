@@ -213,7 +213,7 @@ export default function Settings() {
             });
 
             // حفظ المستوى في جدول user_profiles
-            const { data: { user: authUser } } = await supabaseClient.supabase.auth.getUser();
+            const authUser = await supabaseClient.auth.me();
             if (authUser) {
                 await supabaseClient.supabase
                     .from('user_profiles')

@@ -22,7 +22,7 @@ export default function Dashboard() {
     queryKey: ["dashboardData"],
     queryFn: async () => {
       // 1. جلب المستخدم الحالي
-      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
 
       // 2. جلب بيانات التقدم
       const [progressData] = await supabaseClient.entities.UserProgress.filter({ 

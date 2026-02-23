@@ -29,7 +29,7 @@ export default function CreateCustomChallenge() {
   }, []);
 
   const loadFriends = async () => {
-    const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+    const user = await supabaseClient.auth.me();
     const friendships = await supabaseClient.entities.Friendship.filter({
         user_email: user.email,
         status: "accepted"
@@ -74,7 +74,7 @@ export default function CreateCustomChallenge() {
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
-        const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+        const user = await supabaseClient.auth.me();
         await supabaseClient.entities.PersonalChallenge.create({
             creator_email: user.email,
             title: challengeData.title,

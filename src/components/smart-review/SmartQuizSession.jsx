@@ -154,7 +154,7 @@ export default function SmartQuizSession({ words, onComplete, preferences = { mu
 
       // Save XP to UserProgress
       try {
-          const user = await supabaseClient.supabase.auth.getUser();
+          const user = await supabaseClient.auth.me();
           const [progress] = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
           
           if (progress) {

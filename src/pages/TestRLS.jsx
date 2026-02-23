@@ -14,7 +14,7 @@ export default function TestRLS() {
   const [isRunning, setIsRunning] = useState(false);
 
   const loadUser = async () => {
-    const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+    const currentUser = await supabaseClient.auth.me();
     setUser(currentUser);
     return currentUser;
   };

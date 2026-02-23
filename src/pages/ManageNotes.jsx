@@ -36,7 +36,7 @@ export default function ManageNotes() {
 
   const loadNotes = async () => {
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const [userNotes, allWords] = await Promise.all([
         supabaseClient.entities.UserNote.filter({ user_email: user.email }),
         supabaseClient.entities.QuranicWord.list()

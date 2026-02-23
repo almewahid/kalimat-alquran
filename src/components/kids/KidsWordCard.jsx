@@ -62,7 +62,7 @@ export default function KidsWordCard({ word, onMarkLearned }) {
   const checkFavoriteStatus = async () => {
     if (!word) return;
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const favorites = await supabaseClient.entities.FavoriteWord.filter({
         word_id: word.id,
         user_email: user.email
@@ -77,7 +77,7 @@ export default function KidsWordCard({ word, onMarkLearned }) {
     if (favoriteLoading || !word) return;
     setFavoriteLoading(true);
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const favorites = await supabaseClient.entities.FavoriteWord.filter({
         word_id: word.id,
         user_email: user.email
@@ -100,7 +100,7 @@ export default function KidsWordCard({ word, onMarkLearned }) {
   const loadUserNote = async () => {
     if (!word) return;
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const notes = await supabaseClient.entities.UserNote.filter({
         word_id: word.id,
         user_email: user.email
@@ -119,7 +119,7 @@ export default function KidsWordCard({ word, onMarkLearned }) {
     if (noteLoading || !word) return;
     setNoteLoading(true);
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const notes = await supabaseClient.entities.UserNote.filter({
         word_id: word.id,
         user_email: user.email

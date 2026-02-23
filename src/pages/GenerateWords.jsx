@@ -106,7 +106,7 @@ function GenerateWords() {
 
   const checkAdmin = async () => {
     try {
-      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       setIsAdmin(currentUser.role === 'admin');
     } catch (error) {

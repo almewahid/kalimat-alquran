@@ -19,7 +19,7 @@ export default function Leaderboard() {
 
   const loadLeaderboards = async () => {
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       setCurrentUser(user);
 
       // Global leaderboard (all time)

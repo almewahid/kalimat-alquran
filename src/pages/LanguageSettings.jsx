@@ -60,7 +60,7 @@ export default function LanguageSettings() {
 
   const loadLanguage = async () => {
     try {
-      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       const lang = currentUser?.preferences?.language || "ar";
       setCurrentLanguage(lang);

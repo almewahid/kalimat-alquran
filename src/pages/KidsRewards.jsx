@@ -16,7 +16,7 @@ export default function KidsRewards() {
 
   const loadRewards = async () => {
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       const [userRewards] = await supabaseClient.entities.KidsReward.filter({
         user_email: user.email
       });

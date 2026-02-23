@@ -58,7 +58,7 @@ export default function NotificationManager() {
 
   const loadNotificationSettings = async () => {
     try {
-      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
       if (currentUser.notification_settings) {

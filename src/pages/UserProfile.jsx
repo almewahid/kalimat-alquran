@@ -36,7 +36,7 @@ export default function UserProfile() {
 
   const fetchUserData = async () => {
     try {
-      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
       
       // Initialize form with existing data (custom fields are flattened on user object by Base44 SDK usually, 

@@ -57,7 +57,7 @@ export default function Achievements() {
 
   const loadAchievementsData = async () => {
     try {
-      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
       const [achievements, progressList, gemsList] = await Promise.all([

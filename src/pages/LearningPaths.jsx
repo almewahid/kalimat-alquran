@@ -81,7 +81,7 @@ export default function LearningPaths() {
 
   const loadPathsData = async () => {
     try {
-      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
       let allPaths = await supabaseClient.entities.LearningPath.list();

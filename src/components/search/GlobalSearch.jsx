@@ -44,7 +44,7 @@ export default function GlobalSearch() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const currentUser = await supabaseClient.supabase.auth.getUser();
+        const currentUser = await supabaseClient.auth.me();
         setUser(currentUser);
       } catch (error) {
         console.log("User not logged in:", error);

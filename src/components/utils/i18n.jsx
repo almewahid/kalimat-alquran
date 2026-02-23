@@ -280,7 +280,7 @@ export const useTranslation = () => {
   React.useEffect(() => {
     const loadLanguage = async () => {
       try {
-        const user = await supabaseClient.supabase.auth.getUser();
+        const user = await supabaseClient.auth.me();
         const userLang = user?.preferences?.language || 'ar';
         setLanguage(userLang);
         document.documentElement.lang = userLang;
@@ -310,7 +310,7 @@ export const useTranslation = () => {
     document.documentElement.dir = LANGUAGES[newLang].dir;
     
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       await supabaseClient.auth.updateMe({
         preferences: {
           ...user.preferences,

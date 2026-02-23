@@ -24,7 +24,7 @@ export default function KidsMode() {
 
   const loadData = async () => {
     try {
-      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
       
       if (currentUser) {
         const { data: profile } = await supabaseClient.supabase
@@ -51,7 +51,7 @@ export default function KidsMode() {
 
   const toggleKidsMode = async (enabled) => {
     try {
-      const { data: { user: authUser } } = await supabaseClient.supabase.auth.getUser();
+      const authUser = await supabaseClient.auth.me();
       
       const newPreferences = {
         ...user.preferences,
@@ -94,7 +94,7 @@ export default function KidsMode() {
 
   const saveChildName = async () => {
     try {
-      const { data: { user: authUser } } = await supabaseClient.supabase.auth.getUser();
+      const authUser = await supabaseClient.auth.me();
       
       const newPreferences = {
         ...user.preferences,

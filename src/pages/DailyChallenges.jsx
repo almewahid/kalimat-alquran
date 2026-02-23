@@ -24,7 +24,7 @@ export default function DailyChallenges() {
 
   const loadDailyChallenges = async () => {
     try {
-      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
+      const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
       const todayStr = format(new Date(), 'yyyy-MM-dd');

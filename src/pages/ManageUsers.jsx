@@ -31,7 +31,7 @@ export default function ManageUsers() {
 
   const checkAdminAndLoad = async () => {
     try {
-      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      const user = await supabaseClient.auth.me();
       setIsAdmin(user.role === "admin");
       
       if (user.role === "admin") {
