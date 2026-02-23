@@ -46,7 +46,7 @@ export default function NotificationsPage() { // Changed component name to Notif
 
   const loadNotifications = async () => {
     try {
-      const currentUser = await supabaseClient.supabase.auth.getUser();
+      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
 
       const allDynamicNotifications = await supabaseClient.entities.Notification.filter({

@@ -64,7 +64,7 @@ export default function Quiz() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const user = await supabaseClient.supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.supabase.auth.getUser();
         if (user.preferences) {
           setUserPreferences({
             sound_effects_enabled: user.preferences.sound_effects_enabled !== false,
@@ -193,7 +193,7 @@ export default function Quiz() {
       const { word_id } = pendingAnswerData;
 
       try {
-        const user = await supabaseClient.supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.supabase.auth.getUser();
         let [flashcard] = await supabaseClient.entities.FlashCard.filter({ word_id, user_email: user.email });
 
         if (!flashcard) {

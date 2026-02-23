@@ -30,7 +30,7 @@ export default function PrivacySettings() {
 
   const loadPrivacyData = async () => {
     try {
-      const currentUser = await supabaseClient.supabase.auth.getUser();
+      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
       
       if (currentUser.privacy_settings) {

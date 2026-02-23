@@ -30,7 +30,7 @@ export default function CourseDetail() {
   const fetchCourseDetails = async () => {
     try {
       setLoading(true);
-      const user = await supabaseClient.supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       
       const courseData = await supabaseClient.entities.Course.filter({ id });
       if (!courseData.length) throw new Error("Course not found");
@@ -69,7 +69,7 @@ export default function CourseDetail() {
 
   const handleWordComplete = async (wordId) => {
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       // Initialize if undefined (defensive coding)
       let currentCompleted = [];
       // Note: UserCourseProgress entity in my previous create call didn't have completed_words_ids

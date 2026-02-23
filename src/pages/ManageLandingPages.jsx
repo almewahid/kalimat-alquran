@@ -45,7 +45,7 @@ export default function ManageLandingPages() {
 
   const checkAdminAndLoad = async () => {
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       setIsAdmin(user.role === "admin");
       
       if (user.role === "admin") {

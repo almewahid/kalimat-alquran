@@ -17,7 +17,7 @@ export default function KidsGames() {
 
   const loadWords = async () => {
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       const level = user?.preferences?.learning_level || "مبتدئ";
       
       const allWords = await supabaseClient.entities.QuranicWord.filter({
@@ -39,7 +39,7 @@ export default function KidsGames() {
 
   const handleGameComplete = async (result) => {
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       const { score, stars, moves } = result;
 
       // Update rewards

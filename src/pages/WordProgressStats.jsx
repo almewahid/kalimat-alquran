@@ -24,7 +24,7 @@ export default function WordProgressStats() {
   const loadProgress = async () => {
     setLoading(true);
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       const progress = await supabaseClient.entities.WordProgress.filter({
         user_email: user.email
       });

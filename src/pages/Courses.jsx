@@ -19,7 +19,7 @@ export default function Courses() {
 
   const fetchCourses = async () => {
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       const [allCourses, progressList] = await Promise.all([
         supabaseClient.entities.Course.filter({ is_active: true }, "-created_date"),
         supabaseClient.entities.UserCourseProgress.filter({ user_email: user.email })

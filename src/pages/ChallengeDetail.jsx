@@ -38,7 +38,7 @@ export default function ChallengeDetail() {
 
   const loadChallengeData = async () => {
     try {
-      const currentUser = await supabaseClient.supabase.auth.getUser();
+      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
 
       const challengeData = await supabaseClient.entities.GroupChallenge.filter({ id: challengeId });

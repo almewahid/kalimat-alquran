@@ -194,7 +194,7 @@ export default function SmartReview() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const user = await supabaseClient.supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
       
       // 1. Fetch Flashcards (User's progress)
       const flashcards = await supabaseClient.entities.FlashCard.list();

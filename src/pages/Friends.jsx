@@ -28,7 +28,7 @@ export default function Friends() {
 
   const loadFriendsData = async () => {
     try {
-      const currentUser = await supabaseClient.supabase.auth.getUser();
+      const { data: { user: currentUser } } = await supabaseClient.supabase.auth.getUser();
       setUser(currentUser);
 
       const myFriendships = await supabaseClient.entities.Friendship.filter({
