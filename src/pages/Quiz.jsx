@@ -118,32 +118,43 @@ export default function Quiz() {
         completion_time: totalTime
       });
 
-      const user = await supabaseClient.supabase.auth.getUser();
-      const [currentProgress] = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
+      // ✅ إصلاح: destructuring صحيح للـ user (كان user.email = undefined)
+      const { data: { user } } = await supabaseClient.supabase.auth.getUser();
+      let [currentProgress] = await supabaseClient.entities.UserProgress.filter({ user_email: user.email });
 
-      if (currentProgress) {
-        const newTotalXP = (currentProgress.total_xp || 0) + xpEarned;
-        const previousLevel = currentProgress.current_level || 0;
-        const newLevel = Math.floor(newTotalXP / 100) + 1;
-        const newStreak = correctCount >= questions.length * 0.7 ?
-          (currentProgress.quiz_streak || 0) + 1 : 0;
-
-        await supabaseClient.entities.UserProgress.update(currentProgress.id, {
-          total_xp: newTotalXP,
-          current_level: newLevel,
-          quiz_streak: newStreak,
-          last_quiz_date: new Date().toISOString().split('T')[0],
+      // ✅ إنشاء سجل UserProgress لو لم يكن موجوداً
+      if (!currentProgress) {
+        currentProgress = await supabaseClient.entities.UserProgress.create({
+          user_email: user.email,
+          total_xp: 0,
+          current_level: 1,
+          quiz_streak: 0,
+          words_learned: 0,
+          learned_words: [],
         });
+      }
 
-        // Check for level up and trigger confetti/toast
-        if (newLevel > previousLevel && userPreferences.confetti_enabled) {
-          triggerConfetti('levelUp');
-          toast({
-            title: "تهانينا!",
-            description: `لقد وصلت إلى المستوى ${newLevel}!`,
-            duration: 5000,
-          });
-        }
+      const newTotalXP = (currentProgress.total_xp || 0) + xpEarned;
+      const previousLevel = currentProgress.current_level || 0;
+      const newLevel = Math.floor(newTotalXP / 100) + 1;
+      const newStreak = correctCount >= questions.length * 0.7 ?
+        (currentProgress.quiz_streak || 0) + 1 : 0;
+
+      await supabaseClient.entities.UserProgress.update(currentProgress.id, {
+        total_xp: newTotalXP,
+        current_level: newLevel,
+        quiz_streak: newStreak,
+        last_quiz_date: new Date().toISOString().split('T')[0],
+      });
+
+      // Check for level up and trigger confetti/toast
+      if (newLevel > previousLevel && userPreferences.confetti_enabled) {
+        triggerConfetti('levelUp');
+        toast({
+          title: "تهانينا!",
+          description: `لقد وصلت إلى المستوى ${newLevel}!`,
+          duration: 5000,
+        });
       }
     } catch (error) {
       console.error("Error finishing quiz:", error);
