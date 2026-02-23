@@ -140,12 +140,18 @@ export default function Quiz() {
       const newStreak = correctCount >= questions.length * 0.7 ?
         (currentProgress.quiz_streak || 0) + 1 : 0;
 
-      await supabaseClient.entities.UserProgress.update(currentProgress.id, {
-        total_xp: newTotalXP,
-        current_level: newLevel,
-        quiz_streak: newStreak,
-        last_quiz_date: new Date().toISOString().split('T')[0],
-      });
+      // ✅ update مباشر بدون entity wrapper لتفادي مشكلة عمود updated_date
+      const { error: updateError } = await supabaseClient.supabase
+        .from('user_progress')
+        .update({
+          total_xp: newTotalXP,
+          current_level: newLevel,
+          quiz_streak: newStreak,
+          last_quiz_date: new Date().toISOString().split('T')[0],
+        })
+        .eq('id', currentProgress.id);
+
+      if (updateError) throw updateError;
 
       // Check for level up and trigger confetti/toast
       if (newLevel > previousLevel && userPreferences.confetti_enabled) {
@@ -157,11 +163,12 @@ export default function Quiz() {
         });
       }
     } catch (error) {
-      console.error("Error finishing quiz:", error);
+      console.error("Error finishing quiz:", error?.message || error);
       toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء حفظ النتائج.",
+        title: "خطأ في حفظ النتائج",
+        description: error?.message || "حدث خطأ غير متوقع.",
         variant: "destructive",
+        duration: 7000,
       });
     } finally {
       setIsLoading(false);
