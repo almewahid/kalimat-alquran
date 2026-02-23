@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { supabaseClient } from "@/components/api/supabaseClient";
+import { supabaseClient, supabase } from "@/components/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, Upload, Image as ImageIcon } from "lucide-react";
@@ -33,7 +33,15 @@ export default function UpdateGroupAvatar({ group, isOpen, onClose, onSuccess })
     setUploading(true);
     try {
       // Upload file
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: selectedFile });
+      const fileExt = selectedFile.name.split('.').pop();
+      const filePath = `groups/${group.id}-${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload(filePath, selectedFile, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl: file_url } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(uploadData.path);
 
       // Update group
       await supabaseClient.entities.Group.update(group.id, { avatar_url: file_url });

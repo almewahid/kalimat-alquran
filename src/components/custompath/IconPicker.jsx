@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Upload, Smile } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/components/api/supabaseClient";
 import { useToast } from "@/components/ui/use-toast";
 
 const ICON_EMOJIS = [
@@ -21,8 +21,16 @@ export default function IconPicker({ currentIcon, onSelect, isOpen, onClose }) {
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      onSelect(file_url);
+      const fileExt = file.name.split('.').pop();
+      const filePath = `icons/${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(uploadData.path);
+      onSelect(publicUrl);
       toast({ title: "✅ تم رفع الصورة" });
       onClose();
     } catch (error) {
