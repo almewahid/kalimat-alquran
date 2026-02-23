@@ -131,9 +131,38 @@ export default function MigrateFromBase44() {
       {/* الخطوة 2 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">الخطوة 2 — الصق البيانات هنا</CardTitle>
+          <CardTitle className="text-base">الخطوة 2 — ارفع الملف أو الصق البيانات</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* رفع ملف */}
+          <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-2">ارفع ملف migration_data.json مباشرة</p>
+            <input
+              type="file"
+              accept=".json,application/json"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  const text = ev.target.result;
+                  setJsonText(text);
+                  try {
+                    const data = JSON.parse(text);
+                    if (!data.images && !data.audios) throw new Error("لا توجد حقول images أو audios");
+                    setParsed(data);
+                    setParseError("");
+                  } catch (err) {
+                    setParseError(err.message);
+                    setParsed(null);
+                  }
+                };
+                reader.readAsText(file);
+              }}
+              className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-primary file:text-white hover:file:bg-primary/90 cursor-pointer"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground text-center">— أو —</p>
           <Textarea
             value={jsonText}
             onChange={(e) => { setJsonText(e.target.value); setParsed(null); setParseError(""); }}
