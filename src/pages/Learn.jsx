@@ -26,6 +26,7 @@ export default function Learn() {
   const [originalWords, setOriginalWords] = useState([]); // ✅ حفظ الترتيب الأصلي
   const [currentIndex, setCurrentIndex] = useState(0);
   const [learnedTodayCount, setLearnedTodayCount] = useState(0);
+  const [learnedIndices, setLearnedIndices] = useState(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [flashCardMap, setFlashCardMap] = useState(new Map());
@@ -208,9 +209,10 @@ export default function Learn() {
       }
       
       setWords(sessionWords);
-      setOriginalWords(sessionWords); // ✅ حفظ الترتيب الأصلي
+      setOriginalWords(sessionWords);
       setCurrentIndex(0);
-      setIsShuffled(false); // ✅ إعادة تعيين حالة الخلط
+      setIsShuffled(false);
+      setLearnedIndices(new Set());
       
       console.log('[Learn.js] ✅ تم تحميل البيانات بنجاح');
       
@@ -301,13 +303,19 @@ export default function Learn() {
         }
 
         const updatedCard = updateCardWithSM2(flashcard, 5);
-        
-        // ✅ تحديث FlashCard باستخدام Supabase مباشرة
+
+        // تحديث الأعمدة المعروفة فقط في flash_cards
         const { error: updateCardError } = await supabaseClient.supabase
           .from('flash_cards')
-          .update(updatedCard)
+          .update({
+            efactor: updatedCard.efactor,
+            interval: updatedCard.interval,
+            repetitions: updatedCard.repetitions,
+            next_review: updatedCard.next_review,
+            is_new: false
+          })
           .eq('id', flashcard.id);
-        
+
         if (updateCardError) throw updateCardError;
 
         const xpGained = 10;
@@ -371,8 +379,20 @@ export default function Learn() {
         }
 
         const updatedCard = updateCardWithSM2(flashcard, 5);
-        await supabaseClient.entities.FlashCard.update(flashcard.id, updatedCard);
-        
+
+        const { error: reviewCardError } = await supabaseClient.supabase
+          .from('flash_cards')
+          .update({
+            efactor: updatedCard.efactor,
+            interval: updatedCard.interval,
+            repetitions: updatedCard.repetitions,
+            next_review: updatedCard.next_review,
+            is_new: false
+          })
+          .eq('id', flashcard.id);
+
+        if (reviewCardError) throw reviewCardError;
+
         setFlashCardMap(prevMap => new Map(prevMap).set(flashcard.word_id, updatedCard));
         
         toast({
@@ -392,16 +412,17 @@ export default function Learn() {
       }
     }
     
-    // ✅ الانتقال للكلمة التالية بدلاً من حذف الحالية للحفاظ على الخريطة
+    // سجّل هذا الـ index كمُتعلَّم فعلاً (يظهر الصح)
+    setLearnedIndices(prev => new Set([...prev, currentIndex]));
+
     setTimeout(() => {
       setIsMarkingLearned(false);
       if (currentIndex < words.length - 1) {
         setCurrentIndex(prev => prev + 1);
       } else {
-        // إذا وصلنا لنهاية القائمة، نعيد التحميل
         loadLearningData();
       }
-    }, 600); // تأخير بسيط لرؤية الصح
+    }, 600);
   };
 
 
@@ -527,7 +548,7 @@ export default function Learn() {
             {/* الوسط: العنوان الملوّن */}
             <h1 className="text-2xl md:text-3xl font-black text-center flex-1">
               <span className="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500 bg-clip-text text-transparent">
-                تعلَّ وارتقِ
+                تعلَّم وارتقِ
               </span>
               {" "}
               <span className="inline-block animate-bounce">🌟</span>
@@ -546,10 +567,11 @@ export default function Learn() {
             </div>
           </div>
           
-          <LearningProgress 
+          <LearningProgress
             words={words}
             currentIndex={currentIndex}
             learnedToday={learnedTodayCount}
+            learnedIndices={learnedIndices}
             onReviewWord={setReviewWord}
             isMarkingLearned={isMarkingLearned}
           />

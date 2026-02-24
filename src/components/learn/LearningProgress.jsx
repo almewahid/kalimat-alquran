@@ -4,7 +4,7 @@ import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
-export default function LearningProgress({ words = [], currentIndex = 0, learnedToday = 0, onReviewWord, isMarkingLearned = false }) {
+export default function LearningProgress({ words = [], currentIndex = 0, learnedToday = 0, learnedIndices, onReviewWord, isMarkingLearned = false }) {
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -28,9 +28,9 @@ export default function LearningProgress({ words = [], currentIndex = 0, learned
         <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-card to-transparent z-10 pointer-events-none" />
 
         <ScrollArea className="w-full whitespace-nowrap pb-4" ref={scrollRef} dir="rtl">
-          <div className="flex items-center gap-6 px-4 min-w-full py-4">
+          <div className="flex items-center gap-6 px-4 min-w-full pt-4 pb-12">
             {words.map((word, idx) => {
-              const isCompleted = idx < currentIndex;
+              const isCompleted = learnedIndices ? learnedIndices.has(idx) : idx < currentIndex;
               const isCurrent = idx === currentIndex;
               const showAsChecked = isCompleted || (isCurrent && isMarkingLearned);
               const isLocked = idx > currentIndex;

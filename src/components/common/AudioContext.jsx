@@ -486,17 +486,22 @@ export const AudioProvider = ({ children }) => {
       } else {
         // Finished everything
         setIsPlaying(false);
-        // Auto-hide after short delay to show it finished
+        setError(null);
         setTimeout(() => {
-            setCurrentWord(null);
-            setCurrentType(null);
+          setCurrentWord(null);
+          setCurrentType(null);
         }, 500);
       }
     };
 
     const handleError = () => {
       setIsPlaying(false);
-      setError('⚠️جاري تحميل الصوت...');
+      setError('⚠️ فشل تحميل الصوت');
+      setTimeout(() => {
+        setError(null);
+        setCurrentWord(null);
+        setCurrentType(null);
+      }, 2500);
     };
 
     audio.addEventListener('ended', handleEnded);
