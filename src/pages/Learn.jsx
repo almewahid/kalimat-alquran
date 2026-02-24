@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
 import { getDueCards, updateCardWithSM2 } from "../components/srs/SRSAlgorithm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowRight, ArrowLeft, CheckCircle, Brain, Trophy, Zap, Loader2, RotateCcw, Shuffle, Star } from "lucide-react";
+import { ArrowRight, ArrowLeft, Brain, Loader2, RotateCcw, Shuffle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import WordCard from "../components/learn/WordCard";
@@ -486,7 +485,7 @@ export default function Learn() {
       <div className="p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
-          <p className="text-foreground/70 mt-4">جارٍ تحضير جلسة التعلم...</p>
+          <p className="text-foreground/70 mt-4">لحظة... نُحضّر كلماتك! 🌟</p>
         </div>
       </div>
     );
@@ -499,15 +498,11 @@ export default function Learn() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex-1" />
-            <h1 className="text-3xl md:text-4xl font-bold gradient-text text-center">
-              تعلم ومراجعة
-            </h1>
-            <div className="flex-1 flex justify-end gap-2">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex gap-2">
               {isShuffled ? (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="icon"
                   onClick={restoreOrder}
                   title="إعادة الترتيب الأصلي"
@@ -516,8 +511,8 @@ export default function Learn() {
                   <RotateCcw className="w-5 h-5" />
                 </Button>
               ) : (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="icon"
                   onClick={shuffleWords}
                   title="خلط الكلمات"
@@ -526,23 +521,11 @@ export default function Learn() {
                   <Shuffle className="w-5 h-5" />
                 </Button>
               )}
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={resetSession}
-                title="بدء جلسة جديدة"
-                className="rounded-full"
-              >
-                <RotateCcw className="w-5 h-5" />
-              </Button>
             </div>
-          </div>
-          <p className="text-center text-foreground/70 mb-6 md:mb-8">ابدأ رحلتك في تعلم كلمات القرآن الكريم.</p>
-          
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-sm text-blue-800 dark:text-blue-300 text-center">
-              💡 <strong>ملاحظة:</strong> يمكنك التحكم في ظهور عناصر بطاقة التعلم من خلال: <strong>الإعدادات → عناصر البطاقة → حفظ التغييرات</strong>
-            </p>
+            <h1 className="text-3xl md:text-4xl font-bold gradient-text text-center">
+              تعلَّ وارتقِ 📚
+            </h1>
+            <div className="w-10" />
           </div>
           
           <LearningProgress 
@@ -575,10 +558,10 @@ export default function Learn() {
            <div className="text-center max-w-lg mx-auto mt-12">
             <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
               <Card className="bg-card shadow-md rounded-2xl border border-border p-8 transition-all duration-300 ease-in-out hover:shadow-lg">
-                <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-foreground mb-2">أحسنت صنعًا!</h2>
+                <span className="text-6xl block mx-auto mb-4">🌟</span>
+                <h2 className="text-2xl font-bold text-foreground mb-2">أحسنت! تعلمت كل كلمات اليوم!</h2>
                 <p className="text-foreground/70 mb-6">
-                  لا توجد كلمات جديدة أو مراجعات مستحقة الآن. أنت على اطلاع دائم!
+                  لا توجد كلمات جديدة الآن، تعال غداً لتتعلم المزيد!
                 </p>
                 <Button asChild size="lg" className="bg-primary hover:bg-primary/90 rounded-xl">
                   <Link to={createPageUrl("Quiz")}>
@@ -590,113 +573,50 @@ export default function Learn() {
             </motion.div>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
-            <div className="lg:col-span-2">
-              <AnimatePresence mode="wait">
-                {/* ✅ عرض بطاقة خاصة للمبتدئين */}
-                {userLevel === "مبتدئ" ? (
-                  <KidsWordCard 
-                    key={currentWord?.id || currentIndex}
-                    word={currentWord}
-                    onMarkLearned={handleWordLearned}
-                  />
-                ) : (
-                  <WordCard 
-                    key={currentWord?.id || currentIndex}
-                    word={currentWord}
-                    onMarkLearned={handleWordLearned}
-                    isReviewWord={isReviewWord} 
-                    userLevel={userLevel}
-                  />
-                )}
-              </AnimatePresence>
+          <div className="max-w-2xl mx-auto">
+            <AnimatePresence mode="wait">
+              {userLevel === "مبتدئ" ? (
+                <KidsWordCard
+                  key={currentWord?.id || currentIndex}
+                  word={currentWord}
+                  onMarkLearned={handleWordLearned}
+                />
+              ) : (
+                <WordCard
+                  key={currentWord?.id || currentIndex}
+                  word={currentWord}
+                  onMarkLearned={handleWordLearned}
+                  isReviewWord={isReviewWord}
+                  userLevel={userLevel}
+                />
+              )}
+            </AnimatePresence>
 
-              {/* زر إضافة للمفضلة */}
-              <div className="flex justify-center mt-4">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={markAsDifficult}
-                  className="gap-2 bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-700 dark:bg-amber-900/20 dark:hover:bg-amber-900/30"
-                >
-                  <Star className="w-5 h-5" />
-                  إضافة للمفضلة
-                </Button>
-              </div>
+            <div className="flex justify-between items-center mt-6">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={goToPrevious}
+                disabled={currentIndex === 0}
+                className="h-14 px-6 flex items-center gap-2 rounded-2xl bg-card text-base font-bold"
+              >
+                <ArrowRight className="w-6 h-6" />
+                السابق
+              </Button>
 
-              <div className="flex justify-between items-center mt-6">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={goToPrevious}
-                  disabled={currentIndex === 0}
-                  className="flex items-center gap-2 rounded-xl bg-card"
-                >
-                  <ArrowRight className="w-5 h-5" />
-                  السابق
-                </Button>
-                
-                <div className="text-center">
-                  <p className="text-sm font-medium text-foreground/70">
-                    {currentIndex + 1} / {words.length}
-                  </p>
-                </div>
+              <p className="text-base font-bold text-foreground/70">
+                {currentIndex + 1} / {words.length}
+              </p>
 
-                <Button
-                  size="lg"
-                  onClick={goToNext}
-                  disabled={currentIndex === words.length - 1}
-                  className="flex items-center gap-2 rounded-xl bg-primary text-primary-foreground"
-                >
-                  التالي
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-6 md:space-y-8">
-              <Card className="bg-card shadow-md rounded-2xl border border-border transition-all duration-300 ease-in-out hover:shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-primary font-semibold text-lg flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-primary" />
-                    إنجازات اليوم
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-foreground/80">كلمات جديدة</span>
-                      <Badge className="bg-primary/10 text-primary rounded-md">
-                        {learnedTodayCount}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-foreground/80">نقاط الخبرة</span>
-                      <Badge className="bg-background-soft text-foreground border border-border rounded-md">
-                        +{learnedTodayCount * 10} XP
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card shadow-md rounded-2xl border border-border transition-all duration-300 ease-in-out hover:shadow-lg">
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <Zap className="w-12 h-12 mx-auto mb-3 text-primary" />
-                    <h3 className="text-lg font-bold text-primary mb-2">استمر في التقدم</h3>
-                    <p className="text-foreground/80 text-sm mb-4">
-                      حوّل معرفتك إلى نقاط في قسم الاختبار.
-                    </p>
-                    <Button asChild variant="default" className="w-full rounded-xl">
-                      <Link to={createPageUrl("Quiz")}>
-                        <Brain className="w-4 h-4 ml-2" />
-                        ابدأ الاختبار
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <Button
+                size="lg"
+                onClick={goToNext}
+                disabled={currentIndex === words.length - 1}
+                className="h-14 px-6 flex items-center gap-2 rounded-2xl bg-primary text-primary-foreground text-base font-bold"
+              >
+                التالي
+                <ArrowLeft className="w-6 h-6" />
+              </Button>
             </div>
           </div>
         )}

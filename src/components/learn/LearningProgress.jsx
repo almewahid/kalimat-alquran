@@ -67,8 +67,8 @@ export default function LearningProgress({ words = [], currentIndex = 0, learned
            <Badge variant="outline" className="px-3 py-1.5 h-auto gap-2 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 border-emerald-200 dark:border-emerald-800">
              <Trophy className="w-4 h-4 text-emerald-500" />
              <div className="flex flex-col items-start leading-none">
-               <span className="text-[10px] text-emerald-600/70 font-normal">النقاط</span>
-               <span className="font-bold text-sm">{learnedToday * 10} XP</span>
+               <span className="text-[10px] text-emerald-600/70 font-normal">النجوم</span>
+               <span className="font-bold text-sm">⭐ {learnedToday * 10}</span>
              </div>
            </Badge>
         </div>
@@ -120,7 +120,7 @@ export default function LearningProgress({ words = [], currentIndex = 0, learned
                     ) : isCurrent ? (
                       <Star className="w-7 h-7 fill-current animate-pulse text-indigo-500 dark:text-indigo-400" /> 
                     ) : (
-                      <span className="text-sm font-bold font-mono">{idx + 1}</span>
+                      <span className="text-lg">🔒</span>
                     )}
                   </motion.button>
                   

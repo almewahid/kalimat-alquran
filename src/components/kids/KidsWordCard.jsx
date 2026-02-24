@@ -3,8 +3,7 @@ import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Volume2, CheckCircle, Star, Sparkles, BookOpen, StickyNote, Eye, Loader2, RotateCcw, Heart, Headphones, Play, Pause } from "lucide-react";
+import { Volume2, CheckCircle, BookOpen, Eye, Loader2, RotateCcw, Heart, Headphones, Play, Pause } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAudio } from "@/components/common/AudioContext";
 
@@ -13,10 +12,8 @@ export default function KidsWordCard({ word, onMarkLearned }) {
   const [showMeaning, setShowMeaning] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
-  const [userNote, setUserNote] = useState("");
-  const [showNoteDialog, setShowNoteDialog] = useState(false);
-  const [noteLoading, setNoteLoading] = useState(false);
-  const [starRating, setStarRating] = useState(0);
+  const [isPlayingAudio1, setIsPlayingAudio1] = useState(false);
+  const [isPlayingAudio2, setIsPlayingAudio2] = useState(false);
 
   // ✅ Refs لعناصر الصوت
   const audioRef1 = React.useRef(null);
@@ -24,7 +21,8 @@ export default function KidsWordCard({ word, onMarkLearned }) {
 
   useEffect(() => {
     checkFavoriteStatus();
-    loadUserNote();
+    setIsPlayingAudio1(false);
+    setIsPlayingAudio2(false);
   }, [word?.id]);
 
   // ✅ تسجيل عناصر audio عند التحميل
@@ -44,16 +42,29 @@ export default function KidsWordCard({ word, onMarkLearned }) {
     const audio1 = audioRef1.current;
     const audio2 = audioRef2.current;
 
+    const handleAudio1Ended = () => setIsPlayingAudio1(false);
+    const handleAudio2Ended = () => setIsPlayingAudio2(false);
+    const handleAudio1Pause = () => setIsPlayingAudio1(false);
+    const handleAudio2Pause = () => setIsPlayingAudio2(false);
+
     if (audio1) audio1.addEventListener('play', handleAudio1Play);
     if (audio2) audio2.addEventListener('play', handleAudio2Play);
+    if (audio1) audio1.addEventListener('ended', handleAudio1Ended);
+    if (audio2) audio2.addEventListener('ended', handleAudio2Ended);
+    if (audio1) audio1.addEventListener('pause', handleAudio1Pause);
+    if (audio2) audio2.addEventListener('pause', handleAudio2Pause);
 
     return () => {
       if (audio1) {
         audio1.removeEventListener('play', handleAudio1Play);
+        audio1.removeEventListener('ended', handleAudio1Ended);
+        audio1.removeEventListener('pause', handleAudio1Pause);
         unregisterAudio(audio1);
       }
       if (audio2) {
         audio2.removeEventListener('play', handleAudio2Play);
+        audio2.removeEventListener('ended', handleAudio2Ended);
+        audio2.removeEventListener('pause', handleAudio2Pause);
         unregisterAudio(audio2);
       }
     };
@@ -168,6 +179,28 @@ export default function KidsWordCard({ word, onMarkLearned }) {
     playMeaning(textToSpeak);
   };
 
+  const handleToggleAudio1 = () => {
+    if (!audioRef1.current) return;
+    if (isPlayingAudio1) {
+      audioRef1.current.pause();
+      setIsPlayingAudio1(false);
+    } else {
+      stopAll(audioRef1.current);
+      audioRef1.current.play().then(() => setIsPlayingAudio1(true)).catch(() => {});
+    }
+  };
+
+  const handleToggleAudio2 = () => {
+    if (!audioRef2.current) return;
+    if (isPlayingAudio2) {
+      audioRef2.current.pause();
+      setIsPlayingAudio2(false);
+    } else {
+      stopAll(audioRef2.current);
+      audioRef2.current.play().then(() => setIsPlayingAudio2(true)).catch(() => {});
+    }
+  };
+
   const getYouTubeEmbedUrl = (url) => {
     if (!url) return null;
     let videoId = null;
@@ -204,7 +237,6 @@ export default function KidsWordCard({ word, onMarkLearned }) {
   };
 
   const embedUrl = getYouTubeEmbedUrl(word.youtube_url);
-  const hasNote = userNote && userNote.trim().length > 0;
 
   if (!word) return null;
 
@@ -218,64 +250,29 @@ export default function KidsWordCard({ word, onMarkLearned }) {
       className="relative w-full"
     >
       {/* Toolbar Icons */}
-      <div className="flex justify-between items-center gap-2 mb-3">
-        <div className="flex gap-2">
-          {/* زر الملاحظة */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowNoteDialog(true)}
-            className={hasNote 
-              ? "bg-yellow-300 hover:bg-yellow-400 text-yellow-900 border-2 border-yellow-500 shadow-lg" 
-              : "bg-yellow-100 hover:bg-yellow-200 text-yellow-700 border-2 border-yellow-300"
-            }
-          >
-            <StickyNote className={`w-5 h-5 ${hasNote ? 'fill-current' : ''}`} />
-          </Button>
+      <div className="flex justify-end items-center gap-2 mb-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleFavorite}
+          disabled={favoriteLoading}
+          className={isFavorite ? "bg-red-100 text-red-600 hover:bg-red-200 border-2 border-red-300" : "bg-gray-100 hover:bg-gray-200 border-2 border-gray-300"}
+        >
+          {favoriteLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
+          )}
+        </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleFavorite}
-            disabled={favoriteLoading}
-            className={isFavorite ? "bg-red-100 text-red-600 hover:bg-red-200 border-2 border-red-300" : "bg-gray-100 hover:bg-gray-200 border-2 border-gray-300"}
-          >
-            {favoriteLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
-            )}
-          </Button>
-
-          {/* زر إعادة الإخفاء */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowMeaning(false)}
-            className="bg-purple-100 hover:bg-purple-200 text-purple-700 border-2 border-purple-300"
-          >
-            <RotateCcw className="w-5 h-5" />
-          </Button>
-        </div>
-
-        {/* Star Rating */}
-        <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              onClick={() => setStarRating(star)}
-              className="focus:outline-none"
-            >
-              <Star
-                className={`w-6 h-6 ${
-                  star <= starRating
-                    ? 'fill-yellow-400 text-yellow-400'
-                    : 'text-gray-300'
-                }`}
-              />
-            </button>
-          ))}
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowMeaning(false)}
+          className="bg-purple-100 hover:bg-purple-200 text-purple-700 border-2 border-purple-300"
+        >
+          <RotateCcw className="w-5 h-5" />
+        </Button>
       </div>
 
       <Card className="bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 dark:from-yellow-900/30 dark:via-pink-900/30 dark:to-purple-900/30 border-4 border-primary/30 shadow-2xl rounded-3xl overflow-hidden">
@@ -466,15 +463,22 @@ export default function KidsWordCard({ word, onMarkLearned }) {
                     transition={{ delay: 0.3 }}
                     className="mx-auto mb-4 max-w-md"
                   >
-                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-3 border border-indigo-200 dark:border-indigo-700 flex items-center gap-3 shadow-sm">
-                      <div className="bg-indigo-100 p-2 rounded-full">
-                        <Volume2 className="w-5 h-5 text-indigo-600" />
+                    <audio ref={audioRef1} src={word.audio_url} className="hidden" />
+                    <button
+                      onClick={handleToggleAudio1}
+                      className="w-full bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 border-2 border-indigo-200 dark:border-indigo-700 flex items-center gap-4 shadow-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors"
+                    >
+                      <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-md flex-shrink-0 transition-colors ${isPlayingAudio1 ? 'bg-indigo-500' : 'bg-indigo-100 dark:bg-indigo-800'}`}>
+                        {isPlayingAudio1
+                          ? <Pause className="w-7 h-7 text-white" />
+                          : <Play className="w-7 h-7 text-indigo-600 dark:text-indigo-300" />
+                        }
                       </div>
-                      <div className="flex-1">
-                          <p className="text-indigo-800 dark:text-indigo-200 font-bold text-sm">الشرح بالفصحى</p>
-                          <audio ref={audioRef1} controls className="w-full h-8 mt-1" src={word.audio_url} />
+                      <div className="text-right">
+                        <p className="text-indigo-800 dark:text-indigo-200 font-bold text-base">الشرح بالفصحى</p>
+                        <p className="text-indigo-500 text-xs mt-0.5">{isPlayingAudio1 ? 'جارٍ التشغيل...' : 'اضغط للاستماع 🔊'}</p>
                       </div>
-                    </div>
+                    </button>
                   </motion.div>
                 )}
 
@@ -486,15 +490,22 @@ export default function KidsWordCard({ word, onMarkLearned }) {
                     transition={{ delay: 0.35 }}
                     className="mx-auto mb-4 max-w-md"
                   >
-                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-3 border border-orange-200 dark:border-orange-700 flex items-center gap-3 shadow-sm">
-                       <div className="bg-orange-100 p-2 rounded-full">
-                        <Volume2 className="w-5 h-5 text-orange-600" />
+                    <audio ref={audioRef2} src={word.audio2_url} className="hidden" />
+                    <button
+                      onClick={handleToggleAudio2}
+                      className="w-full bg-orange-50 dark:bg-orange-900/20 rounded-2xl p-4 border-2 border-orange-200 dark:border-orange-700 flex items-center gap-4 shadow-sm hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+                    >
+                      <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-md flex-shrink-0 transition-colors ${isPlayingAudio2 ? 'bg-orange-500' : 'bg-orange-100 dark:bg-orange-800'}`}>
+                        {isPlayingAudio2
+                          ? <Pause className="w-7 h-7 text-white" />
+                          : <Headphones className="w-7 h-7 text-orange-600 dark:text-orange-300" />
+                        }
                       </div>
-                      <div className="flex-1">
-                          <p className="text-orange-800 dark:text-orange-200 font-bold text-sm">الشرح بالعامية</p>
-                          <audio ref={audioRef2} controls className="w-full h-8 mt-1" src={word.audio2_url} />
+                      <div className="text-right">
+                        <p className="text-orange-800 dark:text-orange-200 font-bold text-base">الشرح بالعامية</p>
+                        <p className="text-orange-500 text-xs mt-0.5">{isPlayingAudio2 ? 'جارٍ التشغيل...' : 'اضغط للاستماع 🎧'}</p>
                       </div>
-                    </div>
+                    </button>
                   </motion.div>
                 )}
 
@@ -537,51 +548,6 @@ export default function KidsWordCard({ word, onMarkLearned }) {
         </CardContent>
       </Card>
 
-      {/* Note Dialog */}
-      <AnimatePresence>
-        {showNoteDialog && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="w-full max-w-md"
-            >
-              <Card className="bg-white dark:bg-gray-800">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <StickyNote className="w-6 h-6 text-yellow-600" />
-                    ملاحظتك
-                  </h3>
-                  <Textarea
-                    value={userNote}
-                    onChange={(e) => setUserNote(e.target.value)}
-                    placeholder="اكتب ملاحظتك هنا..."
-                    className="min-h-[120px] mb-4 text-lg p-3"
-                  />
-                  <div className="flex gap-2">
-                    <Button onClick={saveNote} disabled={noteLoading} className="flex-1 py-3 text-lg">
-                      {noteLoading ? <Loader2 className="w-5 h-5 ml-2 animate-spin" /> : "حفظ"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowNoteDialog(false)}
-                      className="flex-1 py-3 text-lg"
-                    >
-                      إلغاء
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
