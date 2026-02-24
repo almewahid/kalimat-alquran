@@ -2,43 +2,49 @@ import React, { useState, useEffect } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
-import { Baby, Trophy, Sparkles, Shield } from "lucide-react";
-import { motion } from "framer-motion";
+import { Trophy, Shield, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
+const ACTIVITIES = [
+  { emoji: "📚", label: "تعلم كلمات",     sub: "كلمات سهلة وممتعة",   route: "Learn",       from: "from-green-400",  to: "to-emerald-500",  border: "border-green-300",  text: "text-green-700",  subText: "text-green-600"  },
+  { emoji: "🎮", label: "ألعاب تعليمية", sub: "العب وتعلم",          route: "KidsGames",   from: "from-pink-400",   to: "to-rose-500",     border: "border-pink-300",   text: "text-pink-700",   subText: "text-pink-600"   },
+  { emoji: "🎯", label: "اختبر نفسك",   sub: "أسئلة سريعة",         route: "Quiz",        from: "from-blue-400",   to: "to-cyan-500",     border: "border-blue-300",   text: "text-blue-700",   subText: "text-blue-600"   },
+  { emoji: "🏆", label: "مكافآتي",       sub: "نجومي وميدالياتي",   route: "KidsRewards", from: "from-amber-400",  to: "to-yellow-500",   border: "border-yellow-300", text: "text-orange-700", subText: "text-orange-600" },
+];
+
 export default function KidsMode() {
   const { toast } = useToast();
-  const [user, setUser] = useState(null);
+  const [user, setUser]                   = useState(null);
   const [kidsModeEnabled, setKidsModeEnabled] = useState(false);
-  const [childName, setChildName] = useState("");
-  const [progress, setProgress] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [childName, setChildName]         = useState("");
+  const [progress, setProgress]           = useState(null);
+  const [isLoading, setIsLoading]         = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
       const currentUser = await supabaseClient.auth.me();
-      
+
       if (currentUser) {
         const { data: profile } = await supabaseClient.supabase
-          .from('user_profiles')
-          .select('preferences, email')
-          .eq('user_id', currentUser.id)
+          .from("user_profiles")
+          .select("preferences, email")
+          .eq("user_id", currentUser.id)
           .single();
-        
+
         setUser({ ...currentUser, preferences: profile?.preferences });
         setKidsModeEnabled(profile?.preferences?.kids_mode_enabled || false);
         setChildName(profile?.preferences?.child_name || "");
 
-        const [userProgress] = await supabaseClient.entities.UserProgress.filter({ 
-          user_email: profile?.email 
+        const [userProgress] = await supabaseClient.entities.UserProgress.filter({
+          user_email: profile?.email
         });
         setProgress(userProgress);
       }
@@ -52,244 +58,236 @@ export default function KidsMode() {
   const toggleKidsMode = async (enabled) => {
     try {
       const authUser = await supabaseClient.auth.me();
-      
+
       const newPreferences = {
         ...user.preferences,
         kids_mode_enabled: enabled,
         learning_level: enabled ? "مبتدئ" : (user.preferences?.learning_level || "متوسط")
       };
 
-      // حفظ في user_profiles
       if (authUser) {
         await supabaseClient.supabase
-          .from('user_profiles')
+          .from("user_profiles")
           .update({ preferences: newPreferences })
-          .eq('user_id', authUser.id);
+          .eq("user_id", authUser.id);
       }
 
-      // حفظ في auth أيضاً
-      await supabaseClient.auth.updateMe({
-        preferences: newPreferences
-      });
+      await supabaseClient.auth.updateMe({ preferences: newPreferences });
 
       setKidsModeEnabled(enabled);
       setUser({ ...user, preferences: newPreferences });
-      
+
       toast({
-        title: enabled ? "🎉 تم تفعيل وضع الأطفال!" : "تم إيقاف وضع الأطفال",
-        description: enabled 
-          ? "الآن التطبيق مناسب للأطفال مع واجهة ملونة وممتعة!"
-          : "تم العودة للوضع العادي",
-        className: "bg-green-100 text-green-800"
+        title:       enabled ? "🎉 تم تفعيل وضع الأطفال!" : "تم إيقاف وضع الأطفال",
+        description: enabled ? "الآن التطبيق مناسب للأطفال مع واجهة ملونة وممتعة!" : "تم العودة للوضع العادي",
+        className:   "bg-green-100 text-green-800"
       });
     } catch (error) {
       console.error("Error toggling kids mode:", error);
-      toast({
-        title: "خطأ",
-        description: "فشل في تحديث الإعدادات",
-        variant: "destructive"
-      });
+      toast({ title: "خطأ", description: "فشل في تحديث الإعدادات", variant: "destructive" });
     }
   };
 
   const saveChildName = async () => {
     try {
       const authUser = await supabaseClient.auth.me();
-      
-      const newPreferences = {
-        ...user.preferences,
-        child_name: childName
-      };
 
-      // حفظ في user_profiles
+      const newPreferences = { ...user.preferences, child_name: childName };
+
       if (authUser) {
         await supabaseClient.supabase
-          .from('user_profiles')
+          .from("user_profiles")
           .update({ preferences: newPreferences })
-          .eq('user_id', authUser.id);
+          .eq("user_id", authUser.id);
       }
 
-      // حفظ في auth أيضاً
-      await supabaseClient.auth.updateMe({
-        preferences: newPreferences
-      });
-
+      await supabaseClient.auth.updateMe({ preferences: newPreferences });
       setUser({ ...user, preferences: newPreferences });
 
-      toast({
-        title: "✅ تم الحفظ!",
-        description: "تم حفظ اسم الطفل",
-        className: "bg-green-100 text-green-800"
-      });
+      toast({ title: "✅ تم الحفظ!", description: "تم حفظ اسم الطفل", className: "bg-green-100 text-green-800" });
     } catch (error) {
       console.error("Error saving child name:", error);
     }
   };
 
   if (isLoading) {
-    return <div className="p-6 text-center">جارٍ التحميل...</div>;
+    return (
+      <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="w-12 h-12 animate-spin text-pink-500" />
+        <p className="text-foreground/60 text-lg">جارٍ التحميل...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+    <div className="p-4 max-w-3xl mx-auto">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+
+        {/* ── الهيدر ── */}
         <div className="text-center mb-8">
-          <Baby className="w-20 h-20 mx-auto mb-4 text-pink-500" />
-          <h1 className="text-4xl font-bold gradient-text mb-2">👶 وضع الأطفال</h1>
-          <p className="text-foreground/70 text-lg">واجهة آمنة وممتعة لتعليم الأطفال</p>
+          <motion.div
+            animate={{ rotate: [0, -8, 8, -8, 0] }}
+            transition={{ duration: 1.5, delay: 0.5, repeat: Infinity, repeatDelay: 4 }}
+            className="text-6xl mb-3"
+          >
+            👶
+          </motion.div>
+          <h1 className="text-3xl font-bold gradient-text mb-1">وضع الأطفال</h1>
+          <p className="text-foreground/60 text-sm">واجهة آمنة وممتعة لتعليم الأطفال</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* Settings Card */}
-          <Card className="bg-gradient-to-br from-yellow-50 to-pink-50 border-yellow-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-yellow-500" />
-                إعدادات وضع الأطفال
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-white rounded-lg">
-                <Label htmlFor="kids-mode" className="text-lg">تفعيل وضع الأطفال</Label>
-                <Switch
-                  id="kids-mode"
-                  checked={kidsModeEnabled}
-                  onCheckedChange={toggleKidsMode}
-                />
-              </div>
+        {/* ── بطاقة تفعيل الوضع (الأكثر أهمية) ── */}
+        <Card className={`overflow-hidden shadow-md mb-5 border-2 transition-all ${kidsModeEnabled ? "border-green-400" : "border-border"}`}>
+          <div className={`h-3 bg-gradient-to-r transition-all ${kidsModeEnabled ? "from-green-400 to-emerald-500" : "from-pink-400 to-rose-500"}`} />
+          <CardContent className="p-5">
 
+            {/* مفتاح التفعيل */}
+            <div className={`flex items-center justify-between p-4 rounded-2xl mb-4 ${kidsModeEnabled ? "bg-green-50 dark:bg-green-950/20" : "bg-muted/40"}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${kidsModeEnabled ? "bg-green-100" : "bg-muted"}`}>
+                  <span className="text-2xl">🛡️</span>
+                </div>
+                <div>
+                  <Label htmlFor="kids-mode" className="text-base font-bold cursor-pointer">
+                    تفعيل وضع الأطفال
+                  </Label>
+                  <p className="text-xs text-foreground/50 mt-0.5">
+                    {kidsModeEnabled ? "الوضع مفعّل ✅" : "الوضع معطّل"}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="kids-mode"
+                checked={kidsModeEnabled}
+                onCheckedChange={toggleKidsMode}
+                className="scale-125"
+              />
+            </div>
+
+            {/* محتوى إضافي عند التفعيل */}
+            <AnimatePresence>
               {kidsModeEnabled && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-3"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4 overflow-hidden"
                 >
+                  {/* حقل اسم الطفل */}
                   <div>
-                    <Label htmlFor="child-name">اسم الطفل</Label>
+                    <Label className="text-sm font-semibold mb-1.5 block">اسم الطفل</Label>
                     <div className="flex gap-2">
-                      <input
-                        id="child-name"
-                        type="text"
+                      <Input
                         value={childName}
                         onChange={(e) => setChildName(e.target.value)}
-                        placeholder="أدخل اسم الطفل"
-                        className="flex-1 px-4 py-2 border-2 border-yellow-200 rounded-lg"
+                        placeholder="أدخل اسم الطفل..."
+                        className="rounded-2xl border-2 border-yellow-200 focus:border-yellow-400"
                       />
-                      <Button onClick={saveChildName} className="bg-yellow-500 hover:bg-yellow-600">
+                      <Button
+                        onClick={saveChildName}
+                        className="rounded-2xl bg-gradient-to-r from-yellow-400 to-orange-400 border-0 text-white font-bold px-5 shadow"
+                      >
                         حفظ
                       </Button>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-                    <div className="flex items-center gap-2 mb-2">
+                  {/* المميزات */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-2xl border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 mb-3">
                       <Shield className="w-5 h-5 text-blue-600" />
-                      <h3 className="font-bold text-blue-800">المميزات الآمنة:</h3>
+                      <h3 className="font-bold text-blue-800 dark:text-blue-300">المميزات الآمنة</h3>
                     </div>
-                    <ul className="text-sm text-blue-700 space-y-1">
-                      <li>✅ واجهة ملونة ومبسطة</li>
-                      <li>✅ كلمات من المستوى المبتدئ فقط</li>
-                      <li>✅ مكافآت بصرية (ستيكرات)</li>
-                      <li>✅ أصوات مشجعة</li>
-                      <li>✅ بدون إعلانات</li>
-                    </ul>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        "واجهة ملونة ومبسطة",
+                        "كلمات من المستوى المبتدئ",
+                        "مكافآت بصرية (ستيكرات)",
+                        "أصوات مشجعة",
+                        "بدون إعلانات",
+                        "محتوى آمن للأطفال",
+                      ].map((item) => (
+                        <div key={item} className="flex items-center gap-1.5 text-sm text-blue-700 dark:text-blue-300">
+                          <span>✅</span>
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}
-            </CardContent>
-          </Card>
+            </AnimatePresence>
+          </CardContent>
+        </Card>
 
-          {/* Progress Card for Parents */}
-          <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-blue-500" />
-                تقرير الوالدين
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white p-4 rounded-lg text-center">
-                  <div className="text-3xl font-bold text-green-600">{progress?.words_learned || 0}</div>
-                  <div className="text-sm text-foreground/70">كلمة محفوظة</div>
-                </div>
-                <div className="bg-white p-4 rounded-lg text-center">
-                  <div className="text-3xl font-bold text-blue-600">{progress?.current_level || 1}</div>
-                  <div className="text-sm text-foreground/70">المستوى</div>
-                </div>
-                <div className="bg-white p-4 rounded-lg text-center">
-                  <div className="text-3xl font-bold text-orange-600">{progress?.quiz_streak || 0}</div>
-                  <div className="text-sm text-foreground/70">سلسلة نجاح</div>
-                </div>
-                <div className="bg-white p-4 rounded-lg text-center">
-                  <div className="text-3xl font-bold text-purple-600">{progress?.total_xp || 0}</div>
-                  <div className="text-sm text-foreground/70">نقطة خبرة</div>
-                </div>
-              </div>
+        {/* ── تقرير الوالدين ── */}
+        <Card className="overflow-hidden shadow-md mb-5 border border-border">
+          <div className="h-3 bg-gradient-to-r from-blue-400 to-purple-500" />
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="w-5 h-5 text-blue-500" />
+              <h2 className="font-bold text-lg">تقرير الوالدين</h2>
+            </div>
 
-              <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
-                <p className="text-sm text-green-700">
-                  💡 <strong>نصيحة:</strong> شجع طفلك على التعلم 10-15 دقيقة يومياً للحصول على أفضل النتائج.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: progress?.words_learned || 0,  label: "📖 كلمة محفوظة",   color: "text-green-600"  },
+                { value: progress?.current_level  || 1, label: "🎓 المستوى",         color: "text-blue-600"   },
+                { value: progress?.quiz_streak    || 0, label: "🔥 سلسلة النجاح",   color: "text-orange-600" },
+                { value: progress?.total_xp       || 0, label: "⭐ النجوم",          color: "text-purple-600" },
+              ].map(({ value, label, color }) => (
+                <div key={label} className="bg-muted/40 p-4 rounded-2xl text-center">
+                  <div className={`text-3xl font-bold ${color}`}>{value}</div>
+                  <div className="text-xs text-foreground/60 mt-1">{label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/20 rounded-2xl border border-green-200 dark:border-green-800">
+              <p className="text-sm text-green-700 dark:text-green-300">
+                💡 <strong>نصيحة:</strong> شجع طفلك على التعلم 10-15 دقيقة يومياً للحصول على أفضل النتائج.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ── الأنشطة الممتعة (تظهر دائماً) ── */}
+        <div>
+          <h2 className="text-xl font-bold mb-4 text-center">
+            {kidsModeEnabled ? "🎮 أنشطة ممتعة" : "🎮 استكشف الأنشطة"}
+          </h2>
+
+          {!kidsModeEnabled && (
+            <p className="text-center text-sm text-foreground/50 mb-4">
+              فعّل وضع الأطفال أعلاه للحصول على تجربة مخصصة
+            </p>
+          )}
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {ACTIVITIES.map((act, i) => (
+              <motion.div
+                key={act.route}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Link to={createPageUrl(act.route)}>
+                  <Card className={`cursor-pointer overflow-hidden border-2 ${act.border} h-full`}>
+                    <div className={`h-2 bg-gradient-to-r ${act.from} ${act.to}`} />
+                    <CardContent className="p-4 text-center">
+                      <div className="text-5xl mb-2">{act.emoji}</div>
+                      <h3 className={`font-bold text-base ${act.text}`}>{act.label}</h3>
+                      <p className={`text-xs mt-1 ${act.subText}`}>{act.sub}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
         </div>
 
-        {/* Activities */}
-        {kidsModeEnabled && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <h2 className="text-2xl font-bold mb-4 text-center">🎮 أنشطة ممتعة</h2>
-            <div className="grid md:grid-cols-4 gap-4">
-              <Link to={createPageUrl("Learn")}>
-                <Card className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer bg-gradient-to-br from-green-100 to-emerald-100 border-green-300">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-6xl mb-3">📚</div>
-                    <h3 className="text-xl font-bold text-green-700">تعلم كلمات</h3>
-                    <p className="text-sm text-green-600 mt-2">كلمات سهلة وممتعة</p>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link to={createPageUrl("KidsGames")}>
-                <Card className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer bg-gradient-to-br from-pink-100 to-rose-100 border-pink-300">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-6xl mb-3">🎮</div>
-                    <h3 className="text-xl font-bold text-pink-700">ألعاب تعليمية</h3>
-                    <p className="text-sm text-pink-600 mt-2">العب وتعلم</p>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link to={createPageUrl("Quiz")}>
-                <Card className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer bg-gradient-to-br from-blue-100 to-cyan-100 border-blue-300">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-6xl mb-3">🎯</div>
-                    <h3 className="text-xl font-bold text-blue-700">اختبر نفسك</h3>
-                    <p className="text-sm text-blue-600 mt-2">أسئلة سريعة</p>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link to={createPageUrl("KidsRewards")}>
-                <Card className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-300">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-6xl mb-3">🏆</div>
-                    <h3 className="text-xl font-bold text-orange-700">مكافآتي</h3>
-                    <p className="text-sm text-orange-600 mt-2">نجومي وميدالياتي</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            </div>
-          </motion.div>
-        )}
       </motion.div>
     </div>
   );
