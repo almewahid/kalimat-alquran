@@ -3,8 +3,9 @@ import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Loader2, AlertCircle, BookOpen } from "lucide-react";
+import { Loader2, AlertCircle, BookOpen, Brain, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 
 import LevelCard from "../components/dashboard/LevelCard";
 import StatsGrid from "../components/dashboard/StatsGrid";
@@ -236,6 +237,35 @@ export default function Dashboard() {
           learnedWordsIds={userProgress.learned_words}
           allWords={data?.allWords || []}
         />
+
+        {/* ⑥ زرّان ثانويان */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Link to="/Quiz">
+              <div className="h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-200 dark:shadow-none">
+                <Brain className="w-5 h-5 text-white" />
+                <span className="text-white text-base font-bold">اختبر نفسك</span>
+              </div>
+            </Link>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <Link to="/Achievements">
+              <div className="h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-purple-200 dark:shadow-none">
+                <Trophy className="w-5 h-5 text-white" />
+                <span className="text-white text-base font-bold">إنجازاتك</span>
+              </div>
+            </Link>
+          </motion.div>
+        </div>
 
         {/* الدليل التعليمي */}
         <TutorialModal

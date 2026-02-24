@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Star } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -16,7 +15,7 @@ export default function RecentWords({ learnedWordsIds, allWords }) {
       return;
     }
 
-    const recentLearnedIds = learnedWordsIds.slice(-6);
+    const recentLearnedIds = learnedWordsIds.slice(-3);
     const filteredRecent = allWords.filter(word => recentLearnedIds.includes(word.id));
     const sortedRecent = filteredRecent
       .sort((a, b) => recentLearnedIds.indexOf(a.id) - recentLearnedIds.indexOf(b.id))
@@ -25,14 +24,6 @@ export default function RecentWords({ learnedWordsIds, allWords }) {
     setRecentWords(sortedRecent);
     setIsLoading(false);
   }, [learnedWordsIds, allWords]);
-
-  const categoryColors = {
-    "أسماء": "bg-blue-100 text-blue-800",
-    "أفعال": "bg-green-100 text-green-800",
-    "صفات": "bg-purple-100 text-purple-800",
-    "حروف": "bg-orange-100 text-orange-800",
-    "أخرى": "bg-gray-100 text-gray-700"
-  };
 
   return (
     <Card className="bg-card shadow-md rounded-2xl border border-border mb-6">
@@ -49,7 +40,7 @@ export default function RecentWords({ learnedWordsIds, allWords }) {
             <p className="text-primary text-sm">لحظة... نُحضّر كلماتك 🌟</p>
           </div>
         ) : recentWords.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {recentWords.map((word, index) => (
               <motion.div
                 key={word.id}
@@ -58,7 +49,6 @@ export default function RecentWords({ learnedWordsIds, allWords }) {
                 transition={{ delay: index * 0.08 }}
                 className="rounded-xl border border-border bg-background-soft overflow-hidden"
               >
-                {/* صورة الكلمة إن وُجدت */}
                 {word.image_url && (
                   <img
                     src={word.image_url}
@@ -70,12 +60,7 @@ export default function RecentWords({ learnedWordsIds, allWords }) {
                   <h3 className="text-xl font-bold text-foreground arabic-font mb-1">
                     {word.word}
                   </h3>
-                  <p className="text-primary text-sm mb-2">{word.meaning}</p>
-                  <Badge
-                    className={`${categoryColors[word.category] || categoryColors["أخرى"]} border-transparent text-xs`}
-                  >
-                    {word.category}
-                  </Badge>
+                  <p className="text-primary text-sm">{word.meaning}</p>
                 </div>
               </motion.div>
             ))}
