@@ -498,8 +498,9 @@ export default function Learn() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between mb-6 gap-2">
+            {/* أقصى اليمين: زر الخلط */}
+            <div className="flex-shrink-0">
               {isShuffled ? (
                 <Button
                   variant="outline"
@@ -522,10 +523,27 @@ export default function Learn() {
                 </Button>
               )}
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold gradient-text text-center">
-              تعلَّ وارتقِ 📚
+
+            {/* الوسط: العنوان الملوّن */}
+            <h1 className="text-2xl md:text-3xl font-black text-center flex-1">
+              <span className="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500 bg-clip-text text-transparent">
+                تعلَّ وارتقِ
+              </span>
+              {" "}
+              <span className="inline-block animate-bounce">🌟</span>
             </h1>
-            <div className="w-10" />
+
+            {/* أقصى اليسار: مربعا الإحصاء */}
+            <div className="flex gap-2 flex-shrink-0">
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl px-3 py-1.5 text-center min-w-[56px]">
+                <p className="text-[10px] text-indigo-500 font-medium leading-none mb-0.5">إنجاز اليوم</p>
+                <p className="text-base font-black text-indigo-700 dark:text-indigo-300 leading-none">+{learnedTodayCount}</p>
+              </div>
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-1.5 text-center min-w-[56px]">
+                <p className="text-[10px] text-emerald-500 font-medium leading-none mb-0.5">النجوم</p>
+                <p className="text-base font-black text-emerald-700 dark:text-emerald-300 leading-none">⭐{learnedTodayCount * 10}</p>
+              </div>
+            </div>
           </div>
           
           <LearningProgress 
