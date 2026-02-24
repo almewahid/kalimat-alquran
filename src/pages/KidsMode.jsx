@@ -12,10 +12,8 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 const ACTIVITIES = [
-  { emoji: "📚", label: "تعلم كلمات",     sub: "كلمات سهلة وممتعة",   route: "Learn",       from: "from-green-400",  to: "to-emerald-500",  border: "border-green-300",  text: "text-green-700",  subText: "text-green-600"  },
-  { emoji: "🎮", label: "ألعاب تعليمية", sub: "العب وتعلم",          route: "KidsGames",   from: "from-pink-400",   to: "to-rose-500",     border: "border-pink-300",   text: "text-pink-700",   subText: "text-pink-600"   },
-  { emoji: "🎯", label: "اختبر نفسك",   sub: "أسئلة سريعة",         route: "Quiz",        from: "from-blue-400",   to: "to-cyan-500",     border: "border-blue-300",   text: "text-blue-700",   subText: "text-blue-600"   },
-  { emoji: "🏆", label: "مكافآتي",       sub: "نجومي وميدالياتي",   route: "KidsRewards", from: "from-amber-400",  to: "to-yellow-500",   border: "border-yellow-300", text: "text-orange-700", subText: "text-orange-600" },
+  { emoji: "🎮", label: "ألعاب تعليمية", sub: "العب وتعلم",        route: "KidsGames",   from: "from-pink-400",  to: "to-rose-500",   border: "border-pink-300",   text: "text-pink-700",   subText: "text-pink-600"   },
+  { emoji: "🏆", label: "مكافآتي",       sub: "نجومي وميدالياتي", route: "KidsRewards", from: "from-amber-400", to: "to-yellow-500", border: "border-yellow-300", text: "text-orange-700", subText: "text-orange-600" },
 ];
 
 export default function KidsMode() {
@@ -263,7 +261,7 @@ export default function KidsMode() {
             </p>
           )}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
             {ACTIVITIES.map((act, i) => (
               <motion.div
                 key={act.route}
