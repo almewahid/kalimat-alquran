@@ -1,0 +1,7 @@
+اعتبر أنك تستخدم Skill:
+"Kids Educational App Dashboard UI Skill"
+
+هذه صفحة Dashboard لتطبيق كلمات القرآن للأطفال:
+https://kalimat-alquran.vercel.app/Dashboard
+
+حلّل الواجهة واقترح تحسينات UI/UX عملية.

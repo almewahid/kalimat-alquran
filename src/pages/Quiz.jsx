@@ -15,7 +15,7 @@ import {
   Play
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 import QuizQuestion from "../components/quiz/QuizQuestion";
@@ -31,6 +31,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 export default function Quiz() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const [quizState, setQuizState] = useState('setup');
   const [questions, setQuestions] = useState([]);
@@ -41,7 +42,7 @@ export default function Quiz() {
   const [hearts, setHearts] = useState(5);
   const [showTasbihModal, setShowTasbihModal] = useState(false);
   const [quizEnded, setQuizEnded] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [quizMode, setQuizMode] = useState('');
   const [userLevel, setUserLevel] = useState(null);
 
@@ -79,6 +80,13 @@ export default function Quiz() {
       }
     };
     loadPreferences();
+  }, []);
+
+  // بدء الاختبار تلقائياً حسب ?mode في الرابط
+  useEffect(() => {
+    const mode = new URLSearchParams(window.location.search).get('mode') || 'all';
+    startQuiz(mode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const playAudioUrl = useCallback((url) => {
@@ -456,45 +464,36 @@ export default function Quiz() {
   };
 
   const restartQuiz = () => {
-    setQuizState('setup');
-    setQuestions([]);
-    setCurrentQuestionIndex(0);
-    setAnswers([]);
-    setQuizMode('');
-    setTimeLeft(quizTimeLimit); // Reset time for potential new quiz setup
+    const mode = new URLSearchParams(window.location.search).get('mode') || quizMode || 'all';
+    startQuiz(mode);
   };
 
   const renderContent = () => {
     switch (quizState) {
       case 'setup':
-        return (
-          <motion.div key="setup" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Card className="bg-card border-border">
-              <CardHeader className="text-center">
-                  <Brain className="w-12 h-12 mx-auto text-primary mb-4" />
-                  <CardTitle className="text-2xl font-bold">اختبار ومراجعة</CardTitle>
-                  <p className="text-foreground/70">اختر نوع الاختبار الذي تريده</p>
-              </CardHeader>
-              <CardContent className="text-center p-6 space-y-4">
-                  <Button onClick={() => startQuiz('review')} disabled={isLoading} size="lg" className="w-full bg-primary text-primary-foreground">
-                      {isLoading ? <Loader2 className="w-5 h-5 ml-2 animate-spin" /> : <><Play className="w-5 h-5 ml-2"/>ابدأ المراجعة</>}
-                  </Button>
-                  <p className="text-sm text-foreground/70">مراجعة الكلمات المستحقة فقط</p>
-
-                  <div className="my-4 border-t border-border"></div>
-
-                  <Button onClick={() => startQuiz('all')} disabled={isLoading} size="lg" variant="outline" className="w-full">
-                      {isLoading ? <Loader2 className="w-5 h-5 ml-2 animate-spin" /> : <><Brain className="w-5 h-5 ml-2"/>ابدأ اختبار عام</>}
-                  </Button>
-                  <p className="text-sm text-foreground/70">اختبار 10 كلمات عشوائية</p>
-
-                  {questions.length === 0 && !isLoading && quizMode === 'review' && (
-                    <p className="text-green-600 mt-4 text-sm">
-                      لا توجد مراجعات مستحقة اليوم. أحسنت!
-                    </p>
-                  )}
-              </CardContent>
-            </Card>
+        return isLoading ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-24 gap-4"
+          >
+            <Loader2 className="w-14 h-14 animate-spin text-primary" />
+            <p className="text-foreground/70 text-lg">جارٍ تحضير الاختبار...</p>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-20 flex flex-col items-center gap-4"
+          >
+            <div className="text-7xl">😔</div>
+            <h2 className="text-xl font-bold">تعذّر بدء الاختبار</h2>
+            <p className="text-foreground/70">يرجى العودة واختيار اختبار آخر</p>
+            <Link to="/QuizTypes">
+              <Button className="bg-primary mt-2">العودة للاختبارات</Button>
+            </Link>
           </motion.div>
         );
 
@@ -543,7 +542,7 @@ export default function Quiz() {
                 </div>
                 <Progress
                   value={((currentQuestionIndex + 1) / questions.length) * 100}
-                  className="h-2 bg-primary/20"
+                  className="h-4 bg-primary/20"
                 />
               </CardContent>
             </Card>
