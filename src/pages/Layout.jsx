@@ -51,7 +51,8 @@ import {
   AlertTriangle,
   LogOut,
   TrendingUp,
-  Smartphone
+  Smartphone,
+  Menu,
 } from "lucide-react";
 import {
   Sidebar,
@@ -139,6 +140,39 @@ const adminItems = [
 ];
 
 const LOGO_URL = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68b74ae8214aa5bfcb70e378/6d983cb3c_.png";
+
+// زر فتح الشريط الجانبي في الموبايل - يعالج ghost click
+function MobileSidebarTrigger({ className }) {
+  const { toggleSidebar } = useSidebar();
+  const touchHandled = React.useRef(false);
+
+  const handleTouchEnd = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    touchHandled.current = true;
+    toggleSidebar();
+  };
+
+  const handleClick = () => {
+    if (touchHandled.current) {
+      touchHandled.current = false;
+      return;
+    }
+    toggleSidebar();
+  };
+
+  return (
+    <button
+      type="button"
+      style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+      className={`p-2 rounded-lg transition-colors duration-200 hover:bg-muted ${className || ""}`}
+      onTouchEnd={handleTouchEnd}
+      onClick={handleClick}
+    >
+      <Menu className="w-5 h-5" />
+    </button>
+  );
+}
 
 // Component صغير يغلق القائمة تلقائياً في الموبايل عند تغيير الصفحة
 function MobileCloser() {
@@ -412,7 +446,7 @@ export default function Layout({ children }) {
               <header className="bg-card/80 backdrop-blur-sm border-b border-border px-6 py-4 md:hidden sticky top-0 z-40">
                 <div className="flex items-center gap-4">
                   <h1 className="text-xl font-bold gradient-text">كلمات القرآن</h1>
-                  <SidebarTrigger className="hover:bg-background-soft p-2 rounded-lg transition-colors duration-200 mr-auto" />
+                  <MobileSidebarTrigger className="mr-auto" />
                 </div>
               </header>
 
