@@ -1,80 +1,40 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BookOpen, Brain, Target, Calendar, Flame } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function StatsGrid({ wordsLearned = 0, totalWords = 0, quizStreak = 0, recentSessions = [], consecutiveLoginDays = 1 }) {
-  const statsData = [
-    {
-      title: "الكلمات المتعلمة",
-      value: wordsLearned || 0,
-      total: totalWords || 0,
-      icon: BookOpen,
-      color: "blue",
-      percentage: totalWords > 0 ? Math.round((wordsLearned / totalWords) * 100) : 0
-    },
-    {
-      title: "أيام متتالية",
-      value: consecutiveLoginDays || 1,
-      icon: Flame,
-      color: "red",
-      streak: true,
-      unit: "أيام"
-    },
-    {
-      title: "سلسلة النجاح",
-      value: quizStreak || 0,
-      icon: Target,
-      color: "purple",
-      streak: true,
-      unit: "اختبارات"
-    },
-    {
-      title: "الاختبارات المكتملة",
-      value: (recentSessions || []).length,
-      icon: Brain,
-      color: "green"
-    }
-  ];
-
-  const colorClasses = {
-    blue: "text-blue-500",
-    red: "text-red-500",
-    purple: "text-purple-500",
-    green: "text-green-500",
-  };
-
+export default function StatsGrid({ wordsLearned = 0, consecutiveLoginDays = 1 }) {
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {statsData.map((stat, index) => (
-        <motion.div
-          key={stat.title}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.05 }}
-        >
-          <Card className="bg-card border-border shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-foreground/80">{stat.title}</CardTitle>
-              <stat.icon className={`w-5 h-5 ${colorClasses[stat.color]}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{stat.value}</div>
-              {stat.percentage !== undefined && (
-                <p className="text-xs text-foreground/70 mt-1">
-                  {stat.percentage}% من إجمالي الكلمات
-                </p>
-              )}
-              {stat.streak && (
-                <p className="text-xs text-foreground/70 mt-1">
-                  {stat.unit} متتالية
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      ))}
+    <div className="grid grid-cols-2 gap-4 mb-6">
+      {/* أيام السلسلة */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="rounded-2xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-4 flex flex-col items-center justify-center text-center"
+      >
+        <span className="text-4xl mb-1">🔥</span>
+        <span className="text-4xl font-black text-orange-500 leading-none">
+          {consecutiveLoginDays}
+        </span>
+        <span className="text-sm font-semibold text-orange-600 dark:text-orange-400 mt-1">
+          {consecutiveLoginDays === 1 ? "يوم متتالي" : "أيام متتالية"}
+        </span>
+      </motion.div>
+
+      {/* الكلمات المتعلمة */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="rounded-2xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 flex flex-col items-center justify-center text-center"
+      >
+        <span className="text-4xl mb-1">⭐</span>
+        <span className="text-4xl font-black text-yellow-500 leading-none">
+          {wordsLearned}
+        </span>
+        <span className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 mt-1">
+          {wordsLearned === 1 ? "كلمة تعلّمتها" : "كلمة تعلّمتها"}
+        </span>
+      </motion.div>
     </div>
   );
 }

@@ -11,7 +11,6 @@ import StatsGrid from "../components/dashboard/StatsGrid";
 import RecentWords from "../components/dashboard/RecentWords";
 import QuickActions from "../components/dashboard/QuickActions";
 import TutorialModal from "../components/onboarding/TutorialModal";
-import GlobalSearch from "../components/search/GlobalSearch";
 
 const createPageUrl = (pageName) => `/${pageName}`;
 
@@ -25,8 +24,8 @@ export default function Dashboard() {
       const currentUser = await supabaseClient.auth.me();
 
       // 2. جلب بيانات التقدم
-      const [progressData] = await supabaseClient.entities.UserProgress.filter({ 
-        user_email: currentUser.email 
+      const [progressData] = await supabaseClient.entities.UserProgress.filter({
+        user_email: currentUser.email
       });
 
       let finalProgress = progressData;
@@ -53,8 +52,8 @@ export default function Dashboard() {
           yesterday.setDate(yesterday.getDate() - 1);
           const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-          const newConsecutiveDays = lastLogin === yesterdayStr 
-            ? (progressData.consecutive_login_days || 0) + 1 
+          const newConsecutiveDays = lastLogin === yesterdayStr
+            ? (progressData.consecutive_login_days || 0) + 1
             : 1;
 
           await supabaseClient.entities.UserProgress.update(progressData.id, {
@@ -71,27 +70,27 @@ export default function Dashboard() {
         supabaseClient.entities.QuizSession.filter({ user_email: currentUser.email })
       ]);
 
-      // 5 إصلاح مشكلة الكلمات المتعلمة (تصفية UUIDs الصحيحة فقط)
+      // 5. إصلاح مشكلة الكلمات المتعلمة (تصفية UUIDs الصحيحة فقط)
       const learnedWordIds = (finalProgress?.learned_words || [])
-        .filter(id => id && id.length === 36); // ✅ فقط UUIDs (36 حرف)
-      
+        .filter(id => id && id.length === 36);
+
       const learned = learnedWordIds
-        .slice(-6) // ✅ آخر 6 IDs بالترتيب الزمني
+        .slice(-6)
         .map(id => allWords.find(word => String(word.id) === String(id)))
         .filter(Boolean)
-        .reverse(); // عكس الترتيب لإظهار الأحدث أولاً
+        .reverse();
 
-      // 5. ترتيب الاختبارات
-      const sortedQuizzes = quizSessions.sort((a, b) => 
+      // 6. ترتيب الاختبارات
+      const sortedQuizzes = quizSessions.sort((a, b) =>
         new Date(b.created_date) - new Date(a.created_date)
       ).slice(0, 3);
 
-      // 6. حساب نقاط اليوم
+      // 7. حساب نقاط اليوم
       const today = new Date().toISOString().split('T')[0];
       const todayQuizzes = quizSessions.filter(q => q.created_date.startsWith(today));
       const todayXP = todayQuizzes.reduce((sum, q) => sum + (q.xp_earned || 0), 0);
 
-      // 7. جلب الاسم
+      // 8. جلب الاسم
       const { data: profile } = await supabaseClient.supabase
         .from('user_profiles')
         .select('full_name')
@@ -102,17 +101,17 @@ export default function Dashboard() {
 
       return {
         user: currentUser,
-        userName: userName,
+        userName,
         userProgress: finalProgress,
         learnedWords: learned,
-        allWords: allWords, // ✅ إضافة جميع الكلمات
+        allWords,
         recentQuizzes: sortedQuizzes,
         dailyXPEarned: todayXP
       };
     }
   });
 
-  // التحقق من التتوريال (Tutorial)
+  // التحقق من التتوريال
   useEffect(() => {
     const checkTutorial = async () => {
       if (data?.user && data?.userProgress) {
@@ -121,9 +120,8 @@ export default function Dashboard() {
           .select('preferences')
           .eq('user_id', data.user.id)
           .single();
-        
+
         const hasSeenTutorial = profile?.preferences?.tutorial_completed;
-        
         if (!hasSeenTutorial && data.userProgress.words_learned === 0) {
           setShowTutorial(true);
         }
@@ -132,7 +130,7 @@ export default function Dashboard() {
     checkTutorial();
   }, [data]);
 
-  const { user, userName, userProgress, learnedWords, recentQuizzes, dailyXPEarned } = data || {};
+  const { userName, userProgress, dailyXPEarned } = data || {};
 
   // حساب التقدم نحو المستوى التالي
   const currentLevelXP = userProgress?.total_xp || 0;
@@ -148,7 +146,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-foreground/70 text-lg">جارٍ تحميل لوحة التحكم...</p>
+          <p className="text-foreground/70 text-lg">لحظة... نُحضّر مغامرتك! 🌟</p>
         </div>
       </div>
     );
@@ -161,16 +159,14 @@ export default function Dashboard() {
           <CardContent className="p-8 text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-red-700 dark:text-red-400 mb-2">
-              خطأ في تحميل البيانات
+              حدث خطأ ما
             </h2>
             <p className="text-red-600 dark:text-red-300 mb-6">
               {error.message || "حدث خطأ غير متوقع"}
             </p>
-            <div className="space-y-3">
-              <Button onClick={refetch} className="w-full">
-                إعادة المحاولة
-              </Button>
-            </div>
+            <Button onClick={refetch} className="w-full">
+              حاول مرة أخرى
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -184,16 +180,12 @@ export default function Dashboard() {
           <CardContent className="p-8 text-center">
             <BookOpen className="w-16 h-16 text-primary mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-primary mb-2">
-              مرحباً بك في كلمات القرآن! 🌟
+              مرحباً في كلمات القرآن! 🌟
             </h2>
             <p className="text-foreground/70 mb-6">
               ابدأ رحلتك في تعلم معاني القرآن الكريم
             </p>
-            <Button 
-              onClick={refetch}
-              size="lg"
-              className="bg-primary text-primary-foreground"
-            >
+            <Button onClick={refetch} size="lg" className="bg-primary text-primary-foreground">
               ابدأ الآن
             </Button>
           </CardContent>
@@ -202,29 +194,35 @@ export default function Dashboard() {
     );
   }
 
+  const firstName = userName?.split(' ')[0] || 'صديقي';
+
   return (
-    <div className="p-4 md:p-6 w-full">
+    <div className="p-4 md:p-6 w-full max-w-2xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
       >
-        {/* رسالة ترحيبية */}
-        <div className="mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">
-            مرحباً، {userName?.split(' ')[0] || 'صديقي'} 👋
+        {/* ① رسالة الترحيب */}
+        <div className="mb-5">
+          <h1 className="text-3xl md:text-4xl font-black text-foreground mb-1">
+            السلام عليكم يا {firstName}! 👋
           </h1>
-          <p className="text-foreground/70 text-lg">
-            استمر في رحلتك لتعلم كلمات القرآن الكريم
+          <p className="text-foreground/60 text-base">
+            استمر في رحلتك اليوم
           </p>
         </div>
 
-        {/* شريط البحث الشامل */}
-        <div className="mb-8">
-          <GlobalSearch />
-        </div>
+        {/* ② شريط الحماس: أيام السلسلة + الكلمات */}
+        <StatsGrid
+          wordsLearned={userProgress.words_learned || 0}
+          consecutiveLoginDays={userProgress.consecutive_login_days || 1}
+        />
 
-        {/* بطاقة المستوى */}
+        {/* ③ CTA الرئيسي + الزرّان الثانويان */}
+        <QuickActions wordsLearned={userProgress.words_learned || 0} />
+
+        {/* ④ بطاقة المستوى */}
         <LevelCard
           level={currentLevel}
           xp={currentLevelXP}
@@ -233,28 +231,18 @@ export default function Dashboard() {
           dailyXP={dailyXPEarned}
         />
 
-        {/* الإحصائيات */}
-        <StatsGrid
-          wordsLearned={userProgress.words_learned || 0}
-          quizStreak={userProgress.quiz_streak || 0}
-          consecutiveLoginDays={userProgress.consecutive_login_days || 1}
-          recentSessions={recentQuizzes}
+        {/* ⑤ آخر الكلمات المتعلمة */}
+        <RecentWords
+          learnedWordsIds={userProgress.learned_words}
+          allWords={data?.allWords || []}
         />
-
-        {/* الكلمات الأخيرة */}
-        <RecentWords learnedWordsIds={userProgress.learned_words} allWords={data?.allWords || []} />
-
-        {/* الإجراءات السريعة */}
-        <QuickActions />
 
         {/* الدليل التعليمي */}
         <TutorialModal
           isOpen={showTutorial}
           onClose={async (settings) => {
             setShowTutorial(false);
-            if (settings) {
-              refetch();
-            }
+            if (settings) refetch();
           }}
         />
       </motion.div>

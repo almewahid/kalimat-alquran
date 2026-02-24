@@ -1,16 +1,13 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Trophy, Star, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function LevelCard({ level, xp, progress, dailyXP }) {
-  // Use passed props or fallbacks
   const currentLevel = level || 1;
   const totalXP = xp || 0;
   const progressPercentage = progress || 0;
-  
+
   const nextLevelXP = currentLevel * 100;
   const currentLevelXP = (currentLevel - 1) * 100;
   const xpInLevel = totalXP - currentLevelXP;
@@ -20,41 +17,42 @@ export default function LevelCard({ level, xp, progress, dailyXP }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="mb-8"
+      className="mb-6"
     >
-      <Card className="bg-card shadow-md rounded-2xl border border-border transition-all duration-300 ease-in-out hover:shadow-lg">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <Card className="bg-card shadow-md rounded-2xl border border-border">
+        <CardContent className="p-5">
+          {/* رأس البطاقة */}
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-primary" />
-              </div>
+              <span className="text-5xl leading-none">🏆</span>
               <div>
-                <CardTitle className="text-primary font-semibold text-2xl">المستوى {currentLevel}</CardTitle>
-                <p className="text-foreground/70">إجمالي النقاط: {totalXP}</p>
+                <p className="text-sm text-foreground/60 font-medium">مستواك الآن</p>
+                <p className="text-5xl font-black text-primary leading-none">
+                  {currentLevel}
+                </p>
               </div>
             </div>
+
             {dailyXP > 0 && (
-              <Badge variant="outline" className="bg-background-soft text-foreground border border-border">
-                <Zap className="w-4 h-4 ml-1 text-primary" />
-                +{dailyXP} اليوم
-              </Badge>
+              <div className="flex flex-col items-center bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl px-3 py-2">
+                <span className="text-lg">⚡</span>
+                <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">
+                  +{dailyXP} اليوم
+                </span>
+              </div>
             )}
           </div>
-        </CardHeader>
-        <CardContent className="pt-0 p-6">
+
+          {/* شريط التقدم */}
           <div className="space-y-2">
-            <div className="flex justify-between text-sm text-foreground/80">
-              <span>التقدم للمستوى التالي</span>
-              <span>{Math.round(progressPercentage)}%</span>
-            </div>
-            <Progress 
-              value={progressPercentage} 
-              className="h-3"
-            />
-            <div className="flex justify-between text-xs text-foreground/70">
-              <span>{xpInLevel} نقطة</span>
-              <span>{remainingXP} نقطة متبقية</span>
+            <Progress value={progressPercentage} className="h-4 rounded-full" />
+            <div className="flex justify-between text-sm">
+              <span className="text-foreground/70">
+                نجومك ⭐ {xpInLevel}
+              </span>
+              <span className="font-semibold text-primary">
+                اكسب {remainingXP} نجمة للمستوى التالي
+              </span>
             </div>
           </div>
         </CardContent>
