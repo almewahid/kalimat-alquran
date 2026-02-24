@@ -4,43 +4,121 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShoppingBag, Gem, Crown, Sparkles, Check, Lock, Loader2 } from "lucide-react";
+import { ShoppingBag, Gem, Crown, Sparkles, Check, Lock, Loader2, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 
-/**
- * 🛍️ صفحة المتجر (Shop)
- * 
- * 📍 أين تظهر: من القائمة الجانبية → "المتجر"
- * 🕐 متى تظهر: دائماً متاحة
- * 👥 لمن: جميع المستخدمين المسجلين
- * 💡 الفكرة: شراء ثيمات، خلفيات، إطارات، قوى خاصة بالجواهر المكتسبة
- */
-
 const SHOP_ITEMS = {
   themes: [
-    { id: "theme_ocean", name: "المحيط الأزرق", price: 100, icon: "🌊", preview: "bg-blue-500" },
-    { id: "theme_sunset", name: "غروب الشمس", price: 120, icon: "🌅", preview: "bg-orange-500" },
-    { id: "theme_forest", name: "الغابة الخضراء", price: 100, icon: "🌲", preview: "bg-green-600" },
-    { id: "theme_galaxy", name: "المجرة البنفسجية", price: 150, icon: "🌌", preview: "bg-purple-600" },
+    { id: "theme_ocean",  name: "المحيط الأزرق",      price: 100, icon: "🌊", preview: "from-blue-400 to-cyan-500"    },
+    { id: "theme_sunset", name: "غروب الشمس",          price: 120, icon: "🌅", preview: "from-orange-400 to-pink-500"  },
+    { id: "theme_forest", name: "الغابة الخضراء",      price: 100, icon: "🌲", preview: "from-green-500 to-emerald-600"},
+    { id: "theme_galaxy", name: "المجرة البنفسجية",    price: 150, icon: "🌌", preview: "from-purple-600 to-indigo-700"},
   ],
   backgrounds: [
-    { id: "bg_stars", name: "نجوم لامعة", price: 50, icon: "⭐", preview: "#1a1a2e" },
-    { id: "bg_clouds", name: "سحب بيضاء", price: 40, icon: "☁️", preview: "#f0f8ff" },
-    { id: "bg_gradient", name: "تدرج ملون", price: 60, icon: "🎨", preview: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" },
+    { id: "bg_stars",    name: "نجوم لامعة",   price: 50,  icon: "⭐", preview: "from-slate-800 to-indigo-900" },
+    { id: "bg_clouds",   name: "سحب بيضاء",    price: 40,  icon: "☁️", preview: "from-sky-200 to-blue-100"    },
+    { id: "bg_gradient", name: "تدرج ملون",     price: 60,  icon: "🎨", preview: "from-violet-500 to-purple-700"},
   ],
   frames: [
-    { id: "frame_gold", name: "إطار ذهبي", price: 200, icon: "👑", rarity: "legendary" },
-    { id: "frame_silver", name: "إطار فضي", price: 150, icon: "🥈", rarity: "epic" },
-    { id: "frame_bronze", name: "إطار برونزي", price: 100, icon: "🥉", rarity: "rare" },
+    { id: "frame_gold",   name: "إطار ذهبي",   price: 200, icon: "👑", rarity: "legendary" },
+    { id: "frame_silver", name: "إطار فضي",    price: 150, icon: "🥈", rarity: "epic"      },
+    { id: "frame_bronze", name: "إطار برونزي", price: 100, icon: "🥉", rarity: "rare"      },
   ],
   powerups: [
-    { id: "powerup_double_xp", name: "مضاعفة XP - ساعة", price: 75, icon: "⚡", duration: "1 hour" },
-    { id: "powerup_freeze_time", name: "تجميد الوقت - 10 أسئلة", price: 50, icon: "⏰", uses: 10 },
-    { id: "powerup_hint", name: "تلميح ذكي - 5 استخدامات", price: 60, icon: "💡", uses: 5 },
-  ]
+    { id: "powerup_double_xp",    name: "مضاعفة النقاط",        price: 75, icon: "⚡", detail: "لمدة ساعة كاملة"         },
+    { id: "powerup_freeze_time",  name: "تجميد الوقت",          price: 50, icon: "⏰", detail: "10 أسئلة"                },
+    { id: "powerup_hint",         name: "تلميح ذكي",            price: 60, icon: "💡", detail: "5 استخدامات"             },
+  ],
 };
 
+const CATEGORY_CONFIG = {
+  themes:      { bar: "from-blue-500 to-cyan-500",    icon: "from-blue-500 to-cyan-500",    label: "🎨 الثيمات"   },
+  backgrounds: { bar: "from-orange-500 to-amber-500", icon: "from-orange-500 to-amber-500", label: "🌅 الخلفيات"  },
+  frames:      { bar: "from-amber-500 to-yellow-500", icon: "from-amber-500 to-yellow-500", label: "👑 الإطارات"  },
+  powerups:    { bar: "from-red-500 to-pink-500",     icon: "from-red-500 to-pink-500",     label: "⚡ القوى"     },
+};
+
+const RARITY_CONFIG = {
+  legendary: { bg: "bg-amber-50 dark:bg-amber-950/20", text: "text-amber-700 dark:text-amber-400", label: "🌟 أسطوري" },
+  epic:      { bg: "bg-purple-50 dark:bg-purple-950/20",text: "text-purple-700 dark:text-purple-400",label: "💎 ملحمي" },
+  rare:      { bg: "bg-blue-50 dark:bg-blue-950/20",   text: "text-blue-700 dark:text-blue-400",   label: "⭐ نادر"   },
+};
+
+// ── مكوّن بطاقة العنصر ──────────────────────────────────────────────────────
+function ShopItemCard({ item, category, purchased, affordable, userGems, onPurchase, index }) {
+  const cfg = CATEGORY_CONFIG[category];
+  const rarityConf = item.rarity ? RARITY_CONFIG[item.rarity] : null;
+  const needed = item.price - (userGems?.current_gems || 0);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.07 }}
+      whileHover={{ scale: 1.02 }}
+    >
+      <Card className={`overflow-hidden shadow-md hover:shadow-xl transition-all min-h-[200px] ${purchased ? "border-2 border-green-400" : ""}`}>
+        <div className={`h-4 bg-gradient-to-r ${purchased ? "from-green-500 to-emerald-500" : cfg.bar}`} />
+
+        <CardContent className="p-5">
+          {/* الأيقونة + الاسم */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${purchased ? "from-green-500 to-emerald-500" : cfg.icon} flex items-center justify-center shadow-lg flex-shrink-0`}>
+              <span className="text-2xl">{purchased ? "✅" : item.icon}</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-base">{item.name}</h3>
+              {rarityConf && (
+                <Badge className={`text-xs border-0 mt-1 ${rarityConf.bg} ${rarityConf.text}`}>
+                  {rarityConf.label}
+                </Badge>
+              )}
+              {item.detail && (
+                <p className="text-xs text-foreground/60 mt-0.5">{item.detail}</p>
+              )}
+            </div>
+          </div>
+
+          {/* معاينة الثيم / الخلفية */}
+          {item.preview && (
+            <div className={`w-full h-12 rounded-xl mb-4 bg-gradient-to-r ${item.preview}`} />
+          )}
+
+          {/* السعر + زر الشراء */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-1.5">
+              <Gem className="w-4 h-4 text-amber-600" />
+              <span className="font-bold text-amber-700 dark:text-amber-400">{item.price}</span>
+            </div>
+
+            {purchased ? (
+              <Button size="sm" variant="outline" disabled className="rounded-xl gap-1 border-green-400 text-green-600">
+                <Check className="w-4 h-4" /> مشترى
+              </Button>
+            ) : affordable ? (
+              <Button
+                size="sm"
+                onClick={() => onPurchase(item, category.replace(/s$/, ""))}
+                className={`bg-gradient-to-r ${cfg.bar} hover:opacity-90 text-white border-0 rounded-xl`}
+              >
+                شراء 🛍️
+              </Button>
+            ) : (
+              <div className="text-right">
+                <p className="text-xs text-red-500 font-medium">
+                  💎 تحتاج {needed} أكثر
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// ── الصفحة الرئيسية ────────────────────────────────────────────────────────
 export default function Shop() {
   const { toast } = useToast();
   const [user, setUser] = useState(null);
@@ -57,20 +135,23 @@ export default function Shop() {
       const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
-      let [gems] = await supabaseClient.entities.UserGems.filter({ user_email: currentUser.email });
+      let [gems] = await supabaseClient.entities.UserGems.filter({
+        user_email: currentUser.email,
+      });
       if (!gems) {
         gems = await supabaseClient.entities.UserGems.create({
           user_email: currentUser.email,
           total_gems: 0,
           current_gems: 0,
-          gems_spent: 0
+          gems_spent: 0,
         });
       }
       setUserGems(gems);
 
-      const userPurchases = await supabaseClient.entities.UserPurchase.filter({ user_email: currentUser.email });
+      const userPurchases = await supabaseClient.entities.UserPurchase.filter({
+        user_email: currentUser.email,
+      });
       setPurchases(userPurchases);
-
     } catch (error) {
       console.error("Error loading shop data:", error);
     } finally {
@@ -78,32 +159,22 @@ export default function Shop() {
     }
   };
 
-  const isPurchased = (itemId) => {
-    return purchases.some(p => p.item_id === itemId);
-  };
-
-  const canAfford = (price) => {
-    return userGems && userGems.current_gems >= price;
-  };
+  const isPurchased = (itemId) => purchases.some((p) => p.item_id === itemId);
+  const canAfford = (price) => userGems && userGems.current_gems >= price;
 
   const handlePurchase = async (item, itemType) => {
     if (isPurchased(item.id)) {
-      toast({
-        title: "ℹ️ تملكه بالفعل",
-        description: "لديك هذا العنصر بالفعل",
-      });
+      toast({ title: "ℹ️ تملكه بالفعل" });
       return;
     }
-
     if (!canAfford(item.price)) {
       toast({
-        title: "❌ جواهر غير كافية",
-        description: `تحتاج ${item.price} جوهرة، لديك ${userGems.current_gems}`,
-        variant: "destructive"
+        title: "💎 جواهر غير كافية",
+        description: `تحتاج ${item.price - userGems.current_gems} جوهرة إضافية`,
+        variant: "destructive",
       });
       return;
     }
-
     try {
       await supabaseClient.entities.UserPurchase.create({
         user_email: user.email,
@@ -111,326 +182,99 @@ export default function Shop() {
         item_id: item.id,
         item_name: item.name,
         price_gems: item.price,
-        is_active: true
+        is_active: true,
       });
-
-      const newGemsCount = userGems.current_gems - item.price;
-      const newGemsSpent = userGems.gems_spent + item.price;
-      
       await supabaseClient.entities.UserGems.update(userGems.id, {
-        current_gems: newGemsCount,
-        gems_spent: newGemsSpent
+        current_gems: userGems.current_gems - item.price,
+        gems_spent: (userGems.gems_spent || 0) + item.price,
       });
-
       toast({
         title: "🎉 تم الشراء!",
         description: `اشتريت ${item.name} بنجاح!`,
-        className: "bg-green-100 text-green-800"
+        className: "bg-green-100 text-green-800",
       });
-
       loadShopData();
-
     } catch (error) {
       console.error("Error purchasing item:", error);
-      toast({
-        title: "❌ فشل الشراء",
-        description: "حدث خطأ، حاول مرة أخرى",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const getRarityColor = (rarity) => {
-    switch (rarity) {
-      case "legendary": return "bg-amber-100 text-amber-700 border-amber-300";
-      case "epic": return "bg-purple-100 text-purple-700 border-purple-300";
-      case "rare": return "bg-blue-100 text-blue-700 border-blue-300";
-      default: return "bg-gray-100 text-gray-700 border-gray-300";
+      toast({ title: "❌ فشل الشراء", variant: "destructive" });
     }
   };
 
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="w-12 h-12 animate-spin text-amber-500" />
+        <p className="text-foreground/60">جارٍ تحميل المتجر...</p>
       </div>
     );
   }
 
+  const tabCategories = ["themes", "backgrounds", "frames", "powerups"];
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold gradient-text mb-2">🛍️ المتجر</h1>
-            <p className="text-foreground/70">اشترِ عناصر رائعة بالجواهر التي كسبتها</p>
+
+        {/* ── الهيدر ── */}
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <ShoppingBag className="w-10 h-10 text-white" />
           </div>
-          <Card className="bg-gradient-to-r from-amber-100 to-amber-200 border-2 border-amber-300">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Gem className="w-8 h-8 text-amber-600" />
-              <div>
-                <p className="text-sm text-amber-700">جواهرك</p>
-                <p className="text-2xl font-bold text-amber-900">{userGems?.current_gems || 0}</p>
+          <h1 className="text-4xl font-bold gradient-text mb-2">المتجر</h1>
+          <p className="text-foreground/70">اشترِ عناصر رائعة بالجواهر التي كسبتها</p>
+        </div>
+
+        {/* ── رصيد الجواهر ── */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          <Card className="overflow-hidden shadow-md max-w-xs mx-auto">
+            <div className="h-4 bg-gradient-to-r from-amber-500 to-yellow-500" />
+            <CardContent className="p-4 flex items-center justify-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center shadow-lg">
+                <Gem className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-center">
+                <p className="text-3xl font-bold text-amber-600">
+                  {userGems?.current_gems || 0}
+                </p>
+                <p className="text-sm text-foreground/60">جواهرك الحالية 💎</p>
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
+        {/* ── التبويبات ── */}
         <Tabs defaultValue="themes" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="themes">
-              <Sparkles className="w-4 h-4 ml-2" />
-              الثيمات
-            </TabsTrigger>
-            <TabsTrigger value="backgrounds">
-              <ShoppingBag className="w-4 h-4 ml-2" />
-              الخلفيات
-            </TabsTrigger>
-            <TabsTrigger value="frames">
-              <Crown className="w-4 h-4 ml-2" />
-              الإطارات
-            </TabsTrigger>
-            <TabsTrigger value="powerups">
-              ⚡
-              القوى
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            {tabCategories.map((cat) => (
+              <TabsTrigger key={cat} value={cat}>
+                {CATEGORY_CONFIG[cat].label}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
-          <TabsContent value="themes" className="mt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {SHOP_ITEMS.themes.map((item) => {
-              const purchased = isPurchased(item.id);
-              const affordable = canAfford(item.price);
-
-              return (
-                <motion.div
-                  key={item.id}
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Card className={`${purchased ? 'border-2 border-primary' : ''} hover:shadow-lg transition-all`}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-4xl">{item.icon}</span>
-                          <CardTitle className="text-lg">{item.name}</CardTitle>
-                        </div>
-                        {purchased && (
-                          <Check className="w-5 h-5 text-primary" />
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className={`w-full h-20 rounded-lg mb-4 ${item.preview}`}></div>
-                      <div className="flex items-center justify-between">
-                        <Badge className="bg-amber-100 text-amber-700 flex items-center gap-1">
-                          <Gem className="w-3 h-3" />
-                          {item.price}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          onClick={() => handlePurchase(item, 'theme')}
-                          disabled={purchased || !affordable}
-                          variant={purchased ? "outline" : "default"}
-                        >
-                          {purchased ? (
-                            <>
-                              <Check className="w-4 h-4 ml-2" />
-                              مشترى
-                            </>
-                          ) : !affordable ? (
-                            <>
-                              <Lock className="w-4 h-4 ml-2" />
-                              مقفل
-                            </>
-                          ) : (
-                            "شراء"
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </TabsContent>
-
-          <TabsContent value="backgrounds" className="mt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {SHOP_ITEMS.backgrounds.map((item) => {
-              const purchased = isPurchased(item.id);
-              const affordable = canAfford(item.price);
-
-              return (
-                <motion.div
-                  key={item.id}
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Card className={`${purchased ? 'border-2 border-primary' : ''} hover:shadow-lg transition-all`}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-4xl">{item.icon}</span>
-                          <CardTitle className="text-lg">{item.name}</CardTitle>
-                        </div>
-                        {purchased && (
-                          <Check className="w-5 h-5 text-primary" />
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div 
-                        className="w-full h-20 rounded-lg mb-4" 
-                        style={{ background: item.preview }}
-                      ></div>
-                      <div className="flex items-center justify-between">
-                        <Badge className="bg-amber-100 text-amber-700 flex items-center gap-1">
-                          <Gem className="w-3 h-3" />
-                          {item.price}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          onClick={() => handlePurchase(item, 'background')}
-                          disabled={purchased || !affordable}
-                          variant={purchased ? "outline" : "default"}
-                        >
-                          {purchased ? (
-                            <>
-                              <Check className="w-4 h-4 ml-2" />
-                              مشترى
-                            </>
-                          ) : !affordable ? (
-                            <>
-                              <Lock className="w-4 h-4 ml-2" />
-                              مقفل
-                            </>
-                          ) : (
-                            "شراء"
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </TabsContent>
-
-          <TabsContent value="frames" className="mt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {SHOP_ITEMS.frames.map((item) => {
-              const purchased = isPurchased(item.id);
-              const affordable = canAfford(item.price);
-
-              return (
-                <motion.div
-                  key={item.id}
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Card className={`${purchased ? 'border-2 border-primary' : ''} hover:shadow-lg transition-all`}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-4xl">{item.icon}</span>
-                          <div>
-                            <CardTitle className="text-lg">{item.name}</CardTitle>
-                            {item.rarity && (
-                              <Badge className={`text-xs mt-1 ${getRarityColor(item.rarity)}`}>
-                                {item.rarity === 'legendary' && '🌟 أسطوري'}
-                                {item.rarity === 'epic' && '⚡ ملحمي'}
-                                {item.rarity === 'rare' && '💎 نادر'}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        {purchased && (
-                          <Check className="w-5 h-5 text-primary" />
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <Badge className="bg-amber-100 text-amber-700 flex items-center gap-1">
-                          <Gem className="w-3 h-3" />
-                          {item.price}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          onClick={() => handlePurchase(item, 'frame')}
-                          disabled={purchased || !affordable}
-                          variant={purchased ? "outline" : "default"}
-                        >
-                          {purchased ? (
-                            <>
-                              <Check className="w-4 h-4 ml-2" />
-                              مشترى
-                            </>
-                          ) : !affordable ? (
-                            <>
-                              <Lock className="w-4 h-4 ml-2" />
-                              مقفل
-                            </>
-                          ) : (
-                            "شراء"
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </TabsContent>
-
-          <TabsContent value="powerups" className="mt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {SHOP_ITEMS.powerups.map((item) => {
-              const purchased = isPurchased(item.id);
-              const affordable = canAfford(item.price);
-
-              return (
-                <motion.div
-                  key={item.id}
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Card className="hover:shadow-lg transition-all">
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <span className="text-4xl">{item.icon}</span>
-                        <div>
-                          <CardTitle className="text-lg">{item.name}</CardTitle>
-                          <p className="text-xs text-foreground/70 mt-1">
-                            {item.duration || `${item.uses} استخدامات`}
-                          </p>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <Badge className="bg-amber-100 text-amber-700 flex items-center gap-1">
-                          <Gem className="w-3 h-3" />
-                          {item.price}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          onClick={() => handlePurchase(item, 'powerup')}
-                          disabled={!affordable}
-                        >
-                          {!affordable ? (
-                            <>
-                              <Lock className="w-4 h-4 ml-2" />
-                              مقفل
-                            </>
-                          ) : (
-                            "شراء"
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </TabsContent>
+          {tabCategories.map((category) => (
+            <TabsContent key={category} value={category}>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {SHOP_ITEMS[category].map((item, index) => (
+                  <ShopItemCard
+                    key={item.id}
+                    item={item}
+                    category={category}
+                    purchased={isPurchased(item.id)}
+                    affordable={canAfford(item.price)}
+                    userGems={userGems}
+                    onPurchase={handlePurchase}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+          ))}
         </Tabs>
       </motion.div>
     </div>

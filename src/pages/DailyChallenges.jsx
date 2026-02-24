@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Trophy, Target, Users, Loader2, Calendar, CheckCircle, Clock } from "lucide-react";
+import { Trophy, Target, Loader2, Calendar, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+
+const TYPE_CONFIG = {
+  learn_words:     { bar: "from-green-500 to-emerald-500",  bg: "bg-green-50 dark:bg-green-950/20",  icon: "📚" },
+  quiz_score:      { bar: "from-blue-500 to-indigo-500",    bg: "bg-blue-50 dark:bg-blue-950/20",    icon: "🎯" },
+  streak_maintain: { bar: "from-red-500 to-orange-500",     bg: "bg-red-50 dark:bg-red-950/20",      icon: "🔥" },
+  time_challenge:  { bar: "from-purple-500 to-pink-500",    bg: "bg-purple-50 dark:bg-purple-950/20",icon: "⏱️" },
+  default:         { bar: "from-amber-500 to-yellow-500",   bg: "bg-amber-50 dark:bg-amber-950/20",  icon: "🏆" },
+};
+
+const getType = (type) => TYPE_CONFIG[type] || TYPE_CONFIG.default;
 
 export default function DailyChallenges() {
   const { toast } = useToast();
@@ -27,10 +35,10 @@ export default function DailyChallenges() {
       const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
 
-      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const todayStr = format(new Date(), "yyyy-MM-dd");
 
       let challenges = await supabaseClient.entities.DailyChallenge.filter({
-        challenge_date: todayStr
+        challenge_date: todayStr,
       });
 
       if (challenges.length === 0) {
@@ -42,7 +50,7 @@ export default function DailyChallenges() {
             challenge_type: "learn_words",
             goal_value: 10,
             reward_xp: 50,
-            reward_gems: 10
+            reward_gems: 10,
           },
           {
             challenge_date: todayStr,
@@ -51,7 +59,7 @@ export default function DailyChallenges() {
             challenge_type: "quiz_score",
             goal_value: 90,
             reward_xp: 75,
-            reward_gems: 15
+            reward_gems: 15,
           },
           {
             challenge_date: todayStr,
@@ -60,8 +68,8 @@ export default function DailyChallenges() {
             challenge_type: "streak_maintain",
             goal_value: 1,
             reward_xp: 30,
-            reward_gems: 5
-          }
+            reward_gems: 5,
+          },
         ];
 
         for (const challenge of defaultChallenges) {
@@ -69,18 +77,16 @@ export default function DailyChallenges() {
         }
 
         challenges = await supabaseClient.entities.DailyChallenge.filter({
-          challenge_date: todayStr
+          challenge_date: todayStr,
         });
       }
 
       setTodayChallenges(challenges);
 
       const progressList = await supabaseClient.entities.DailyChallengeProgress.filter({
-        user_email: currentUser.email
+        user_email: currentUser.email,
       });
-
       setUserProgress(progressList);
-
     } catch (error) {
       console.error("Error loading daily challenges:", error);
     } finally {
@@ -88,9 +94,8 @@ export default function DailyChallenges() {
     }
   };
 
-  const getChallengeProgress = (challengeId) => {
-    return userProgress.find(p => p.challenge_id === challengeId);
-  };
+  const getChallengeProgress = (challengeId) =>
+    userProgress.find((p) => p.challenge_id === challengeId);
 
   const getProgressPercentage = (challenge) => {
     const progress = getChallengeProgress(challenge.id);
@@ -98,53 +103,91 @@ export default function DailyChallenges() {
     return Math.min(100, Math.round((progress.progress_value / challenge.goal_value) * 100));
   };
 
-  const isCompleted = (challengeId) => {
-    const progress = getChallengeProgress(challengeId);
-    return progress?.completed || false;
-  };
-
-  const getChallengeIcon = (type) => {
-    switch (type) {
-      case "learn_words": return "📚";
-      case "quiz_score": return "🎯";
-      case "streak_maintain": return "🔥";
-      case "time_challenge": return "⏱️";
-      default: return "🏆";
-    }
-  };
+  const isCompleted = (challengeId) =>
+    getChallengeProgress(challengeId)?.completed || false;
 
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="w-12 h-12 animate-spin text-orange-500" />
+        <p className="text-foreground/60">جارٍ تحميل التحديات...</p>
       </div>
     );
   }
 
+  const completedCount = todayChallenges.filter((c) => isCompleted(c.id)).length;
+  const totalCount = todayChallenges.length;
+  const allDone = completedCount === totalCount && totalCount > 0;
+
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-3xl mx-auto">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+
+        {/* ── الهيدر ── */}
         <div className="text-center mb-8">
-          <Calendar className="w-16 h-16 text-primary mx-auto mb-4" />
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Calendar className="w-10 h-10 text-white" />
+          </div>
           <h1 className="text-4xl font-bold gradient-text mb-2">التحديات اليومية</h1>
           <p className="text-foreground/70">
-            {format(new Date(), 'EEEE، d MMMM yyyy', { locale: ar })}
+            {format(new Date(), "EEEE، d MMMM yyyy", { locale: ar })}
           </p>
         </div>
 
         {todayChallenges.length === 0 ? (
-          <Alert>
-            <AlertDescription>
-              لا توجد تحديات لهذا اليوم. تحقق لاحقاً!
-            </AlertDescription>
-          </Alert>
+          <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+            <div className="text-6xl">🌙</div>
+            <p className="text-foreground/70 font-medium text-lg">لا توجد تحديات اليوم</p>
+            <p className="text-sm text-foreground/50">تعال غداً لتجد تحديات جديدة!</p>
+          </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-5">
+
+            {/* ── ملخص التقدم اليومي ── */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Card className={`overflow-hidden shadow-md ${allDone ? "border-2 border-green-400" : ""}`}>
+                <div className={`h-4 bg-gradient-to-r ${allDone ? "from-green-500 to-emerald-500" : "from-orange-500 to-red-500"}`} />
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${allDone ? "bg-gradient-to-br from-green-500 to-emerald-500" : "bg-gradient-to-br from-orange-500 to-red-500"}`}>
+                        {allDone
+                          ? <CheckCircle className="w-5 h-5 text-white" />
+                          : <Trophy className="w-5 h-5 text-white" />
+                        }
+                      </div>
+                      <div>
+                        <p className="font-bold text-foreground">
+                          {allDone ? "🎉 أحسنت! أكملت كل التحديات!" : "تقدمك اليوم"}
+                        </p>
+                        <p className="text-sm text-foreground/60">
+                          {completedCount} / {totalCount} تحديات مكتملة
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-bold text-primary">
+                      {Math.round((completedCount / totalCount) * 100)}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={(completedCount / totalCount) * 100}
+                    className="h-3"
+                  />
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* ── بطاقات التحديات ── */}
             <AnimatePresence>
               {todayChallenges.map((challenge, index) => {
                 const completed = isCompleted(challenge.id);
                 const progressPercent = getProgressPercentage(challenge);
                 const progress = getChallengeProgress(challenge.id);
+                const cfg = getType(challenge.challenge_type);
 
                 return (
                   <motion.div
@@ -153,54 +196,61 @@ export default function DailyChallenges() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Card className={`bg-card shadow-md ${completed ? 'border-2 border-green-500' : ''}`}>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
+                    <Card className={`overflow-hidden shadow-md transition-all ${completed ? "border-2 border-green-400" : ""}`}>
+                      <div className={`h-4 bg-gradient-to-r ${completed ? "from-green-500 to-emerald-500" : cfg.bar}`} />
+
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-3">
-                            <div className="text-5xl">{getChallengeIcon(challenge.challenge_type)}</div>
+                            <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${completed ? "from-green-500 to-emerald-500" : cfg.bar} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                              <span className="text-2xl">
+                                {completed ? "✅" : cfg.icon}
+                              </span>
+                            </div>
                             <div>
-                              <CardTitle className="text-xl">{challenge.challenge_title}</CardTitle>
-                              <p className="text-sm text-foreground/70 mt-1">{challenge.challenge_description}</p>
+                              <h3 className="font-bold text-lg text-foreground">
+                                {challenge.challenge_title}
+                              </h3>
+                              <p className="text-sm text-foreground/60">
+                                {challenge.challenge_description}
+                              </p>
                             </div>
                           </div>
-                          {completed && (
-                            <CheckCircle className="w-8 h-8 text-green-500" />
-                          )}
                         </div>
-                      </CardHeader>
 
-                      <CardContent className="space-y-4">
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline" className="gap-1">
+                        {/* المكافآت */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border-0 gap-1">
+                            <Trophy className="w-3 h-3" />
+                            {challenge.reward_xp} ⭐ نقطة
+                          </Badge>
+                          <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400 border-0">
+                            💎 {challenge.reward_gems} جوهرة
+                          </Badge>
+                          <Badge variant="outline" className="gap-1 text-xs">
                             <Target className="w-3 h-3" />
                             الهدف: {challenge.goal_value}
                           </Badge>
-                          <Badge className="bg-amber-100 text-amber-700 gap-1">
-                            <Trophy className="w-3 h-3" />
-                            {challenge.reward_xp} XP
-                          </Badge>
-                          <Badge className="bg-purple-100 text-purple-700">
-                            💎 {challenge.reward_gems}
-                          </Badge>
                         </div>
 
-                        {!completed && (
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>التقدم</span>
-                              <span>{progress?.progress_value || 0} / {challenge.goal_value}</span>
-                            </div>
-                            <Progress value={progressPercent} />
+                        {/* التقدم أو الإنجاز */}
+                        {completed ? (
+                          <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-xl p-3 flex items-center gap-3">
+                            <span className="text-2xl">🎉</span>
+                            <p className="font-bold text-green-700 dark:text-green-400">
+                              تم إكمال التحدي!
+                            </p>
                           </div>
-                        )}
-
-                        {completed && (
-                          <Alert className="bg-green-50 border-green-200">
-                            <AlertDescription className="text-green-800 flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4" />
-                              <span>تم إكمال التحدي! 🎉</span>
-                            </AlertDescription>
-                          </Alert>
+                        ) : (
+                          <div className={`${cfg.bg} rounded-xl p-3`}>
+                            <div className="flex justify-between text-sm text-foreground/70 mb-2">
+                              <span>التقدم</span>
+                              <span className="font-medium">
+                                {progress?.progress_value || 0} / {challenge.goal_value}
+                              </span>
+                            </div>
+                            <Progress value={progressPercent} className="h-3" />
+                          </div>
                         )}
                       </CardContent>
                     </Card>
@@ -209,28 +259,10 @@ export default function DailyChallenges() {
               })}
             </AnimatePresence>
 
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="p-6">
-                <h3 className="font-bold mb-3 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  ملاحظة مهمة
-                </h3>
-                <ul className="text-sm space-y-2 text-foreground/80">
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary">•</span>
-                    <span>تتجدد التحديات اليومية كل 24 ساعة في منتصف الليل</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary">•</span>
-                    <span>يتم منح المكافآت فوراً عند إكمال التحدي</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary">•</span>
-                    <span>يتم تحديث التقدم تلقائياً أثناء استخدامك للتطبيق</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+            {/* ملاحظة صغيرة في الأسفل */}
+            <p className="text-center text-xs text-foreground/40 pt-2">
+              🔄 تتجدد التحديات كل يوم · المكافآت تُمنح فوراً عند الإكمال
+            </p>
           </div>
         )}
       </motion.div>
