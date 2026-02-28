@@ -6,7 +6,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+deepseek-aider
+gemini2-aider.ps1
+gemini-aider.ps1
 node_modules
 dist
 dist-ssr
