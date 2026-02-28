@@ -9,6 +9,7 @@ import { Mail, Lock, Loader2 } from 'lucide-react';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -16,6 +17,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const { user, isLoading } = useAuth(); // استخراج user و isLoading من AuthContext
+
+  // معالجة إعادة التوجيه بعد أن يقوم AuthContext بتحميل المستخدم بالكامل
+  useEffect(() => {
+    // إعادة التوجيه فقط إذا كان المستخدم موجودًا ولم يعد AuthContext في حالة تحميل
+    if (user && !isLoading) {
+      window.location.href = '/Dashboard';
+    }
+  }, [user, isLoading]); // إعادة تشغيل التأثير عند تغيير user أو isLoading
 
   // ✅ استماع لـ Deep Links عند العودة من Google
   useEffect(() => {
@@ -71,8 +81,6 @@ export default function Login() {
               } catch (profileError) {
                 console.error('Profile Error:', profileError);
               }
-
-              window.location.href = '/Dashboard';
             }
           }
         }
@@ -135,8 +143,6 @@ export default function Login() {
             gems_spent: 0,
             current_gems: 0,
           });
-
-          window.location.href = '/Dashboard';
         }
       } else {
         const { data, error } = await supabaseClient.supabase.auth.signInWithPassword({
@@ -146,7 +152,6 @@ export default function Login() {
 
         if (error) throw error;
         if (data.user) await trackAppVersion(data.user);
-        window.location.href = '/Dashboard';
       }
     } catch (err) {
       setError(err.message || 'حدث خطأ، حاول مرة أخرى');
