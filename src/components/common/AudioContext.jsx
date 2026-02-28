@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { supabaseClient } from "@/components/api/supabaseClient";
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
+import { Capacitor } from '@capacitor/core';
 
 const AudioContext = createContext();
 
@@ -64,6 +65,9 @@ export const AudioProvider = ({ children }) => {
   
   // ✅ مرجع لحفظ عناصر audio الخارجية (الفصحى/العامية)
   const externalAudiosRef = useRef(new Set());
+  
+  // ✅ علامة لتجاهل أخطاء الصوت الناتجة عن إيقاف متعمد (src = '')
+  const intentionalStopRef = useRef(false);
 
   // ✅ 1. تلاوة الآية (مع حالة تحميل)
   const playAyah = useCallback(async (surahNumber, ayahNumber, wordData) => {
@@ -99,38 +103,21 @@ export const AudioProvider = ({ children }) => {
         try {
           audioRef.current.src = sources[i];
           audioRef.current.volume = volume;
-          
-          // انتظار تحميل البيانات الكافية للتشغيل
-          await new Promise((resolve, reject) => {
-            const handleCanPlay = () => {
-              audioRef.current.removeEventListener('canplay', handleCanPlay);
-              audioRef.current.removeEventListener('error', handleError);
-              resolve();
-            };
-            
-            const handleError = (e) => {
-              audioRef.current.removeEventListener('canplay', handleCanPlay);
-              audioRef.current.removeEventListener('error', handleError);
-              reject(e);
-            };
-            
-            audioRef.current.addEventListener('canplay', handleCanPlay, { once: true });
-            audioRef.current.addEventListener('error', handleError, { once: true });
-            audioRef.current.load();
-          });
-          
+          // play() يتولى التحميل والتشغيل بنفسه — أكثر موثوقية على الموبايل
           await audioRef.current.play();
-          
+
           setIsPlaying(true);
           setCurrentWord(wordData);
           setCurrentType('ayah');
-          setError(null); // إزالة رسالة التحميل
-          
+          setError(null);
+
           console.log(`[AudioContext] ✅ Playing from source ${i + 1}`);
           played = true;
           break;
         } catch (err) {
           console.warn(`[AudioContext] ⚠️ Source ${i + 1} failed:`, err.message);
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
         }
       }
 
@@ -312,48 +299,52 @@ export const AudioProvider = ({ children }) => {
   // ✅ 3. TTS للمعنى - يعمل على الموبايل والكمبيوتر
   const playMeaning = useCallback(async (meaningText) => {
     console.log('[AudioContext/TTS] Starting playMeaning');
-    
+
     setPlaylist([]);
     setIsPlaying(true);
     setCurrentType('meaning');
     setError(null);
 
-    try {
-      // ✅ استخدام Capacitor TTS (يعمل على الموبايل والكمبيوتر)
-      console.log('[AudioContext/TTS] Using Capacitor TTS');
-      
-      await TextToSpeech.speak({
-        text: meaningText,
-        lang: 'ar-SA',
-        rate: 0.8,
-        pitch: 1.0,
-        volume: 1.0,
-        category: 'ambient',
-      });
-      
-      console.log('[AudioContext/TTS] Capacitor TTS completed successfully');
-      
-      // تحديث الحالة بعد الانتهاء
-      setIsPlaying(false);
-      setCurrentWord(null);
-      setCurrentType(null);
-      
-    } catch (error) {
-      console.error('[AudioContext/TTS] Capacitor TTS Error:', error);
-      
-      // ⚡ Fallback للمتصفحات التي لا تدعم Capacitor
-      console.log('[AudioContext/TTS] Trying Web Speech API fallback...');
-      
-      if ('speechSynthesis' in window) {
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
+      // تطبيق أندرويد النيتف — استخدم Capacitor TTS
+      try {
+        console.log('[AudioContext/TTS] Native: using Capacitor TTS');
+        await TextToSpeech.speak({
+          text: meaningText,
+          lang: 'ar-SA',
+          rate: 0.8,
+          pitch: 1.0,
+          volume: 1.0,
+          category: 'ambient',
+        });
+        console.log('[AudioContext/TTS] Capacitor TTS completed');
+        setIsPlaying(false);
+        setCurrentWord(null);
+        setCurrentType(null);
+      } catch (err) {
+        console.error('[AudioContext/TTS] Capacitor TTS failed, trying Web Speech:', err);
         try {
           await playMeaningWebSpeech(meaningText);
-        } catch (webError) {
-          console.error('[AudioContext/TTS] Web Speech API also failed:', webError);
-          setError('❌ فشل النطق');
+        } catch (webErr) {
+          setError('❌ فشل النطق الصوتي');
+          setIsPlaying(false);
+        }
+      }
+    } else {
+      // متصفح ويب (سطح مكتب أو موبايل) — استخدم Web Speech API مباشرة
+      if ('speechSynthesis' in window) {
+        console.log('[AudioContext/TTS] Web: using Web Speech API');
+        try {
+          await playMeaningWebSpeech(meaningText);
+        } catch (err) {
+          console.error('[AudioContext/TTS] Web Speech API failed:', err);
+          setError('❌ فشل النطق الصوتي');
           setIsPlaying(false);
         }
       } else {
-        setError('⚠️ النطق الصوتي غير متاح');
+        setError('⚠️ النطق الصوتي غير متاح في هذا المتصفح');
         setIsPlaying(false);
       }
     }
@@ -409,9 +400,11 @@ export const AudioProvider = ({ children }) => {
     if (currentType === 'meaning') {
       window.speechSynthesis.cancel();
     } else {
+      intentionalStopRef.current = true; // ✅ تجاهل خطأ src = ''
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      audioRef.current.src = '';
+      audioRef.current.removeAttribute('src');
+      audioRef.current.load();
     }
     setIsPlaying(false);
     setCurrentWord(null); // Hide player
@@ -428,8 +421,10 @@ export const AudioProvider = ({ children }) => {
     
     // لا نوقف audioRef.current إذا كان في وضع التحميل أو التشغيل
     if (audioRef.current.paused || audioRef.current.ended) {
+      intentionalStopRef.current = true; // ✅ تجاهل خطأ src تلقائي
       audioRef.current.currentTime = 0;
-      audioRef.current.src = '';
+      audioRef.current.removeAttribute('src');
+      audioRef.current.load();
     }
     
     setIsPlaying(false);
@@ -465,6 +460,34 @@ export const AudioProvider = ({ children }) => {
     audioRef.current.volume = newVolume;
   }, []);
 
+  // ✅ فتح AudioContext على أول لمسة/نقر (مطلوب على موبايل Android)
+  useEffect(() => {
+    const audio = audioRef.current;
+    let unlocked = false;
+    // silent wav صغير جداً
+    const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+
+    const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      audio.src = SILENT_WAV;
+      audio.play().then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        // لا نُعيد src لفارغ لأن ذلك يُطلق حدث error
+        console.log('[AudioContext] 🔓 Audio unlocked on first gesture');
+      }).catch(() => {});
+    };
+
+    document.addEventListener('touchstart', unlock, { once: true, passive: true });
+    document.addEventListener('click', unlock, { once: true });
+
+    return () => {
+      document.removeEventListener('touchstart', unlock);
+      document.removeEventListener('click', unlock);
+    };
+  }, []);
+
   // ✅ مراقبة انتهاء الصوت
   useEffect(() => {
     const audio = audioRef.current;
@@ -494,7 +517,16 @@ export const AudioProvider = ({ children }) => {
       }
     };
 
-    const handleError = () => {
+    const handleError = (e) => {
+      // ✅ تجاهل الأخطاء الناتجة عن إيقاف متعمد (src = '' أو removeAttribute)
+      if (intentionalStopRef.current) {
+        intentionalStopRef.current = false;
+        return;
+      }
+      // تجاهل خطأ MEDIA_ELEMENT_ERROR عند src فارغ
+      if (!audioRef.current.src || audioRef.current.src === window.location.href) {
+        return;
+      }
       setIsPlaying(false);
       setError('⚠️ فشل تحميل الصوت');
       setTimeout(() => {
