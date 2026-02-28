@@ -65,8 +65,58 @@ export const AudioProvider = ({ children }) => {
   
   // ✅ مرجع لحفظ عناصر audio الخارجية (الفصحى/العامية)
   const externalAudiosRef = useRef(new Set());
-  
 
+  // تعريف handleEnded و handleError كدوال useCallback (memoized callbacks)
+  // قبل استخدامها في useEffect وفي دوال useCallback الأخرى.
+  const handleEnded = useCallback(async () => {
+    if (playlist.length > 0) {
+      const [nextUrl, ...remaining] = playlist;
+      setPlaylist(remaining);
+      
+      console.log('[AudioContext] ⏭️ Playing next segment...');
+      audioRef.current.src = nextUrl;
+      try {
+        await audioRef.current.play();
+      } catch (e) {
+        console.error("Error playing next segment:", e);
+        setIsPlaying(false);
+      }
+    } else {
+      setIsPlaying(false);
+      setError(null);
+      setTimeout(() => {
+        setCurrentWord(null);
+        setCurrentType(null);
+      }, 500);
+    }
+  }, [playlist, setIsPlaying, setError, setCurrentWord, setCurrentType]);
+
+  const handleError = useCallback((e) => {
+    // التحقق مما إذا كان src فارغًا، مما يشير إلى إعادة تعيين متعمدة أو عدم وجود مصدر.
+    // في هذا الإعداد المنقح، تتعامل دوال `stop` و `stopAll` مع إزالة/إعادة إضافة المستمع،
+    // لذلك يجب أن يتم إطلاق هذا المعالج في المقام الأول لأخطاء التحميل/التشغيل الحقيقية.
+    if (!audioRef.current.src) {
+      // تجاهل الخطأ إذا كان src فارغًا (على سبيل المثال، بعد إعادة تعيين متعمدة عبر `stop` أو `stopAll`)
+      console.log('[AudioContext] Ignored error: audio.src is empty.');
+      return; 
+    }
+
+    setIsPlaying(false);
+    setError('⚠️ فشل تحميل الصوت');
+    logErrorToBackend('AudioContext/handleError', 'Audio playback error', { 
+      error_message: e.message || e.type, 
+      error_code: audioRef.current.error?.code, 
+      audio_src: audioRef.current.src,
+      audio_current_type: currentType,
+      audio_current_word: currentWord,
+    });
+    setTimeout(() => {
+      setError(null);
+      setCurrentWord(null);
+      setCurrentType(null);
+    }, 2500);
+  }, [currentType, currentWord, setError, setIsPlaying, setCurrentWord, setCurrentType]);
+  
   // ✅ 1. تلاوة الآية (مع حالة تحميل)
   const playAyah = useCallback(async (surahNumber, ayahNumber, wordData) => {
     if (!surahNumber || !ayahNumber) {
@@ -400,16 +450,16 @@ export const AudioProvider = ({ children }) => {
     } else {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      // Temporarily remove error listener to avoid "src cleared" errors
+      // قم بإزالة مستمع الخطأ مؤقتًا لتجنب أخطاء "src cleared"
       audioRef.current.removeEventListener('error', handleError); 
-      audioRef.current.src = ''; // Clear source to stop any background loading/buffering
-      // Re-add listener after src is cleared.
+      audioRef.current.src = ''; // مسح المصدر لإيقاف أي تحميل/تخزين مؤقت
+      // أعد إضافة المستمع بعد مسح src.
       audioRef.current.addEventListener('error', handleError);
     }
     setIsPlaying(false);
-    setCurrentWord(null); // Hide player
+    setCurrentWord(null); // إخفاء المشغل
     setCurrentType(null);
-    setError(null); // Clear error on close
+    setError(null); // مسح الخطأ عند الإغلاق
   }, [currentType, handleError, setIsPlaying, setCurrentWord, setCurrentType, setError]);
 
   // ✅ إيقاف جميع الأصوات (AudioContext + الأصوات الخارجية)
@@ -423,9 +473,9 @@ export const AudioProvider = ({ children }) => {
     if (audioRef.current.paused || audioRef.current.ended) {
       audioRef.current.pause(); // التأكد من إيقافه مؤقتاً
       audioRef.current.currentTime = 0;
-      audioRef.current.removeEventListener('error', handleError);
+      audioRef.current.removeEventListener('error', handleError); // قم بإزالة مستمع الخطأ مؤقتًا
       audioRef.current.src = ''; // مسح المصدر لإيقاف وإعادة ضبط
-      audioRef.current.addEventListener('error', handleError);
+      audioRef.current.addEventListener('error', handleError); // أعد إضافة المستمع
     }
     
     setIsPlaying(false);
@@ -493,50 +543,6 @@ export const AudioProvider = ({ children }) => {
   useEffect(() => {
     const audio = audioRef.current;
     
-    const handleEnded = async () => {
-      if (playlist.length > 0) {
-        // Play next item in playlist
-        const [nextUrl, ...remaining] = playlist;
-        setPlaylist(remaining);
-        
-        console.log('[AudioContext] ⏭️ Playing next segment...');
-        audio.src = nextUrl;
-        try {
-          await audio.play();
-        } catch (e) {
-          console.error("Error playing next segment:", e);
-          setIsPlaying(false);
-        }
-      } else {
-        // Finished everything
-        setIsPlaying(false);
-        setError(null);
-        setTimeout(() => {
-          setCurrentWord(null);
-          setCurrentType(null);
-        }, 500);
-      }
-    };
-
-    const handleError = (e) => {
-      // ✅ تجاهل الأخطاء الناتجة عن إيقاف متعمد (src = '' أو removeAttribute)
-      if (intentionalStopRef.current) {
-        intentionalStopRef.current = false;
-        return;
-      }
-      // تجاهل خطأ MEDIA_ELEMENT_ERROR عند src فارغ
-      if (!audioRef.current.src || audioRef.current.src === window.location.href) {
-        return;
-      }
-      setIsPlaying(false);
-      setError('⚠️ فشل تحميل الصوت');
-      setTimeout(() => {
-        setError(null);
-        setCurrentWord(null);
-        setCurrentType(null);
-      }, 2500);
-    };
-
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
@@ -544,7 +550,7 @@ export const AudioProvider = ({ children }) => {
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
     };
-  }, [playlist]); // Re-bind when playlist changes
+  }, [handleEnded, handleError]); // إعادة ربط عندما تتغير handleEnded أو handleError
 
   const value = {
     isPlaying,
