@@ -403,8 +403,8 @@ export const AudioProvider = ({ children }) => {
       intentionalStopRef.current = true; // ✅ تجاهل خطأ src = ''
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      audioRef.current.removeAttribute('src');
-      audioRef.current.load();
+      audioRef.current.src = ''; // مسح المصدر لإيقاف وإعادة ضبط
+      // تم إزالة audioRef.current.load() لأنه قد يسبب أخطاء بعد مسح src
     }
     setIsPlaying(false);
     setCurrentWord(null); // Hide player
@@ -422,9 +422,10 @@ export const AudioProvider = ({ children }) => {
     // لا نوقف audioRef.current إذا كان في وضع التحميل أو التشغيل
     if (audioRef.current.paused || audioRef.current.ended) {
       intentionalStopRef.current = true; // ✅ تجاهل خطأ src تلقائي
+      audioRef.current.pause(); // التأكد من إيقافه مؤقتاً
       audioRef.current.currentTime = 0;
-      audioRef.current.removeAttribute('src');
-      audioRef.current.load();
+      audioRef.current.src = ''; // مسح المصدر لإيقاف وإعادة ضبط
+      // تم إزالة audioRef.current.load() لأنه قد يسبب أخطاء بعد مسح src
     }
     
     setIsPlaying(false);
