@@ -89,7 +89,7 @@ export const translations = {
       normalQuiz: "اختبار عادي",
       speedQuiz: "اختبار سريع",
       difficultyLevel: "مستوى الصعوبة",
-      beginner: "مبتدئ",
+      beginner: "طفل",
       intermediate: "متوسط",
       advanced: "متقدم",
       questionsCount: "عدد الأسئلة",

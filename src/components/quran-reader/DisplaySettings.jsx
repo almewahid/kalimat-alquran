@@ -44,9 +44,9 @@ export default function DisplaySettings({
       </div>
 
       <div className="p-3 bg-background-soft rounded-lg space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BookMarked className="w-4 h-4 text-primary" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <BookMarked className="w-4 h-4 text-primary flex-shrink-0" />
             <span className="text-sm font-medium">عرض التفسير</span>
           </div>
           <Switch checked={showTafsir} onCheckedChange={setShowTafsir} />

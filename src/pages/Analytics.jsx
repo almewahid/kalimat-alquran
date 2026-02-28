@@ -123,7 +123,7 @@ export default function Analytics() {
         difficultyCount[diff] = (difficultyCount[diff] || 0) + 1;
       });
       setWordsByDifficulty([
-        { name: "مبتدئ", value: difficultyCount["مبتدئ"] },
+        { name: "طفل", value: difficultyCount["مبتدئ"] },
         { name: "متوسط", value: difficultyCount["متوسط"] },
         { name: "متقدم", value: difficultyCount["متقدم"] }
       ]);

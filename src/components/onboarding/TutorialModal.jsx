@@ -141,7 +141,7 @@ export default function TutorialModal({ isOpen, onClose }) {
                 <SelectContent>
                   <SelectItem value="مبتدئ">
                     <div className="flex flex-col items-start">
-                      <span className="font-semibold">مبتدئ</span>
+                      <span className="font-semibold">طفل</span>
                       <span className="text-xs text-foreground/70">مبسط جداً ومناسب للأطفال</span>
                     </div>
                   </SelectItem>
@@ -205,8 +205,8 @@ export default function TutorialModal({ isOpen, onClose }) {
               </h3>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-background rounded-lg">
-                  <Label htmlFor="sound-effects" className="flex flex-col gap-1 cursor-pointer">
+                <div className="flex items-center justify-between gap-3 p-3 bg-background rounded-lg">
+                  <Label htmlFor="sound-effects" className="flex-1 min-w-0 flex flex-col gap-1 cursor-pointer">
                     <span className="flex items-center gap-2 font-medium">
                       <Volume2 className="w-4 h-4" />
                       المؤثرات الصوتية
@@ -223,8 +223,8 @@ export default function TutorialModal({ isOpen, onClose }) {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-background rounded-lg">
-                  <Label htmlFor="animations" className="flex flex-col gap-1 cursor-pointer">
+                <div className="flex items-center justify-between gap-3 p-3 bg-background rounded-lg">
+                  <Label htmlFor="animations" className="flex-1 min-w-0 flex flex-col gap-1 cursor-pointer">
                     <span className="flex items-center gap-2 font-medium">
                       🌊 تأثير الموجة
                     </span>
@@ -240,8 +240,8 @@ export default function TutorialModal({ isOpen, onClose }) {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-background rounded-lg">
-                  <Label htmlFor="confetti" className="flex flex-col gap-1 cursor-pointer">
+                <div className="flex items-center justify-between gap-3 p-3 bg-background rounded-lg">
+                  <Label htmlFor="confetti" className="flex-1 min-w-0 flex flex-col gap-1 cursor-pointer">
                     <span className="flex items-center gap-2 font-medium">
                       🎉 احتفالات Confetti
                     </span>

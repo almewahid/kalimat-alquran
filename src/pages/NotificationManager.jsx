@@ -231,8 +231,8 @@ export default function NotificationManager() {
                     </div>
 
                     <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-bold text-foreground">{type.title}</h3>
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <h3 className="font-bold text-foreground flex-1 min-w-0">{type.title}</h3>
                         <Switch
                           checked={settings[type.enabledKey]}
                           onCheckedChange={() => handleToggle(type.enabledKey)}

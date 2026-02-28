@@ -68,7 +68,7 @@ export default function QuizSetup({ onStartQuiz }) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">جميع المستويات</SelectItem>
-                    <SelectItem value="مبتدئ">مبتدئ</SelectItem>
+                    <SelectItem value="مبتدئ">طفل</SelectItem>
                     <SelectItem value="متوسط">متوسط</SelectItem>
                     <SelectItem value="متقدم">متقدم</SelectItem>
                   </SelectContent>

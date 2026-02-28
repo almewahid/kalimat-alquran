@@ -18,7 +18,7 @@ const CHALLENGE_TYPES = [
 
 const DIFFICULTY_LEVELS = [
   { value: "الكل", label: "جميع المستويات" },
-  { value: "مبتدئ", label: "مبتدئ" },
+  { value: "مبتدئ", label: "طفل" },
   { value: "متوسط", label: "متوسط" },
   { value: "متقدم", label: "متقدم" }
 ];

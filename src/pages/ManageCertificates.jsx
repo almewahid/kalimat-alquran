@@ -403,7 +403,7 @@ export default function ManageCertificates() {
                 <Select value={courseFormData.level} onValueChange={v => setCourseFormData({...courseFormData, level: v})}>
                   <SelectTrigger><SelectValue placeholder="المستوى" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="beginner">مبتدئ</SelectItem>
+                    <SelectItem value="beginner">طفل</SelectItem>
                     <SelectItem value="intermediate">متوسط</SelectItem>
                     <SelectItem value="advanced">متقدم</SelectItem>
                   </SelectContent>

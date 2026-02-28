@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Award, ArrowLeft, CheckCircle, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+
+const LEVEL_CONFIG = {
+  "مبتدئ":      { emoji: "🌱", label: "طفل",   color: "bg-green-50 border-green-200",  badge: "bg-green-100 text-green-700",  banner: "from-green-100 to-green-200"  },
+  "beginner":   { emoji: "🌱", label: "طفل",   color: "bg-green-50 border-green-200",  badge: "bg-green-100 text-green-700",  banner: "from-green-100 to-green-200"  },
+  "متوسط":      { emoji: "📚", label: "متوسط", color: "bg-blue-50 border-blue-200",    badge: "bg-blue-100 text-blue-700",    banner: "from-blue-100 to-blue-200"    },
+  "intermediate":{ emoji: "📚", label: "متوسط", color: "bg-blue-50 border-blue-200",    badge: "bg-blue-100 text-blue-700",    banner: "from-blue-100 to-blue-200"    },
+  "متقدم":      { emoji: "🎓", label: "متقدم", color: "bg-purple-50 border-purple-200", badge: "bg-purple-100 text-purple-700", banner: "from-purple-100 to-purple-200" },
+  "advanced":   { emoji: "🎓", label: "متقدم", color: "bg-purple-50 border-purple-200", badge: "bg-purple-100 text-purple-700", banner: "from-purple-100 to-purple-200" },
+};
+
+function getLevelConfig(level) {
+  return LEVEL_CONFIG[level] || { emoji: "📖", color: "bg-amber-50 border-amber-200", badge: "bg-amber-100 text-amber-700", banner: "from-amber-100 to-amber-200" };
+}
 
 export default function Courses() {
   const [courses, setCourses] = useState([]);
@@ -26,13 +38,13 @@ export default function Courses() {
       ]);
 
       setCourses(allCourses);
-      
+
       const progressMap = {};
       progressList.forEach(p => {
         progressMap[p.course_id] = p;
       });
       setUserProgress(progressMap);
-      
+
     } catch (error) {
       console.error("Error fetching courses:", error);
     } finally {
@@ -40,98 +52,116 @@ export default function Courses() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <motion.div
+          animate={{ scale: [1, 1.15, 1] }}
+          transition={{ repeat: Infinity, duration: 1.4 }}
+          className="text-6xl"
+        >
+          📚
+        </motion.div>
+        <p className="text-lg font-semibold text-muted-foreground">جاري تحميل الدورات...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-primary mb-2">الدورات التعليمية</h1>
-          <p className="text-gray-600">مسارات منظمة لتعلم كلمات القرآن الكريم مع شهادات إتمام</p>
+    <div className="p-6 max-w-2xl mx-auto space-y-6">
+
+      {/* Header */}
+      <div className="text-center">
+        <div className="text-5xl mb-2">🎓</div>
+        <h1 className="text-3xl font-bold text-foreground mb-1">الدورات التعليمية</h1>
+        <p className="text-sm text-muted-foreground">مسارات منظمة لتعلم كلمات القرآن مع شهادات إتمام</p>
+      </div>
+
+      {/* Courses Grid */}
+      {courses.length === 0 ? (
+        <div className="text-center py-16 flex flex-col items-center gap-4">
+          <span className="text-8xl">🌱</span>
+          <p className="text-xl font-bold text-foreground/70">لا توجد دورات متاحة حالياً</p>
+          <p className="text-sm text-muted-foreground">تابعنا للحصول على دورات جديدة قريباً!</p>
         </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          {courses.map((course) => {
+            const progress    = userProgress[course.id];
+            const totalWords  = course.words_ids?.length || 0;
+            const completed   = progress?.completed_words_count || 0;
+            const percent     = totalWords > 0 ? Math.round((completed / totalWords) * 100) : 0;
+            const isCompleted = progress?.is_completed;
+            const cfg         = getLevelConfig(course.level);
 
-        {loading ? (
-          <div className="grid md:grid-cols-3 gap-6">
-            {[1,2,3].map(i => <div key={i} className="h-64 bg-gray-200 rounded-xl animate-pulse" />)}
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course, index) => {
-              const progress = userProgress[course.id];
-              const totalWords = course.words_ids?.length || 0;
-              const completedWords = progress?.completed_words_count || 0;
-              const percent = totalWords > 0 ? Math.round((completedWords / totalWords) * 100) : 0;
-              const isCompleted = progress?.is_completed;
+            return (
+              <Card key={course.id} className={`rounded-2xl border-2 overflow-hidden flex flex-col hover:shadow-md transition-all ${cfg.color}`}>
 
-              return (
-                <motion.div 
-                  key={course.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card className="h-full flex flex-col hover:shadow-xl transition-all duration-300 border-t-4 border-t-primary overflow-hidden">
-                    <div className="relative h-40 bg-gray-100">
-                      {course.image_url ? (
-                        <img src={course.image_url} alt={course.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/20">
-                          <BookOpen className="w-16 h-16 text-primary/30" />
-                        </div>
-                      )}
-                      <div className="absolute top-3 left-3">
-                        <Badge className="bg-white/90 text-primary hover:bg-white">{course.level}</Badge>
-                      </div>
+                {/* Banner */}
+                <div className={`h-28 bg-gradient-to-br ${cfg.banner} flex flex-col items-center justify-center relative`}>
+                  {course.image_url ? (
+                    <img src={course.image_url} alt={course.title} className="w-full h-full object-cover absolute inset-0" />
+                  ) : (
+                    <span className="text-5xl">{cfg.emoji}</span>
+                  )}
+                  {isCompleted && (
+                    <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-xl">
+                      ✅ مكتملة
                     </div>
-                    
-                    <CardHeader>
-                      <CardTitle className="text-xl">{course.title}</CardTitle>
-                      <CardDescription className="line-clamp-2">{course.description}</CardDescription>
-                    </CardHeader>
-                    
-                    <CardContent className="flex-1">
-                      <div className="space-y-4">
-                        <div className="flex justify-between text-sm text-gray-600">
-                          <span>التقدم</span>
-                          <span>{percent}%</span>
-                        </div>
-                        <Progress value={percent} className="h-2" />
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {completedWords}/{totalWords} كلمة</span>
-                          {course.enable_certificate && <span className="flex items-center gap-1 text-amber-600"><Award className="w-3 h-3" /> شهادة متاحة</span>}
-                        </div>
-                      </div>
-                    </CardContent>
-                    
-                    <CardFooter className="pt-0">
-                      {isCompleted ? (
-                        <div className="w-full flex gap-2">
-                          <Button asChild className="flex-1 bg-green-600 hover:bg-green-700">
-                            <Link to={`/CourseDetail?id=${course.id}`}>
-                              <CheckCircle className="w-4 h-4 ml-2" /> مراجعة الدورة
-                            </Link>
-                          </Button>
-                          {course.enable_certificate && (
-                            <Button asChild variant="outline" className="flex-1 border-amber-500 text-amber-700 hover:bg-amber-50">
-                              <Link to={`/CertificateView?id=${progress.certificate_id || 'preview'}`}>
-                                <Award className="w-4 h-4 ml-2" /> الشهادة
-                              </Link>
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        <Button asChild className="w-full">
-                          <Link to={`/CourseDetail?id=${course.id}`}>
-                            ابدأ التعلم <ArrowLeft className="w-4 h-4 mr-2" />
-                          </Link>
+                  )}
+                  <div className="absolute top-2 left-2">
+                    <Badge className={`text-xs font-bold border-0 ${cfg.badge}`}>{cfg.label || course.level || "عام"}</Badge>
+                  </div>
+                </div>
+
+                <CardContent className="p-4 flex-1 space-y-3">
+                  <div>
+                    <h2 className="font-bold text-foreground text-base leading-tight">{course.title}</h2>
+                    {course.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{course.description}</p>
+                    )}
+                  </div>
+
+                  {/* Progress */}
+                  <div>
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <span>📖 {completed}/{totalWords} كلمة</span>
+                      <span className="font-bold">{percent}%</span>
+                    </div>
+                    <Progress value={percent} className="h-3 rounded-full" />
+                  </div>
+
+                  {course.enable_certificate && (
+                    <p className="text-xs text-amber-600 font-semibold">🏆 شهادة إتمام متاحة</p>
+                  )}
+                </CardContent>
+
+                <CardFooter className="p-4 pt-0 flex gap-2">
+                  {isCompleted ? (
+                    <>
+                      <Button asChild className="flex-1 rounded-2xl font-bold h-10 bg-green-600 hover:bg-green-700">
+                        <Link to={`/CourseDetail?id=${course.id}`}>✅ مراجعة</Link>
+                      </Button>
+                      {course.enable_certificate && (
+                        <Button asChild variant="outline" className="flex-1 rounded-2xl font-bold h-10 border-2 border-amber-400 text-amber-700 hover:bg-amber-50">
+                          <Link to={`/CertificateView?id=${progress.certificate_id || 'preview'}`}>🏆 الشهادة</Link>
                         </Button>
                       )}
-                    </CardFooter>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                    </>
+                  ) : (
+                    <Button asChild className="w-full rounded-2xl font-bold h-10">
+                      <Link to={`/CourseDetail?id=${course.id}`}>
+                        {percent > 0 ? "▶️ أكمل التعلم" : "🚀 ابدأ التعلم"}
+                      </Link>
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
     </div>
   );
 }

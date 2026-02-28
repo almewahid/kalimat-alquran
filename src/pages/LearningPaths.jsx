@@ -58,7 +58,7 @@ const DEFAULT_PATHS = [
 ];
 
 const DIFFICULTY_CONFIG = {
-  "مبتدئ": { stars: "⭐",      color: "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400" },
+  "مبتدئ": { stars: "⭐",      label: "طفل",    color: "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400" },
   "متوسط": { stars: "⭐⭐",    color: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400" },
   "متقدم": { stars: "⭐⭐⭐",  color: "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400" },
 };
@@ -229,7 +229,7 @@ export default function LearningPaths() {
                         📖 {path.target_words_count} كلمة
                       </Badge>
                       <Badge className={`${difficulty.color} border-0 text-sm`}>
-                        {difficulty.stars} {path.difficulty_level}
+                        {difficulty.stars} {difficulty.label || path.difficulty_level}
                       </Badge>
                     </div>
 

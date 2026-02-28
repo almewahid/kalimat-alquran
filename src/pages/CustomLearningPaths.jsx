@@ -34,7 +34,7 @@ const SURAHS = [
 const CATEGORIES = ["أسماء", "أفعال", "صفات", "حروف", "أخرى"];
 
 const DIFFICULTY_CONFIG = {
-  "مبتدئ": { bar: "from-green-400 to-emerald-500",  badge: "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",  stars: "⭐"     },
+  "مبتدئ": { bar: "from-green-400 to-emerald-500",  badge: "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",  stars: "⭐",     label: "طفل"    },
   "متوسط": { bar: "from-amber-400 to-yellow-500",   badge: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",   stars: "⭐⭐"   },
   "متقدم": { bar: "from-red-400 to-orange-500",     badge: "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400",           stars: "⭐⭐⭐" },
   "الكل":  { bar: "from-blue-400 to-indigo-500",    badge: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",       stars: "✨"     },
@@ -280,7 +280,7 @@ export default function CustomLearningPaths() {
                         {/* الـ badges */}
                         <div className="flex flex-wrap gap-1.5">
                           <Badge className={`${diff.badge} border-0 text-xs`}>
-                            {diff.stars} {path.difficulty_level}
+                            {diff.stars} {diff.label || path.difficulty_level}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
                             {SOURCE_LABEL[path.source_type] || path.source_type}
@@ -423,7 +423,7 @@ export default function CustomLearningPaths() {
                       <SelectTrigger className="mt-1.5 rounded-xl"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="الكل">✨ الكل</SelectItem>
-                        <SelectItem value="مبتدئ">⭐ مبتدئ</SelectItem>
+                        <SelectItem value="مبتدئ">⭐ طفل</SelectItem>
                         <SelectItem value="متوسط">⭐⭐ متوسط</SelectItem>
                         <SelectItem value="متقدم">⭐⭐⭐ متقدم</SelectItem>
                       </SelectContent>

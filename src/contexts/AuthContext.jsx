@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, preferences, isLoading: user === undefined }}>
+    <AuthContext.Provider value={{ user, isAdmin, preferences, setPreferences, isLoading: user === undefined }}>
       {children}
     </AuthContext.Provider>
   );

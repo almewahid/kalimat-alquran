@@ -130,7 +130,7 @@ export default function ManageUsers() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">كل المستويات</SelectItem>
-                  <SelectItem value="مبتدئ">مبتدئ</SelectItem>
+                  <SelectItem value="مبتدئ">طفل</SelectItem>
                   <SelectItem value="متوسط">متوسط</SelectItem>
                   <SelectItem value="متقدم">متقدم</SelectItem>
                 </SelectContent>

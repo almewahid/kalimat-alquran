@@ -239,7 +239,7 @@ export default function AdminCourses() {
                   <Select value={formData.level} onValueChange={v => setFormData({...formData, level: v})}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="beginner">مبتدئ</SelectItem>
+                      <SelectItem value="beginner">طفل</SelectItem>
                       <SelectItem value="intermediate">متوسط</SelectItem>
                       <SelectItem value="advanced">متقدم</SelectItem>
                     </SelectContent>

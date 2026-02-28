@@ -381,7 +381,7 @@ export default function ManageQuran() {
                       {surah.wordCount > 0 && (
                         <div className="flex gap-2 flex-wrap">
                           <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            🟢 مبتدئ: {surah.beginnerWords}
+                            🟢 طفل: {surah.beginnerWords}
                           </Badge>
                           <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                             🟡 متوسط: {surah.intermediateWords}
@@ -602,7 +602,7 @@ export default function ManageQuran() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">كل المستويات</SelectItem>
-                        <SelectItem value="مبتدئ">مبتدئ</SelectItem>
+                        <SelectItem value="مبتدئ">طفل</SelectItem>
                         <SelectItem value="متوسط">متوسط</SelectItem>
                         <SelectItem value="متقدم">متقدم</SelectItem>
                       </SelectContent>
@@ -737,7 +737,7 @@ export default function ManageQuran() {
                                     : "bg-red-100 text-red-800"
                                 }
                               >
-                                {word.difficulty_level}
+                                {word.difficulty_level === "مبتدئ" ? "طفل" : word.difficulty_level}
                               </Badge>
                             </td>
                             <td className="p-3 border-l border-gray-200">

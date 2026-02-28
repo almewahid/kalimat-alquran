@@ -104,7 +104,7 @@ export default function FavoritesPage() {
                   size="sm"
                   onClick={() => setFilterLevel("مبتدئ")}
                 >
-                  مبتدئ ({favoriteWords.filter(w => w.difficulty_level === "مبتدئ").length})
+                  طفل ({favoriteWords.filter(w => w.difficulty_level === "مبتدئ").length})
                 </Button>
                 <Button
                   variant={filterLevel === "متوسط" ? "default" : "outline"}

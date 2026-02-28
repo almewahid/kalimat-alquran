@@ -17,6 +17,7 @@ import { triggerConfetti } from "../components/common/Confetti";
 import { playSound } from "../components/common/SoundEffects";
 
 import { WordsCache } from "../components/utils/WordsCache";
+import { grantKidsReward } from "../components/kids/kidsRewardsUtils";
 
 const createPageUrl = (pageName) => `/${pageName}`;
 
@@ -342,7 +343,12 @@ export default function Learn() {
   
         setFlashCardMap(prevMap => new Map(prevMap).set(flashcard.word_id, updatedCard));
         setLearnedTodayCount(prev => prev + 1);
-        
+
+        // منح نجمة للطفل في وضع الأطفال
+        if (user?.preferences?.kids_mode_enabled) {
+          grantKidsReward({ stars: 1, source: currentWord.word }).catch(() => {});
+        }
+
         if (userPreferences.sound_effects_enabled) {
           playSound('achievement');
         }

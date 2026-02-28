@@ -36,6 +36,7 @@ import {
   Check,
   X,
   UserPlus,
+  Copy,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -145,7 +146,7 @@ export default function Groups() {
       toast({ title: "ℹ️ أنت عضو بالفعل في هذه المجموعة" });
       return false;
     }
-    await supabaseClient.entities.Notification.create({
+    const { error } = await supabaseClient.supabase.from("user_notifications").insert({
       user_email:        group.leader_email,
       notification_type: "join_request",
       title:             `طلب انضمام لمجموعة "${group.name}"`,
@@ -154,9 +155,11 @@ export default function Groups() {
         group_id:        group.id,
         group_name:      group.name,
       }),
-      icon:    "🤝",
-      is_read: false,
+      icon:        "🤝",
+      is_read:     false,
+      created_date: new Date().toISOString(),
     });
+    if (error) throw error;
     setSentRequests(prev => new Set([...prev, group.id]));
     return true;
   };
@@ -209,13 +212,14 @@ export default function Groups() {
       await supabaseClient.supabase.from("notifications").update({ is_read: true }).eq("id", request.id);
 
       // إشعار الموافقة للطالب
-      await supabaseClient.entities.Notification.create({
+      await supabaseClient.supabase.from("user_notifications").insert({
         user_email:        data.requester_email,
         notification_type: "join_approved",
         title:             `✅ تمت الموافقة على انضمامك`,
         message:           `تمت الموافقة على انضمامك إلى مجموعة "${data.group_name}"`,
-        icon:    "✅",
-        is_read: false,
+        icon:         "✅",
+        is_read:      false,
+        created_date: new Date().toISOString(),
       });
 
       toast({ title: "✅ تمت الموافقة", description: `تم إضافة ${data.requester_email} للمجموعة`, className: "bg-green-100 text-green-800" });
@@ -233,13 +237,14 @@ export default function Groups() {
       await supabaseClient.supabase.from("notifications").update({ is_read: true }).eq("id", request.id);
 
       // إشعار الرفض للطالب
-      await supabaseClient.entities.Notification.create({
+      await supabaseClient.supabase.from("user_notifications").insert({
         user_email:        data.requester_email,
         notification_type: "join_rejected",
         title:             `تعذّر الانضمام`,
         message:           `لم تتم الموافقة على انضمامك إلى مجموعة "${data.group_name}"`,
-        icon:    "❌",
-        is_read: false,
+        icon:         "❌",
+        is_read:      false,
+        created_date: new Date().toISOString(),
       });
 
       toast({ title: "تم رفض الطلب" });
@@ -272,13 +277,14 @@ export default function Groups() {
     try {
       const recipients = notifyingGroup.members.filter(m => m !== user.email);
       await Promise.all(recipients.map(email =>
-        supabaseClient.entities.Notification.create({
+        supabaseClient.supabase.from("user_notifications").insert({
           user_email:        email,
           notification_type: "group_message",
           title:             `📢 رسالة من مجموعة ${notifyingGroup.name}`,
           message:           notifyMessage,
-          icon:    "📢",
-          is_read: false,
+          icon:         "📢",
+          is_read:      false,
+          created_date: new Date().toISOString(),
         })
       ));
       toast({ title: "✅ تم إرسال الإشعار للأعضاء" });
@@ -435,6 +441,24 @@ export default function Groups() {
                           <Users className="w-4 h-4" />
                           <span>{group.members?.length || 0} عضو</span>
                         </div>
+
+                        {/* كود الانضمام (للرئيس فقط) */}
+                        {isLeader && group.join_code && (
+                          <div
+                            className="flex items-center justify-between bg-muted/60 rounded-xl px-3 py-2 mb-3 cursor-pointer hover:bg-muted transition-colors"
+                            title="اضغط لنسخ الكود"
+                            onClick={() => {
+                              navigator.clipboard.writeText(group.join_code);
+                              toast({ title: "✅ تم نسخ الكود", description: group.join_code, className: "bg-green-100 text-green-800" });
+                            }}
+                          >
+                            <span className="text-xs text-foreground/50">كود الانضمام</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-sm tracking-widest">{group.join_code}</span>
+                              <Copy className="w-3.5 h-3.5 text-foreground/40" />
+                            </div>
+                          </div>
+                        )}
 
                         {/* Buttons */}
                         <div className="flex gap-2">

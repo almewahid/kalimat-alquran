@@ -139,6 +139,14 @@ const adminItems = [
   { title: "اختبار الصوت", url: createPageUrl("AudioTest"), icon: Volume2 },
 ];
 
+// ── قائمة وضع الأطفال (مبسّطة) ──
+const kidsNavigationItems = [
+  { title: "تعلّم",        emoji: "⭐", url: createPageUrl("Learn"),       color: "from-yellow-400 to-amber-500"  },
+  { title: "مراجعة ذكية", emoji: "🧠", url: createPageUrl("SmartReview"), color: "from-purple-400 to-violet-500" },
+  { title: "اختبار بسيط", emoji: "📝", url: createPageUrl("QuizTypes"),   color: "from-blue-400 to-cyan-500"     },
+  { title: "هدايا",        emoji: "🎁", url: createPageUrl("KidsRewards"), color: "from-pink-400 to-rose-500"     },
+];
+
 const LOGO_URL = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68b74ae8214aa5bfcb70e378/6d983cb3c_.png";
 
 // زر فتح الشريط الجانبي في الموبايل - يعالج ghost click
@@ -191,6 +199,8 @@ function MobileCloser() {
 export default function Layout({ children }) {
   const location = useLocation();
   const { user, isAdmin, preferences } = useAuth();
+  const isKidsMode    = preferences?.kids_mode_enabled === true;
+  const activeContest = preferences?.active_contest || null;
   const [theme, setTheme] = useState("light");
   const [colorScheme, setColorScheme] = useState("default");
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -257,189 +267,276 @@ export default function Layout({ children }) {
             <Sidebar className="sidebar-right border-l border-border bg-card/95 backdrop-blur-md" side="right" variant="sidebar" collapsible="icon">
               <SidebarHeader className="border-b border-border p-6">
                 <div className="text-center">
-                  <img
-                    src={LOGO_URL}
-                    alt="شعار كلمات القرآن"
-                    className="w-20 h-20 mx-auto mb-3"
-                  />
-                  <h2 className="text-xl font-bold gradient-text">كلمات القرآن</h2>
+                  <Link to={createPageUrl("Dashboard")}>
+                    <img
+                      src={LOGO_URL}
+                      alt="شعار كلمات القرآن"
+                      className="w-20 h-20 mx-auto cursor-pointer"
+                    />
+                  </Link>
                 </div>
               </SidebarHeader>
 
-              <SidebarContent className="p-4">
-                <SidebarGroup>
-                  <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
-                    القائمة الرئيسية
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu className="space-y-2">
-                      {navigationItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
-                            asChild
-                            className={`rounded-xl transition-all duration-300 ${
-                              location.pathname === item.url
-                                ? "bg-primary/10 text-primary shadow-sm"
-                                : "hover:bg-primary/5 hover:text-primary/90"
-                            }`}
-                          >
-                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3" onClick={() => isMobile && setSidebarOpen(false)}>
-                              <item.icon className="w-5 h-5" />
-                              <span className="font-medium">{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
+              {isKidsMode ? (
+                /* ═══════════════════════════════════════
+                   قائمة وضع الأطفال — بسيطة ومبهجة
+                   ═══════════════════════════════════════ */
+                <SidebarContent className="p-4">
+                  <SidebarGroup>
+                    <SidebarGroupContent>
+                      <SidebarMenu className="space-y-3">
 
-                <SidebarGroup className="mt-6">
-                  <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
-                    👥 التفاعل الاجتماعي
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu className="space-y-2">
-                      {socialItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
-                            asChild
-                            className={`rounded-xl transition-all duration-300 ${
-                              location.pathname === item.url
-                                ? "bg-primary/10 text-primary shadow-sm"
-                                : "hover:bg-primary/5 hover:text-primary/90"
-                            }`}
-                          >
-                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3" onClick={() => isMobile && setSidebarOpen(false)}>
-                              <item.icon className="w-5 h-5" />
-                              <span className="font-medium">{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
+                        {/* 🏆 زر المسابقة الحالية — ديناميكي */}
+                        {activeContest && (
+                          <SidebarMenuItem>
+                            <SidebarMenuButton
+                              asChild
+                              className={`rounded-2xl h-16 transition-all duration-300 ${
+                                location.pathname === createPageUrl("KidsContest")
+                                  ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-white shadow-lg"
+                                  : "bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-950/40"
+                              }`}
+                            >
+                              <Link
+                                to={createPageUrl("KidsContest")}
+                                className="flex items-center gap-3 px-4"
+                                onClick={() => isMobile && setSidebarOpen(false)}
+                              >
+                                <span className="text-3xl">🏆</span>
+                                <span className="font-bold text-base">{activeContest.name}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )}
 
-                <SidebarGroup className="mt-6">
-                  <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
-                    🎮 التحفيز والمكافآت
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu className="space-y-2">
-                      {gamificationItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
-                            asChild
-                            className={`rounded-xl transition-all duration-300 ${
-                              location.pathname === item.url
-                                ? "bg-primary/10 text-primary shadow-sm"
-                                : "hover:bg-primary/5 hover:text-primary/90"
-                            }`}
-                          >
-                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3" onClick={() => isMobile && setSidebarOpen(false)}>
-                              <item.icon className="w-5 h-5" />
-                              <span className="font-medium">{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
+                        {/* عناصر التنقل الأساسية */}
+                        {kidsNavigationItems.map((item) => (
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                              asChild
+                              className={`rounded-2xl h-16 transition-all duration-300 ${
+                                location.pathname === item.url
+                                  ? `bg-gradient-to-r ${item.color} text-white shadow-lg`
+                                  : "border border-border hover:bg-primary/5 hover:border-primary/30"
+                              }`}
+                            >
+                              <Link
+                                to={item.url}
+                                className="flex items-center gap-3 px-4"
+                                onClick={() => isMobile && setSidebarOpen(false)}
+                              >
+                                <span className="text-3xl">{item.emoji}</span>
+                                <span className="font-bold text-base">{item.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
 
-                <SidebarGroup className="mt-6">
-                  <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
-                    ⚙️ النظام
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu className="space-y-2">
-                      {systemItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
-                            asChild
-                            className={`rounded-xl transition-all duration-300 relative ${
-                              location.pathname === item.url
-                                ? "bg-primary/10 text-primary shadow-sm"
-                                : "hover:bg-primary/5 hover:text-primary/90"
-                            }`}
-                          >
-                            <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
-                              <item.icon className="w-5 h-5" />
-                              <span className="font-medium">{item.title}</span>
-                              {item.title === "الإشعارات" && unreadNotifications > 0 && (
-                                <span className="absolute top-2 left-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                                  {unreadNotifications}
-                                </span>
-                              )}
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
 
-                {isAdmin && (
-                  <SidebarGroup className="mt-6">
+                  {/* ⚙️ زر وليّ الأمر — أسفل القائمة */}
+                  <SidebarGroup className="mt-auto border-t pt-4">
+                    <SidebarGroupContent>
+                      <SidebarMenuButton
+                        asChild
+                        className={`rounded-xl transition-all duration-300 ${
+                          location.pathname === createPageUrl("KidsMode")
+                            ? "bg-muted text-foreground"
+                            : "text-foreground/40 hover:text-foreground/70 hover:bg-muted/50"
+                        }`}
+                      >
+                        <Link
+                          to={createPageUrl("KidsMode")}
+                          className="flex items-center gap-2 px-4 py-2 text-sm"
+                          onClick={() => isMobile && setSidebarOpen(false)}
+                        >
+                          <SettingsIcon className="w-4 h-4" />
+                          <span>وليّ الأمر</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                </SidebarContent>
+
+              ) : (
+                /* ═══════════════════════════════════════
+                   قائمة عادية — متوسط / متقدم
+                   ═══════════════════════════════════════ */
+                <SidebarContent className="p-4">
+                  <SidebarGroup>
                     <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
-                      🛡️ لوحة المدير
+                      القائمة الرئيسية
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                       <SidebarMenu className="space-y-2">
-                        {adminItems.map((item) => (
+                        {navigationItems.map((item) => (
                           <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton
                               asChild
                               className={`rounded-xl transition-all duration-300 ${
                                 location.pathname === item.url
-                                  ? "bg-red-100 text-red-700 shadow-sm dark:bg-red-900/30"
-                                  : "hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+                                  ? "bg-primary/10 text-primary shadow-sm"
+                                  : "hover:bg-primary/5 hover:text-primary/90"
                               }`}
                             >
-                              <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
+                              <Link to={item.url} className="flex items-center gap-3 px-4 py-3" onClick={() => isMobile && setSidebarOpen(false)}>
                                 <item.icon className="w-5 h-5" />
                                 <span className="font-medium">{item.title}</span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
                         ))}
-                        <SidebarMenuItem>
-                          <SidebarMenuButton
-                            asChild
-                            className={`rounded-xl transition-all duration-300 ${
-                              location.pathname === createPageUrl("StoreDetails")
-                                ? "bg-red-100 text-red-700 shadow-sm dark:bg-red-900/30"
-                                : "hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
-                            }`}
-                          >
-                            <Link to={createPageUrl("StoreDetails")} className="flex items-center gap-3 px-4 py-3">
-                              <ShoppingBag className="w-5 h-5" />
-                              <span className="font-medium">بيانات المتاجر</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
                       </SidebarMenu>
                     </SidebarGroupContent>
                   </SidebarGroup>
-                )}
 
+                  <SidebarGroup className="mt-6">
+                    <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
+                      👥 التفاعل الاجتماعي
+                    </SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu className="space-y-2">
+                        {socialItems.map((item) => (
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                              asChild
+                              className={`rounded-xl transition-all duration-300 ${
+                                location.pathname === item.url
+                                  ? "bg-primary/10 text-primary shadow-sm"
+                                  : "hover:bg-primary/5 hover:text-primary/90"
+                              }`}
+                            >
+                              <Link to={item.url} className="flex items-center gap-3 px-4 py-3" onClick={() => isMobile && setSidebarOpen(false)}>
+                                <item.icon className="w-5 h-5" />
+                                <span className="font-medium">{item.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
 
+                  <SidebarGroup className="mt-6">
+                    <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
+                      🎮 التحفيز والمكافآت
+                    </SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu className="space-y-2">
+                        {gamificationItems.map((item) => (
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                              asChild
+                              className={`rounded-xl transition-all duration-300 ${
+                                location.pathname === item.url
+                                  ? "bg-primary/10 text-primary shadow-sm"
+                                  : "hover:bg-primary/5 hover:text-primary/90"
+                              }`}
+                            >
+                              <Link to={item.url} className="flex items-center gap-3 px-4 py-3" onClick={() => isMobile && setSidebarOpen(false)}>
+                                <item.icon className="w-5 h-5" />
+                                <span className="font-medium">{item.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
 
-                {/* Logout Button */}
-                <SidebarGroup className="mt-6 border-t pt-4">
-                  <SidebarGroupContent>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      onClick={() => setShowLogoutDialog(true)}
-                    >
-                      <LogOut className="w-5 h-5 ml-2" />
-                      تسجيل الخروج
-                    </Button>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </SidebarContent>
+                  <SidebarGroup className="mt-6">
+                    <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
+                      ⚙️ النظام
+                    </SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu className="space-y-2">
+                        {systemItems.map((item) => (
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                              asChild
+                              className={`rounded-xl transition-all duration-300 relative ${
+                                location.pathname === item.url
+                                  ? "bg-primary/10 text-primary shadow-sm"
+                                  : "hover:bg-primary/5 hover:text-primary/90"
+                              }`}
+                            >
+                              <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
+                                <item.icon className="w-5 h-5" />
+                                <span className="font-medium">{item.title}</span>
+                                {item.title === "الإشعارات" && unreadNotifications > 0 && (
+                                  <span className="absolute top-2 left-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                                    {unreadNotifications}
+                                  </span>
+                                )}
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+
+                  {isAdmin && (
+                    <SidebarGroup className="mt-6">
+                      <SidebarGroupLabel className="text-sm font-semibold text-foreground/70 mb-3">
+                        🛡️ لوحة المدير
+                      </SidebarGroupLabel>
+                      <SidebarGroupContent>
+                        <SidebarMenu className="space-y-2">
+                          {adminItems.map((item) => (
+                            <SidebarMenuItem key={item.title}>
+                              <SidebarMenuButton
+                                asChild
+                                className={`rounded-xl transition-all duration-300 ${
+                                  location.pathname === item.url
+                                    ? "bg-red-100 text-red-700 shadow-sm dark:bg-red-900/30"
+                                    : "hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+                                }`}
+                              >
+                                <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
+                                  <item.icon className="w-5 h-5" />
+                                  <span className="font-medium">{item.title}</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
+                          <SidebarMenuItem>
+                            <SidebarMenuButton
+                              asChild
+                              className={`rounded-xl transition-all duration-300 ${
+                                location.pathname === createPageUrl("StoreDetails")
+                                  ? "bg-red-100 text-red-700 shadow-sm dark:bg-red-900/30"
+                                  : "hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+                              }`}
+                            >
+                              <Link to={createPageUrl("StoreDetails")} className="flex items-center gap-3 px-4 py-3">
+                                <ShoppingBag className="w-5 h-5" />
+                                <span className="font-medium">بيانات المتاجر</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </SidebarGroup>
+                  )}
+
+                  {/* Logout Button */}
+                  <SidebarGroup className="mt-6 border-t pt-4">
+                    <SidebarGroupContent>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        onClick={() => setShowLogoutDialog(true)}
+                      >
+                        <LogOut className="w-5 h-5 ml-2" />
+                        تسجيل الخروج
+                      </Button>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                </SidebarContent>
+              )}
             </Sidebar>
 
             <main className="flex-1 overflow-auto bg-background">

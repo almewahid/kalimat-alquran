@@ -705,7 +705,7 @@ export default function GroupDetail() {
                   <SelectContent>
                     <SelectItem value="surah">سورة</SelectItem>
                     <SelectItem value="juz">جزء</SelectItem>
-                    <SelectItem value="level">مستوى (مبتدئ/متوسط/متقدم)</SelectItem>
+                    <SelectItem value="level">مستوى (طفل/متوسط/متقدم)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

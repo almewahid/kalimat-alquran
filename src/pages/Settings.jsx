@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
-import { User as UserIcon, Palette, Bell, Shield, HelpCircle, Globe, Volume2, Sparkles, Eye, EyeOff, GripVertical, BookMarked, BookOpen, Download, Zap } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, BookMarked, BookOpen, Download, Zap, Globe, Volume2, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Link } from 'react-router-dom';
@@ -29,6 +29,16 @@ const SURAHS = [
   "المسد", "الإخلاص", "الفلق", "الناس"
 ];
 
+const TABS = [
+  { id: 'account',       label: 'الحساب',       emoji: '👤' },
+  { id: 'appearance',    label: 'المظهر',        emoji: '🎨' },
+  { id: 'learning',      label: 'التعلم',        emoji: '📚' },
+  { id: 'notifications', label: 'الإشعارات',     emoji: '🔔' },
+  { id: 'source',        label: 'مصدر الكلمات', emoji: '📖' },
+  { id: 'card-elements', label: 'البطاقة',       emoji: '📝' },
+  { id: 'tafsir',        label: 'التفاسير',      emoji: '📘' },
+];
+
 export default function Settings() {
     const { toast } = useToast();
     const [user, setUser] = useState(null);
@@ -39,11 +49,11 @@ export default function Settings() {
         theme: 'light',
         color_scheme: 'default',
         background_style: 'soft',
-        learning_level: 'مبتدئ', // ✅ الافتراضي مبتدئ
+        learning_level: 'مبتدئ',
         learning_categories: [],
         daily_new_words_goal: 10,
         daily_review_words_goal: 20,
-        quiz_time_limit: 30, // Added quiz_time_limit
+        quiz_time_limit: 30,
         source_type: 'all',
         selected_juz: [],
         selected_surahs: [],
@@ -92,7 +102,6 @@ export default function Settings() {
 
                 const alerts = [];
 
-                // تحليل الاستمرارية
                 const streak = progress?.consecutive_login_days || 0;
                 if (streak >= 7) {
                     alerts.push(`🔥 رائع! حافظت على ${streak} يوماً متتالياً. فعّل الإشعار اليومي للحفاظ على هذا الإنجاز.`);
@@ -102,7 +111,6 @@ export default function Settings() {
                     alerts.push(`📅 تتابعك الحالي ${streak} أيام. فعّل الإشعارات للوصول إلى 7 أيام متتالية.`);
                 }
 
-                // تحليل وقت آخر كويز
                 const lastQuizDate = progress?.last_quiz_date;
                 if (lastQuizDate) {
                     const daysSince = Math.floor((Date.now() - new Date(lastQuizDate)) / 86400000);
@@ -111,7 +119,6 @@ export default function Settings() {
                     }
                 }
 
-                // تحليل دقة الكويز
                 const sessionList = sessions || [];
                 if (sessionList.length > 0) {
                     const avgScore = Math.round(sessionList.reduce((s, q) => s + (q.score || 0), 0) / sessionList.length);
@@ -121,7 +128,6 @@ export default function Settings() {
                         alerts.push(`✅ دقتك ${avgScore}% ممتازة! يمكنك تقليل تكرار الإشعارات والاكتفاء بتذكير يومي واحد.`);
                     }
 
-                    // تحليل أوقات النشاط
                     const hours = sessionList.map(s => new Date(s.created_date).getHours());
                     const avgHour = Math.round(hours.reduce((a, b) => a + b, 0) / hours.length);
                     const period = avgHour < 12 ? "الصباح" : avgHour < 17 ? "بعد الظهر" : "المساء";
@@ -139,7 +145,6 @@ export default function Settings() {
         })();
     }, [activeTab]);
 
-    // Get current language
     const lang = preferences.language || 'ar';
     const isArabic = lang === 'ar';
 
@@ -151,7 +156,7 @@ export default function Settings() {
                 if (currentUser.preferences) {
                     const fetchedPreferences = currentUser.preferences;
                     const defaultWordCardElements = preferences.word_card_elements;
-                    
+
                     const mergedWordCardElements = defaultWordCardElements.map(defaultEl => {
                         const existingEl = fetchedPreferences.word_card_elements?.find(el => el.id === defaultEl.id);
                         return existingEl ? { ...defaultEl, ...existingEl } : defaultEl;
@@ -203,8 +208,7 @@ export default function Settings() {
     const handleSaveChanges = async () => {
         if (!user) return;
         try {
-            // تحديث بيانات المستخدم الأساسية
-            await supabaseClient.auth.updateMe({ 
+            await supabaseClient.auth.updateMe({
                 phone_number: user.phone_number,
                 country: user.country,
                 affiliation_type: user.affiliation_type,
@@ -212,7 +216,6 @@ export default function Settings() {
                 preferences: preferences
             });
 
-            // حفظ المستوى في جدول user_profiles
             const authUser = await supabaseClient.auth.me();
             if (authUser) {
                 await supabaseClient.supabase
@@ -227,9 +230,7 @@ export default function Settings() {
                 className: "bg-green-100 text-green-800"
             });
 
-            // تحديث الحالة المحلية
             setUser(prev => ({ ...prev, preferences }));
-            
             setTimeout(() => window.location.reload(), 800);
         } catch (error) {
             console.error("Failed to save preferences:", error);
@@ -263,7 +264,6 @@ export default function Settings() {
         handlePreferenceChange('word_card_elements', updatedElements);
     };
 
-
     const renderContent = () => {
         switch (activeTab) {
             case 'account':
@@ -271,29 +271,31 @@ export default function Settings() {
                     <CardContent className="space-y-4">
                         <div>
                             <Label htmlFor="fullName">{isArabic ? "الاسم الكامل" : "Full Name"}</Label>
-                            <Input id="fullName" value={user?.full_name || ''} disabled />
+                            <Input id="fullName" value={user?.full_name || ''} disabled className="rounded-xl mt-1" />
                         </div>
                         <div>
                             <Label htmlFor="email">{isArabic ? "البريد الإلكتروني" : "Email"}</Label>
-                            <Input id="email" type="email" value={user?.email || ''} disabled />
+                            <Input id="email" type="email" value={user?.email || ''} disabled className="rounded-xl mt-1" />
                         </div>
                         <div>
                             <Label htmlFor="phone">{isArabic ? "رقم الهاتف" : "Phone Number"}</Label>
-                            <Input 
-                                id="phone" 
-                                type="tel" 
-                                value={user?.phone_number || ''} 
+                            <Input
+                                id="phone"
+                                type="tel"
+                                value={user?.phone_number || ''}
                                 onChange={(e) => setUser({...user, phone_number: e.target.value})}
                                 placeholder={isArabic ? "أدخل رقم الهاتف" : "Enter phone number"}
+                                className="rounded-xl mt-1"
                             />
                         </div>
                         <div>
                             <Label htmlFor="country">{isArabic ? "البلد" : "Country"}</Label>
-                            <Input 
-                                id="country" 
-                                value={user?.country || ''} 
+                            <Input
+                                id="country"
+                                value={user?.country || ''}
                                 onChange={(e) => setUser({...user, country: e.target.value})}
                                 placeholder={isArabic ? "أدخل البلد" : "Enter country"}
+                                className="rounded-xl mt-1"
                             />
                         </div>
                         <div>
@@ -302,7 +304,7 @@ export default function Settings() {
                                 value={user?.affiliation_type || ""}
                                 onValueChange={(value) => setUser({...user, affiliation_type: value})}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="rounded-xl mt-1">
                                     <SelectValue placeholder={isArabic ? "اختر النوع" : "Select Type"} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -317,197 +319,164 @@ export default function Settings() {
                         </div>
                         <div>
                             <Label htmlFor="affiliation">{isArabic ? "اسم الانتماء" : "Affiliation Name"}</Label>
-                            <Input 
-                                id="affiliation" 
-                                value={user?.affiliation || ''} 
+                            <Input
+                                id="affiliation"
+                                value={user?.affiliation || ''}
                                 onChange={(e) => setUser({...user, affiliation: e.target.value})}
                                 placeholder={isArabic ? "اسم المدرسة/الجامعة/المؤسسة" : "Name of school/university/organization"}
+                                className="rounded-xl mt-1"
                             />
                         </div>
                         <CardDescription>
-                            {isArabic 
+                            {isArabic
                                 ? "معلومات الحساب الأساسية (الاسم والبريد) لا يمكن تعديلها. البيانات الأخرى يمكن تحديثها وسيتم حفظها عند الضغط على زر الحفظ في الأسفل."
                                 : "Basic account info (name and email) cannot be edited. Other data can be updated and will be saved when you click Save Changes below."
                             }
                         </CardDescription>
                     </CardContent>
                 );
-            
+
             case 'appearance':
                 return (
                     <CardContent className="space-y-6">
-                        {/* Language Selection */}
                         <div>
-                            <Label className="flex items-center gap-2 text-lg font-semibold">
+                            <Label className="flex items-center gap-2 font-semibold mb-2">
                                 <Globe className="w-5 h-5" />
                                 {isArabic ? "🌍 اللغة" : "🌍 Language"}
                             </Label>
-                            <p className="text-xs text-foreground/70 mb-3">
+                            <p className="text-xs text-muted-foreground mb-3">
                                 {isArabic ? "اختر لغة التطبيق (سيتم إعادة تحميل الصفحة)" : "Choose app language (page will reload)"}
                             </p>
                             <Select
                                 value={preferences.language}
                                 onValueChange={(value) => handlePreferenceChange('language', value)}
                             >
-                                <SelectTrigger className="w-full">
+                                <SelectTrigger className="w-full rounded-xl">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="ar">
-                                        <span className="flex items-center gap-2">
-                                            🇸🇦 العربية
-                                        </span>
-                                    </SelectItem>
-                                    <SelectItem value="en">
-                                        <span className="flex items-center gap-2">
-                                            🇺🇸 English
-                                        </span>
-                                    </SelectItem>
+                                    <SelectItem value="ar">🇸🇦 العربية</SelectItem>
+                                    <SelectItem value="en">🇺🇸 English</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        <div className="border-t pt-6"></div>
-
-                        {/* Font Size */}
-                        <div>
-                            <Label className="mb-2 block">{isArabic ? "حجم الخط" : "Font Size"}</Label>
+                        <div className="border-t pt-4">
+                            <Label className="mb-2 block font-semibold">{isArabic ? "حجم الخط" : "Font Size"}</Label>
                             <div className="flex items-center gap-4">
-                                <span className="text-sm">A</span>
-                                <input 
-                                    type="range" 
-                                    min="12" 
-                                    max="24" 
-                                    step="1" 
+                                <span className="text-sm font-bold">A</span>
+                                <input
+                                    type="range"
+                                    min="12"
+                                    max="24"
+                                    step="1"
                                     className="w-full"
                                     value={preferences.fontSize || 16}
                                     onChange={(e) => handlePreferenceChange('fontSize', parseInt(e.target.value))}
                                 />
-                                <span className="text-xl">A</span>
+                                <span className="text-xl font-bold">A</span>
                             </div>
                         </div>
 
-                        <div className="border-t pt-6"></div>
-
-                        {/* Dark Mode */}
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="dark-mode" className="flex flex-col gap-1">
-                                <span>{isArabic ? "الوضع الليلي" : "Dark Mode"}</span>
-                                <span className="text-xs font-normal leading-snug text-muted-foreground">
-                                    {isArabic 
-                                        ? "لتغيير مظهر التطبيق إلى داكن أو فاتح."
-                                        : "Switch between dark and light theme."
-                                    }
-                                </span>
-                            </Label>
-                            <Switch
-                                id="dark-mode"
-                                checked={preferences.theme === 'dark'}
-                                onCheckedChange={(checked) => handlePreferenceChange('theme', checked ? 'dark' : 'light')}
-                            />
+                        <div className="border-t pt-4">
+                            <div className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-2xl">
+                                <Label htmlFor="dark-mode" className="flex flex-col gap-1 flex-1 min-w-0 cursor-pointer">
+                                    <span className="font-semibold">{isArabic ? "🌙 الوضع الليلي" : "🌙 Dark Mode"}</span>
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        {isArabic ? "لتغيير مظهر التطبيق إلى داكن أو فاتح." : "Switch between dark and light theme."}
+                                    </span>
+                                </Label>
+                                <Switch
+                                    id="dark-mode"
+                                    checked={preferences.theme === 'dark'}
+                                    onCheckedChange={(checked) => handlePreferenceChange('theme', checked ? 'dark' : 'light')}
+                                />
+                            </div>
                         </div>
 
-                        {/* Color Scheme */}
-                        <div>
-                            <Label>{isArabic ? "نظام الألوان" : "Color Scheme"}</Label>
-                            <p className="text-xs text-foreground/70 mb-3">
+                        <div className="border-t pt-4">
+                            <Label className="font-semibold mb-1 block">{isArabic ? "🎨 نظام الألوان" : "🎨 Color Scheme"}</Label>
+                            <p className="text-xs text-muted-foreground mb-3">
                                 {isArabic ? "اختر اللون الرئيسي للتطبيق" : "Choose the primary color for the app"}
                             </p>
                             <div className="grid grid-cols-2 gap-3">
                                 {[
-                                    { value: 'default', label: 'زمردي', labelEn: 'Emerald', preview: 'bg-emerald-600' },
-                                    { value: 'blue', label: 'أزرق', labelEn: 'Blue', preview: 'bg-blue-500' },
-                                    { value: 'purple', label: 'بنفسجي', labelEn: 'Purple', preview: 'bg-purple-600' },
-                                    { value: 'orange', label: 'برتقالي', labelEn: 'Orange', preview: 'bg-orange-500' }
+                                    { value: 'default', label: 'زمردي',   labelEn: 'Emerald', preview: 'bg-emerald-600' },
+                                    { value: 'blue',    label: 'أزرق',    labelEn: 'Blue',    preview: 'bg-blue-500'   },
+                                    { value: 'purple',  label: 'بنفسجي',  labelEn: 'Purple',  preview: 'bg-purple-600' },
+                                    { value: 'orange',  label: 'برتقالي', labelEn: 'Orange',  preview: 'bg-orange-500' }
                                 ].map(option => (
                                     <div
                                         key={option.value}
                                         onClick={() => handlePreferenceChange('color_scheme', option.value)}
-                                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                                             preferences.color_scheme === option.value
                                                 ? 'border-primary bg-primary/10'
                                                 : 'border-border hover:border-primary/50'
                                         }`}
                                     >
                                         <div className={`w-10 h-10 rounded-full ${option.preview} mb-2`}></div>
-                                        <p className="font-medium text-sm">{isArabic ? option.label : option.labelEn}</p>
+                                        <p className="font-bold text-sm">{isArabic ? option.label : option.labelEn}</p>
                                         {preferences.color_scheme === option.value && (
-                                            <p className="text-xs text-primary mt-1">
-                                                ✓ {isArabic ? "محدد" : "Selected"}
-                                            </p>
+                                            <p className="text-xs text-primary mt-1">✓ {isArabic ? "محدد" : "Selected"}</p>
                                         )}
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Effects & Animations */}
-                        <div className="border-t pt-6">
-                            <Label className="flex items-center gap-2 text-lg font-semibold mb-4">
+                        <div className="border-t pt-4 space-y-3">
+                            <Label className="flex items-center gap-2 font-semibold">
                                 <Sparkles className="w-5 h-5" />
-                                {isArabic ? "✨ التأثيرات والرسوم المتحركة" : "✨ Effects & Animations"}
+                                {isArabic ? "✨ التأثيرات" : "✨ Effects"}
                             </Label>
-
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between p-4 bg-background-soft rounded-lg">
-                                    <Label htmlFor="sound-effects" className="flex flex-col gap-1">
-                                        <span className="flex items-center gap-2">
-                                            <Volume2 className="w-4 h-4" />
-                                            {isArabic ? "المؤثرات الصوتية" : "Sound Effects"}
-                                        </span>
-                                        <span className="text-xs font-normal text-muted-foreground">
-                                            {isArabic 
-                                                ? "تشغيل الأصوات عند الإجابة الصحيحة/الخاطئة"
-                                                : "Play sounds on correct/wrong answers"
-                                            }
-                                        </span>
-                                    </Label>
-                                    <Switch
-                                        id="sound-effects"
-                                        checked={preferences.sound_effects_enabled}
-                                        onCheckedChange={(checked) => handlePreferenceChange('sound_effects_enabled', checked)}
-                                    />
-                                </div>
-
-                                <div className="flex items-center justify-between p-4 bg-background-soft rounded-lg">
-                                    <Label htmlFor="confetti" className="flex flex-col gap-1">
-                                        <span>🎉 {isArabic ? "احتفالات Confetti" : "Confetti Celebrations"}</span>
-                                        <span className="text-xs font-normal text-muted-foreground">
-                                            {isArabic 
-                                                ? "إظهار احتفال عند رفع المستوى أو إنجاز"
-                                                : "Show celebration on level up or achievement"
-                                            }
-                                        </span>
-                                    </Label>
-                                    <Switch
-                                        id="confetti"
-                                        checked={preferences.confetti_enabled}
-                                        onCheckedChange={(checked) => handlePreferenceChange('confetti_enabled', checked)}
-                                    />
-                                </div>
-
-                                <div className="flex items-center justify-between p-4 bg-background-soft rounded-lg">
-                                    <Label htmlFor="animations" className="flex flex-col gap-1">
-                                        <span>🌊 {isArabic ? "تأثير الموجة" : "Wave Effect"}</span>
-                                        <span className="text-xs font-normal text-muted-foreground">
-                                            {isArabic 
-                                                ? "إظهار موجة عند الإجابة الصحيحة"
-                                                : "Show wave on correct answer"
-                                            }
-                                        </span>
-                                    </Label>
-                                    <Switch
-                                        id="animations"
-                                        checked={preferences.animations_enabled}
-                                        onCheckedChange={(checked) => handlePreferenceChange('animations_enabled', checked)}
-                                    />
-                                </div>
+                            <div className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-2xl">
+                                <Label htmlFor="sound-effects" className="flex flex-col gap-1 flex-1 min-w-0 cursor-pointer">
+                                    <span className="flex items-center gap-2 font-semibold">
+                                        <Volume2 className="w-4 h-4" />
+                                        {isArabic ? "المؤثرات الصوتية" : "Sound Effects"}
+                                    </span>
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        {isArabic ? "تشغيل الأصوات عند الإجابة الصحيحة/الخاطئة" : "Play sounds on correct/wrong answers"}
+                                    </span>
+                                </Label>
+                                <Switch
+                                    id="sound-effects"
+                                    checked={preferences.sound_effects_enabled}
+                                    onCheckedChange={(checked) => handlePreferenceChange('sound_effects_enabled', checked)}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-2xl">
+                                <Label htmlFor="confetti" className="flex flex-col gap-1 flex-1 min-w-0 cursor-pointer">
+                                    <span className="font-semibold">🎉 {isArabic ? "احتفالات Confetti" : "Confetti Celebrations"}</span>
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        {isArabic ? "إظهار احتفال عند رفع المستوى أو إنجاز" : "Show celebration on level up or achievement"}
+                                    </span>
+                                </Label>
+                                <Switch
+                                    id="confetti"
+                                    checked={preferences.confetti_enabled}
+                                    onCheckedChange={(checked) => handlePreferenceChange('confetti_enabled', checked)}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-2xl">
+                                <Label htmlFor="animations" className="flex flex-col gap-1 flex-1 min-w-0 cursor-pointer">
+                                    <span className="font-semibold">🌊 {isArabic ? "تأثير الموجة" : "Wave Effect"}</span>
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        {isArabic ? "إظهار موجة عند الإجابة الصحيحة" : "Show wave on correct answer"}
+                                    </span>
+                                </Label>
+                                <Switch
+                                    id="animations"
+                                    checked={preferences.animations_enabled}
+                                    onCheckedChange={(checked) => handlePreferenceChange('animations_enabled', checked)}
+                                />
                             </div>
                         </div>
 
-                        <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                            <AlertDescription className="text-sm text-blue-800 dark:text-blue-300">
-                                💡 {isArabic 
+                        <Alert className="bg-blue-50 border-blue-200 rounded-2xl">
+                            <AlertDescription className="text-sm text-blue-800">
+                                💡 {isArabic
                                     ? "سيتم تطبيق التغييرات بعد حفظها وإعادة تحميل الصفحة."
                                     : "Changes will be applied after saving and reloading the page."
                                 }
@@ -515,65 +484,67 @@ export default function Settings() {
                         </Alert>
                     </CardContent>
                 );
-            
+
             case 'notifications':
                 return (
-                    <CardContent className="space-y-6">
-                        <Label className="text-lg font-semibold mb-4 block">
-                            {isArabic ? "🔔 إعدادات الإشعارات" : "🔔 Notification Settings"}
-                        </Label>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 bg-background-soft rounded-lg">
-                                <Label>{isArabic ? "تذكير المراجعة اليومي" : "Daily Review Reminder"}</Label>
-                                <Switch 
+                    <CardContent className="space-y-4">
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-2xl">
+                                <Label className="flex-1 min-w-0 cursor-pointer font-semibold">
+                                    {isArabic ? "📚 تذكير المراجعة اليومي" : "📚 Daily Review Reminder"}
+                                </Label>
+                                <Switch
                                     checked={preferences.notifications?.daily_review ?? true}
                                     onCheckedChange={(c) => handlePreferenceChange('notifications', { ...preferences.notifications, daily_review: c })}
                                 />
                             </div>
-                            <div className="flex items-center justify-between p-4 bg-background-soft rounded-lg">
-                                <Label>{isArabic ? "تحديثات المجموعات" : "Group Updates"}</Label>
-                                <Switch 
+                            <div className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-2xl">
+                                <Label className="flex-1 min-w-0 cursor-pointer font-semibold">
+                                    {isArabic ? "👥 تحديثات المجموعات" : "👥 Group Updates"}
+                                </Label>
+                                <Switch
                                     checked={preferences.notifications?.group_updates ?? true}
                                     onCheckedChange={(c) => handlePreferenceChange('notifications', { ...preferences.notifications, group_updates: c })}
                                 />
                             </div>
-                            <div className="flex items-center justify-between p-4 bg-background-soft rounded-lg">
-                                <Label>{isArabic ? "إنجازات جديدة" : "New Achievements"}</Label>
-                                <Switch 
+                            <div className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-2xl">
+                                <Label className="flex-1 min-w-0 cursor-pointer font-semibold">
+                                    {isArabic ? "🏆 إنجازات جديدة" : "🏆 New Achievements"}
+                                </Label>
+                                <Switch
                                     checked={preferences.notifications?.achievements ?? true}
                                     onCheckedChange={(c) => handlePreferenceChange('notifications', { ...preferences.notifications, achievements: c })}
                                 />
                             </div>
+                        </div>
 
-                            {/* Smart Notifications Section */}
-                            <div className="mt-8 border-t pt-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 className="text-lg font-bold flex items-center gap-2">
-                                            <Zap className="w-5 h-5 text-yellow-500" />
-                                            {isArabic ? "الإشعارات الذكية" : "Smart Notifications"}
-                                        </h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            {isArabic ? "تحليلات وتوصيات مخصصة بناءً على نشاطك" : "Personalized insights based on your activity"}
-                                        </p>
-                                    </div>
-                                    <Switch 
-                                        checked={preferences.notifications?.smart_enabled ?? true}
-                                        onCheckedChange={(c) => handlePreferenceChange('notifications', { ...preferences.notifications, smart_enabled: c })}
-                                    />
+                        <div className="border-t pt-4">
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold flex items-center gap-2">
+                                        <Zap className="w-5 h-5 text-yellow-500" />
+                                        {isArabic ? "الإشعارات الذكية" : "Smart Notifications"}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        {isArabic ? "تحليلات ونصائح مخصصة لك" : "Personalized insights for you"}
+                                    </p>
                                 </div>
-
-                                {preferences.notifications?.smart_enabled !== false && smartAnalysis && (
-                                    <div className="bg-gradient-to-br from-primary/5 to-primary/10 p-4 rounded-xl space-y-3">
-                                        {smartAnalysis.smartAlerts?.map((alert, idx) => (
-                                            <div key={idx} className="flex gap-3 text-sm">
-                                                <span className="text-xl">🤖</span>
-                                                <p className="leading-relaxed">{alert}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                <Switch
+                                    checked={preferences.notifications?.smart_enabled ?? true}
+                                    onCheckedChange={(c) => handlePreferenceChange('notifications', { ...preferences.notifications, smart_enabled: c })}
+                                />
                             </div>
+
+                            {preferences.notifications?.smart_enabled !== false && smartAnalysis && (
+                                <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl space-y-3">
+                                    {smartAnalysis.smartAlerts?.map((alert, idx) => (
+                                        <div key={idx} className="flex gap-3 text-sm">
+                                            <span className="text-xl flex-shrink-0">🤖</span>
+                                            <p className="leading-relaxed">{alert}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 );
@@ -582,108 +553,105 @@ export default function Settings() {
                 return (
                     <CardContent className="space-y-6">
                         <div>
-                            <Label>{isArabic ? "مستوى الصعوبة" : "Difficulty Level"}</Label>
+                            <Label className="font-semibold mb-2 block">{isArabic ? "🎯 مستوى الصعوبة" : "🎯 Difficulty Level"}</Label>
                             <Select
                                 value={preferences.learning_level}
                                 onValueChange={(value) => handlePreferenceChange('learning_level', value)}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="rounded-xl">
                                     <SelectValue placeholder={isArabic ? "اختر المستوى" : "Select Level"} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="مبتدئ">
-                                        {isArabic ? "مبتدئ (مبسط جدًا ومناسب للأطفال)" : "Beginner (Very simple and suitable for children)"}
+                                        {isArabic ? "👶 طفل (مبسط جداً ومناسب للأطفال)" : "👶 Child (Very simple and suitable for children)"}
                                     </SelectItem>
                                     <SelectItem value="متوسط">
-                                        {isArabic ? "متوسط (معاني واضحة ومختصرة)" : "Intermediate (Clear and concise meanings)"}
+                                        {isArabic ? "📚 متوسط (معاني واضحة ومختصرة)" : "📚 Intermediate (Clear and concise meanings)"}
                                     </SelectItem>
                                     <SelectItem value="متقدم">
-                                        {isArabic ? "متقدم (معاني عميقة وتحليل لغوي)" : "Advanced (Deep meanings and linguistic analysis)"}
+                                        {isArabic ? "🎓 متقدم (معاني عميقة وتحليل لغوي)" : "🎓 Advanced (Deep meanings and linguistic analysis)"}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        
+
                         <div>
-                            <Label>{isArabic ? "هدف الكلمات الجديدة اليومي" : "Daily New Words Goal"}</Label>
-                            <Input 
-                                type="number" 
-                                value={preferences.daily_new_words_goal} 
-                                onChange={e => handlePreferenceChange('daily_new_words_goal', parseInt(e.target.value) || 0)} 
-                                min="0" 
-                            />
-                        </div>
-                        
-                        <div>
-                            <Label>{isArabic ? "هدف المراجعة اليومي" : "Daily Review Goal"}</Label>
-                            <Input 
-                                type="number" 
-                                value={preferences.daily_review_words_goal} 
-                                onChange={e => handlePreferenceChange('daily_review_words_goal', parseInt(e.target.value) || 0)} 
-                                min="0" 
+                            <Label className="font-semibold mb-2 block">{isArabic ? "📖 هدف الكلمات الجديدة يومياً" : "📖 Daily New Words Goal"}</Label>
+                            <Input
+                                type="number"
+                                value={preferences.daily_new_words_goal}
+                                onChange={e => handlePreferenceChange('daily_new_words_goal', parseInt(e.target.value) || 0)}
+                                min="0"
+                                className="rounded-xl"
                             />
                         </div>
 
-                        <div className="border-t pt-6">
-                            <Label className="text-lg font-semibold mb-3 block">
+                        <div>
+                            <Label className="font-semibold mb-2 block">{isArabic ? "🔄 هدف المراجعة اليومي" : "🔄 Daily Review Goal"}</Label>
+                            <Input
+                                type="number"
+                                value={preferences.daily_review_words_goal}
+                                onChange={e => handlePreferenceChange('daily_review_words_goal', parseInt(e.target.value) || 0)}
+                                min="0"
+                                className="rounded-xl"
+                            />
+                        </div>
+
+                        <div className="border-t pt-4">
+                            <Label className="font-semibold mb-3 block">
                                 ⏱️ {isArabic ? "إعدادات الاختبار" : "Quiz Settings"}
                             </Label>
-                            
-                            <div className="space-y-4">
-                                <div>
-                                    <Label htmlFor="quiz-time" className="flex flex-col gap-1 mb-2">
-                                        <span>{isArabic ? "مدة السؤال (بالثواني)" : "Question Time Limit (seconds)"}</span>
-                                        <span className="text-xs font-normal text-muted-foreground">
-                                            {isArabic 
-                                                ? "اضبط 0 للاختبار بدون حد زمني"
-                                                : "Set to 0 for unlimited time"
-                                            }
-                                        </span>
-                                    </Label>
-                                    <Input 
-                                        id="quiz-time"
-                                        type="number" 
-                                        value={preferences.quiz_time_limit !== undefined ? preferences.quiz_time_limit : 60} 
-                                        onChange={e => handlePreferenceChange('quiz_time_limit', parseInt(e.target.value) || 0)} 
-                                        min="0"
-                                        max="180"
-                                        placeholder="60"
-                                    />
-                                    <p className="text-xs text-muted-foreground mt-2">
-                                        {(preferences.quiz_time_limit === 0 || preferences.quiz_time_limit === undefined)
-                                            ? (isArabic ? "⏳ اختبار بدون حد زمني" : "⏳ Unlimited time quiz")
-                                            : (isArabic ? `⏰ ${preferences.quiz_time_limit} ثانية لكل سؤال` : `⏰ ${preferences.quiz_time_limit} seconds per question`)
-                                        }
-                                    </p>
-                                </div>
+                            <div>
+                                <Label htmlFor="quiz-time" className="flex flex-col gap-1 mb-2">
+                                    <span className="font-semibold">{isArabic ? "مدة السؤال (بالثواني)" : "Question Time Limit (seconds)"}</span>
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        {isArabic ? "اضبط 0 للاختبار بدون حد زمني" : "Set to 0 for unlimited time"}
+                                    </span>
+                                </Label>
+                                <Input
+                                    id="quiz-time"
+                                    type="number"
+                                    value={preferences.quiz_time_limit !== undefined ? preferences.quiz_time_limit : 60}
+                                    onChange={e => handlePreferenceChange('quiz_time_limit', parseInt(e.target.value) || 0)}
+                                    min="0"
+                                    max="180"
+                                    placeholder="60"
+                                    className="rounded-xl"
+                                />
+                                <p className="text-xs text-muted-foreground mt-2">
+                                    {(preferences.quiz_time_limit === 0 || preferences.quiz_time_limit === undefined)
+                                        ? (isArabic ? "⏳ اختبار بدون حد زمني" : "⏳ Unlimited time quiz")
+                                        : (isArabic ? `⏰ ${preferences.quiz_time_limit} ثانية لكل سؤال` : `⏰ ${preferences.quiz_time_limit} seconds per question`)
+                                    }
+                                </p>
                             </div>
                         </div>
                     </CardContent>
                 );
-            
+
             case 'source':
                 return (
                     <CardContent className="space-y-6">
                         <div>
-                            <Label>{isArabic ? "مصدر الكلمات" : "Word Source"}</Label>
+                            <Label className="font-semibold mb-2 block">{isArabic ? "📖 مصدر الكلمات" : "📖 Word Source"}</Label>
                             <Select
                                 value={preferences.source_type}
                                 onValueChange={(value) => handlePreferenceChange('source_type', value)}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="rounded-xl">
                                     <SelectValue placeholder={isArabic ? "اختر المصدر" : "Select Source"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">{isArabic ? "جميع القرآن" : "Entire Quran"}</SelectItem>
-                                    <SelectItem value="juz">{isArabic ? "حسب الأجزاء" : "By Juz"}</SelectItem>
-                                    <SelectItem value="surah">{isArabic ? "حسب السور" : "By Surah"}</SelectItem>
+                                    <SelectItem value="all">{isArabic ? "📚 جميع القرآن" : "📚 Entire Quran"}</SelectItem>
+                                    <SelectItem value="juz">{isArabic ? "📦 حسب الأجزاء" : "📦 By Juz"}</SelectItem>
+                                    <SelectItem value="surah">{isArabic ? "📄 حسب السور" : "📄 By Surah"}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
                         {preferences.source_type === 'juz' && (
                             <div>
-                                <Label>{isArabic ? "اختر الأجزاء" : "Select Juz"}</Label>
+                                <Label className="font-semibold mb-2 block">{isArabic ? "اختر الأجزاء" : "Select Juz"}</Label>
                                 <div className="grid grid-cols-5 gap-2 mt-2">
                                     {Array.from({ length: 30 }, (_, i) => i + 1).map(juz => (
                                         <Button
@@ -691,7 +659,7 @@ export default function Settings() {
                                             variant={preferences.selected_juz.includes(juz) ? "default" : "outline"}
                                             size="sm"
                                             onClick={() => handleJuzSelection(juz)}
-                                            className="h-10"
+                                            className="h-10 rounded-xl font-bold"
                                         >
                                             {juz}
                                         </Button>
@@ -702,7 +670,7 @@ export default function Settings() {
 
                         {preferences.source_type === 'surah' && (
                             <div>
-                                <Label>{isArabic ? "اختر السور" : "Select Surahs"}</Label>
+                                <Label className="font-semibold mb-2 block">{isArabic ? "اختر السور" : "Select Surahs"}</Label>
                                 <div className="grid grid-cols-2 gap-2 mt-2 max-h-60 overflow-y-auto">
                                     {SURAHS.map((surah, index) => (
                                         <Button
@@ -710,7 +678,7 @@ export default function Settings() {
                                             variant={preferences.selected_surahs.includes(surah) ? "default" : "outline"}
                                             size="sm"
                                             onClick={() => handleSurahSelection(surah)}
-                                            className="justify-start text-sm"
+                                            className="justify-start text-sm rounded-xl"
                                         >
                                             {index + 1}. {surah}
                                         </Button>
@@ -723,18 +691,13 @@ export default function Settings() {
 
             case 'card-elements':
                 return (
-                    <CardContent className="space-y-6">
-                        <div>
-                            <Label className="text-lg font-semibold mb-2 block">
-                                {isArabic ? "📝 عناصر بطاقة التعلم" : "📝 Learning Card Elements"}
-                            </Label>
-                            <p className="text-sm text-foreground/70 mb-4">
-                                {isArabic 
-                                    ? "اسحب لإعادة الترتيب، واضغط على العين لإخفاء/إظهار العنصر"
-                                    : "Drag to reorder, click eye icon to show/hide element"
-                                }
-                            </p>
-                        </div>
+                    <CardContent className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                            {isArabic
+                                ? "اسحب لإعادة الترتيب، واضغط على العين لإخفاء/إظهار العنصر"
+                                : "Drag to reorder, click eye icon to show/hide element"
+                            }
+                        </p>
 
                         <DragDropContext onDragEnd={handleDragEnd}>
                             <Droppable droppableId="word-card-elements">
@@ -758,10 +721,9 @@ export default function Settings() {
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
                                                         className={`
-                                                            flex items-center gap-3 p-4 rounded-lg border-2 transition-all
-                                                            ${snapshot.isDragging ? 'border-primary bg-primary/10 shadow-lg' : 'border-border bg-background-soft'}
+                                                            flex items-center gap-3 p-4 rounded-2xl border-2 transition-all
+                                                            ${snapshot.isDragging ? 'border-primary bg-primary/10 shadow-lg' : 'border-border bg-muted/30'}
                                                             ${!element.visible ? 'opacity-50' : ''}
-                                                            ${isArabic ? 'text-right' : 'text-left'}
                                                         `}
                                                     >
                                                         <div
@@ -770,9 +732,9 @@ export default function Settings() {
                                                         >
                                                             <GripVertical className="w-5 h-5 text-foreground/40" />
                                                         </div>
-                                                        
+
                                                         <div className="flex-1">
-                                                            <p className="font-medium">{element.label}</p>
+                                                            <p className="font-bold">{element.label}</p>
                                                             <p className="text-xs text-foreground/60">
                                                                 {isArabic ? `الترتيب: ${index + 1}` : `Order: ${index + 1}`}
                                                             </p>
@@ -800,9 +762,9 @@ export default function Settings() {
                             </Droppable>
                         </DragDropContext>
 
-                        <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                            <AlertDescription className="text-sm text-blue-800 dark:text-blue-300">
-                                💡 {isArabic 
+                        <Alert className="bg-blue-50 border-blue-200 rounded-2xl">
+                            <AlertDescription className="text-sm text-blue-800">
+                                💡 {isArabic
                                     ? "العناصر المخفية لن تظهر في بطاقات التعلم. يمكنك إعادة ترتيبها وإظهارها في أي وقت."
                                     : "Hidden elements won't appear in learning cards. You can reorder and show them anytime."
                                 }
@@ -814,16 +776,9 @@ export default function Settings() {
             case 'tafsir':
                 return (
                     <CardContent className="space-y-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <BookMarked className="w-6 h-6 text-primary" />
-                            <h3 className="text-lg font-semibold text-primary">
-                                {isArabic ? "إدارة التفاسير" : "Tafsir Management"}
-                            </h3>
-                        </div>
-
-                        <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 mb-4">
+                        <Alert className="bg-blue-50 border-blue-200 rounded-2xl">
                             <BookOpen className="w-5 h-5 text-blue-600" />
-                            <AlertDescription className="text-blue-800 dark:text-blue-200">
+                            <AlertDescription className="text-blue-800">
                                 <div className="font-bold mb-2">
                                     {isArabic ? "📥 تحميل التفاسير" : "📥 Download Tafsirs"}
                                 </div>
@@ -833,7 +788,7 @@ export default function Settings() {
                                         : "To use Tafsirs in the Quran reader, you must first download them from the import page."}
                                 </p>
                                 <Link to={createPageUrl("ImportTafsir")}>
-                                    <Button size="sm" className="bg-primary hover:bg-primary/90 gap-2">
+                                    <Button size="sm" className="bg-primary hover:bg-primary/90 gap-2 rounded-xl">
                                         <Download className="w-4 h-4" />
                                         {isArabic ? "انتقل لصفحة استيراد التفاسير" : "Go to Tafsir Import Page"}
                                     </Button>
@@ -841,100 +796,93 @@ export default function Settings() {
                             </AlertDescription>
                         </Alert>
 
-                        <div className="p-4 bg-background-soft rounded-lg">
-                            <h4 className="font-semibold mb-3 text-foreground">
-                                {isArabic ? "التفاسير المتاحة للتحميل:" : "Available Tafsirs for Download:"}
+                        <div className="p-4 bg-muted/50 rounded-2xl">
+                            <h4 className="font-bold mb-3 text-foreground">
+                                {isArabic ? "📚 التفاسير المتاحة للتحميل:" : "📚 Available Tafsirs for Download:"}
                             </h4>
                             <ul className="space-y-2 text-sm text-foreground/80">
-                                <li className="flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                    {isArabic ? "تفسير القرطبي" : "Tafsir al-Qurtubi"}
-                                </li>
-                                <li className="flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                    {isArabic ? "تفسير ابن كثير" : "Tafsir Ibn Kathir"}
-                                </li>
-                                <li className="flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                    {isArabic ? "تفسير السعدي" : "Tafsir al-Sa'di"}
-                                </li>
-                                <li className="flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                    {isArabic ? "تفسير الجلالين" : "Tafsir al-Jalalayn"}
-                                </li>
-                                <li className="flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                    {isArabic ? "التفسير الميسر" : "Tafsir al-Muyassar"}
-                                </li>
+                                {[
+                                    isArabic ? "تفسير القرطبي"  : "Tafsir al-Qurtubi",
+                                    isArabic ? "تفسير ابن كثير" : "Tafsir Ibn Kathir",
+                                    isArabic ? "تفسير السعدي"   : "Tafsir al-Sa'di",
+                                    isArabic ? "تفسير الجلالين" : "Tafsir al-Jalalayn",
+                                    isArabic ? "التفسير الميسر" : "Tafsir al-Muyassar",
+                                ].map((tafsir, idx) => (
+                                    <li key={idx} className="flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></span>
+                                        {tafsir}
+                                    </li>
+                                ))}
                             </ul>
                         </div>
                     </CardContent>
                 );
-            
+
             default:
                 return null;
         }
-    }
+    };
 
     if (isLoading) {
         return (
-            <div className="p-6 flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-primary">جارٍ تحميل الإعدادات...</p>
-                </div>
+            <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <motion.div
+                    animate={{ scale: [1, 1.15, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.4 }}
+                    className="text-6xl"
+                >
+                    ⚙️
+                </motion.div>
+                <p className="text-lg font-semibold text-muted-foreground">جاري تحميل الإعدادات...</p>
             </div>
         );
     }
 
-    const tabs = [
-      { id: 'account', label: 'الحساب', icon: UserIcon },
-      { id: 'appearance', label: 'المظهر', icon: Palette },
-      { id: 'learning', label: 'التعلم', icon: Bell },
-      { id: 'notifications', label: 'الإشعارات', icon: Bell },
-      { id: 'source', label: 'مصدر الكلمات', icon: Shield },
-      { id: 'card-elements', label: 'عناصر البطاقة', icon: HelpCircle },
-      { id: 'tafsir', label: 'إدارة التفاسير', icon: BookMarked },
-    ];
-
     return (
-        <div className="p-6 max-w-5xl mx-auto">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                <h1 className="text-3xl font-bold gradient-text mb-8">
-                    {isArabic ? "الإعدادات" : "Settings"}
-                </h1>
+        <div className="p-6 max-w-3xl mx-auto space-y-6">
 
-                <div className="grid md:grid-cols-4 gap-8">
-                    <div className="md:col-span-1">
-                        <div className="flex flex-col space-y-2">
-                           {tabs.map(tab => (
-                                <Button
-                                    key={tab.id}
-                                    variant={activeTab === tab.id ? 'default' : 'ghost'}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className="justify-start gap-2"
-                                >
-                                    <tab.icon className="w-4 h-4"/>
-                                    {tab.label}
-                                </Button>
-                           ))}
-                        </div>
-                    </div>
-                    <div className="md:col-span-3">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{tabs.find(t => t.id === activeTab)?.label}</CardTitle>
-                            </CardHeader>
-                            {renderContent()}
-                        </Card>
-                         <div className="mt-6 flex justify-end">
-                            <Button onClick={handleSaveChanges}>
-                                {isArabic ? "💾 حفظ التغييرات" : "💾 Save Changes"}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </motion.div>
+            {/* Header */}
+            <div>
+                <h1 className="text-3xl font-bold text-foreground mb-1">⚙️ الإعدادات</h1>
+                <p className="text-sm text-muted-foreground">
+                    {isArabic ? "اضبط التطبيق حسب احتياجاتك" : "Customize the app to your needs"}
+                </p>
+            </div>
+
+            {/* Horizontal scrollable tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-1">
+                {TABS.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all ${
+                            activeTab === tab.id
+                                ? 'bg-primary text-white shadow-md'
+                                : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                        }`}
+                    >
+                        <span>{tab.emoji}</span>
+                        <span>{tab.label}</span>
+                    </button>
+                ))}
+            </div>
+
+            {/* Content Card */}
+            <Card className="rounded-2xl border-2">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <span className="text-2xl">{TABS.find(t => t.id === activeTab)?.emoji}</span>
+                        <span>{TABS.find(t => t.id === activeTab)?.label}</span>
+                    </CardTitle>
+                </CardHeader>
+                {renderContent()}
+            </Card>
+
+            {/* Save Button */}
+            <Button onClick={handleSaveChanges} className="w-full h-12 rounded-2xl font-bold text-base">
+                💾 {isArabic ? "حفظ التغييرات" : "Save Changes"}
+            </Button>
+
         </div>
     );
 }

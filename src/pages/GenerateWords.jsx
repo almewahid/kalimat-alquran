@@ -321,10 +321,10 @@ Ensure aya_text is the full ayah text if Level is 'متقدم'.
 
       {/* Update Existing Toggle */}
       <Card className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/10">
-        <CardContent className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <CardContent className="p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <Zap className="w-5 h-5 text-blue-600" />
-            <Label htmlFor="update-mode" className="font-semibold text-lg">تحديث السجلات الموجودة؟</Label>
+            <Label htmlFor="update-mode" className="font-semibold text-lg cursor-pointer">تحديث السجلات الموجودة؟</Label>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">

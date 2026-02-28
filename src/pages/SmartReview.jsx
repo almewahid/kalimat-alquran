@@ -8,17 +8,13 @@ import {
   Brain,
   Calendar,
   CheckCircle,
-  XCircle,
   RotateCcw,
   Loader2,
   Filter,
-  Layers,
   Sparkles,
   BookOpen,
-  HelpCircle,
   Settings,
-  BarChart3,
-  PieChart
+  BarChart3
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -29,6 +25,7 @@ import { calculateSRS, getStatusLabel } from "@/components/utils/srs";
 import KidsWordCard from "@/components/kids/KidsWordCard";
 import SmartQuizSession from "@/components/smart-review/SmartQuizSession";
 import { useToast } from "@/components/ui/use-toast";
+import { grantKidsReward } from "@/components/kids/kidsRewardsUtils";
 
 // --- Sub-component: Quiz Mode ---
 const ReviewQuiz = ({ words, onComplete }) => {
@@ -74,21 +71,29 @@ const ReviewQuiz = ({ words, onComplete }) => {
   if (showResult) {
     const mastered = results.filter(r => r.isCorrect);
     const needsReview = results.filter(r => !r.isCorrect);
+    const stars = score >= words.length * 0.9 ? 3 : score >= words.length * 0.6 ? 2 : 1;
 
     return (
       <Card className="max-w-3xl mx-auto overflow-hidden">
-        <CardHeader className="bg-primary/5 text-center pb-8 pt-8">
-          <Sparkles className="w-16 h-16 text-yellow-500 mx-auto mb-4 animate-pulse" />
-          <CardTitle className="text-3xl font-bold mb-2 text-primary">انتهت الجلسة!</CardTitle>
+        <CardHeader className="bg-gradient-to-br from-yellow-50 via-pink-50 to-purple-50 text-center pb-8 pt-8">
+          {/* Stars */}
+          <div className="flex justify-center gap-2 mb-4">
+            {[1,2,3].map(i => (
+              <span key={i} className={`text-5xl transition-all duration-500 ${i <= stars ? 'opacity-100 scale-110' : 'opacity-20'}`} style={{animationDelay: `${i * 200}ms`}}>⭐</span>
+            ))}
+          </div>
+          <CardTitle className="text-4xl font-bold mb-2 text-purple-700">
+            {score >= words.length * 0.9 ? '🎉 ممتاز!' : score >= words.length * 0.6 ? '👏 أحسنت!' : '💪 استمر!'}
+          </CardTitle>
           <p className="text-xl text-muted-foreground">
-            نتيجتك: <span className="font-bold text-primary">{score}</span> من {words.length}
+            أجبت على <span className="font-bold text-purple-600 text-2xl">{score}</span> من <span className="font-bold">{words.length}</span> بشكل صحيح
           </p>
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-              <h3 className="font-bold text-green-800 mb-3 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" /> كلمات أتقنتها ({mastered.length})
+              <h3 className="font-bold text-green-800 mb-3 flex items-center gap-2 text-lg">
+                <CheckCircle className="w-5 h-5" /> 🌟 كلمات حفظتها ({mastered.length})
               </h3>
               <ul className="space-y-2 max-h-40 overflow-y-auto pr-2">
                 {mastered.map((r, i) => (
@@ -100,21 +105,23 @@ const ReviewQuiz = ({ words, onComplete }) => {
               </ul>
             </div>
             
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-              <h3 className="font-bold text-red-800 mb-3 flex items-center gap-2">
-                <XCircle className="w-5 h-5" /> كلمات للمراجعة ({needsReview.length})
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+              <h3 className="font-bold text-orange-800 mb-3 flex items-center gap-2 text-lg">
+                <span className="text-xl">😅</span> كلمات للمراجعة ({needsReview.length})
               </h3>
               <ul className="space-y-2 max-h-40 overflow-y-auto pr-2">
                 {needsReview.map((r, i) => (
-                  <li key={i} className="text-sm text-red-700 flex justify-between">
+                  <li key={i} className="text-sm text-orange-700 flex justify-between">
                     <span>{r.word.word}</span>
-                    <span className="text-red-600/70">{r.word.meaning}</span>
+                    <span className="text-orange-600/70">{r.word.meaning}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
-          <Button onClick={onComplete} size="lg" className="w-full">عودة للقائمة</Button>
+          <Button onClick={onComplete} size="lg" className="w-full text-lg h-14 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
+            🏠 عودة للرئيسية
+          </Button>
         </CardContent>
       </Card>
     );
@@ -186,6 +193,7 @@ export default function SmartReview() {
       audio: true
   });
   const [showStats, setShowStats] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -313,10 +321,17 @@ export default function SmartReview() {
         className: quality >= 3 ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
       });
 
+      // منح نجمة عند إتقان الكلمة في وضع الأطفال
+      if (quality >= 3) {
+        grantKidsReward({ stars: 1, source: "مراجعة ذكية" }).catch(() => {});
+      }
+
       // Move to next card if in active review
       if (reviewMode === "card" && currentReviewIndex < dueWords.length - 1) {
         setCurrentReviewIndex(prev => prev + 1);
       } else if (reviewMode === "card") {
+        // منح ميدالية عند إتمام جلسة المراجعة كاملة
+        grantKidsReward({ stars: 1, medals: 1, source: "إتمام جلسة المراجعة" }).catch(() => {});
         setReviewMode("list"); // Finished
         fetchData(); // Refresh to clear finished
       }
@@ -331,8 +346,9 @@ export default function SmartReview() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center flex-col gap-4">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <p className="text-lg font-medium text-muted-foreground animate-pulse">جاري تجهيز كلماتك... ✨</p>
       </div>
     );
   }
@@ -340,35 +356,51 @@ export default function SmartReview() {
   return (
     <div className="w-full p-6 space-y-8">
       
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Brain className="w-8 h-8 text-primary" />
-            نظام المراجعة الذكي
-          </h1>
-          <p className="text-muted-foreground">راجع كلماتك بناءً على خوارزمية التكرار المتباعد لضمان الحفظ المتقن.</p>
-        </div>
-        
-        <div className="flex gap-2 items-center">
-             <Button variant="ghost" size="icon" onClick={() => setShowStats(true)} title="الإحصائيات">
-                <BarChart3 className="w-5 h-5" />
-             </Button>
-             <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="إعدادات الاختبار">
-                <Settings className="w-5 h-5" />
-             </Button>
-             
-            {activeTab === "daily" && dueWords.length > 0 && (
-            <div className="flex gap-2 mr-2 border-r pr-2 border-gray-300 dark:border-gray-700">
-                <Button onClick={() => setReviewMode("quiz")} variant="outline" className="gap-2">
-                <HelpCircle className="w-4 h-4" />
-                اختبار سريع
-                </Button>
-                <Button onClick={() => setReviewMode("card")} className="gap-2">
-                <Layers className="w-4 h-4" />
-                ابدأ المراجعة ({dueWords.length})
-                </Button>
-            </div>
+      {/* Hero Section */}
+      <header className="bg-gradient-to-br from-yellow-50 via-pink-50 to-purple-50 rounded-2xl p-6 border border-purple-100 shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-4xl font-bold flex items-center gap-2 mb-1">
+              🌟 هيّا نراجع اليوم!
+            </h1>
+            {dueWords.length > 0 ? (
+              <p className="text-muted-foreground text-base">لديك <span className="font-bold text-purple-600">{dueWords.length}</span> كلمة تنتظرك اليوم 📚</p>
+            ) : (
+              <p className="text-muted-foreground text-base">أحسنت! راجعت كل كلمات اليوم 🎉</p>
             )}
+          </div>
+
+          <div className="flex flex-col items-end gap-2">
+            {/* Settings & Stats as icon buttons (secondary) */}
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" onClick={() => setShowStats(true)} title="الإحصائيات" className="text-muted-foreground">
+                <BarChart3 className="w-5 h-5" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="إعدادات الاختبار" className="text-muted-foreground">
+                <Settings className="w-5 h-5" />
+              </Button>
+            </div>
+
+            {/* Single primary CTA + secondary quiz link */}
+            {activeTab === "daily" && dueWords.length > 0 && (
+              <div className="flex flex-col items-end gap-1">
+                <Button
+                  onClick={() => setReviewMode("card")}
+                  size="lg"
+                  className="gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-lg px-6 py-5 rounded-xl shadow-md"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  ابدأ المراجعة ✨ ({dueWords.length} كلمات)
+                </Button>
+                <button
+                  onClick={() => setReviewMode("quiz")}
+                  className="text-sm text-purple-500 hover:text-purple-700 underline underline-offset-2 mt-1"
+                >
+                  أو جرّب الاختبار السريع ←
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -379,63 +411,41 @@ export default function SmartReview() {
                 <DialogTitle>تخصيص أنواع الأسئلة</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-                <div className="flex items-center justify-between">
-                    <label className="font-medium">اختيار من متعدد</label>
+                <div className="flex items-center justify-between gap-3">
+                    <label className="font-medium flex-1 min-w-0">اختيار من متعدد</label>
                     <Switch checked={quizPreferences.multipleChoice} onCheckedChange={(c) => setQuizPreferences({...quizPreferences, multipleChoice: c})} />
                 </div>
-                <div className="flex items-center justify-between">
-                    <label className="font-medium">مطابقة الكلمات</label>
+                <div className="flex items-center justify-between gap-3">
+                    <label className="font-medium flex-1 min-w-0">مطابقة الكلمات</label>
                     <Switch checked={quizPreferences.matching} onCheckedChange={(c) => setQuizPreferences({...quizPreferences, matching: c})} />
                 </div>
-                <div className="flex items-center justify-between">
-                    <label className="font-medium">أسئلة صوتية</label>
+                <div className="flex items-center justify-between gap-3">
+                    <label className="font-medium flex-1 min-w-0">أسئلة صوتية</label>
                     <Switch checked={quizPreferences.audio} onCheckedChange={(c) => setQuizPreferences({...quizPreferences, audio: c})} />
                 </div>
             </div>
         </DialogContent>
       </Dialog>
 
-      {/* Stats Dialog */}
+      {/* Stats Dialog — Real Stats only */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-lg">
             <DialogHeader>
-                <DialogTitle className="flex items-center gap-2"><BarChart3 className="w-5 h-5"/> إحصائيات الأداء التفصيلية</DialogTitle>
+                <DialogTitle className="flex items-center gap-2"><BarChart3 className="w-5 h-5"/> إحصائياتي 📊</DialogTitle>
             </DialogHeader>
-            <div className="grid md:grid-cols-3 gap-4 py-6">
-                <Card className="bg-blue-50 dark:bg-blue-900/20">
+            <div className="grid grid-cols-2 gap-4 py-6">
+                <Card className="bg-purple-50">
                     <CardContent className="p-4 text-center">
-                        <div className="text-lg font-bold text-blue-700 dark:text-blue-300">اختيار من متعدد</div>
-                        <div className="text-3xl font-bold mt-2">85%</div>
-                        <p className="text-xs text-muted-foreground mt-1">دقة الإجابة</p>
+                        <div className="text-sm font-bold text-purple-700 mb-1">كلمات للمراجعة اليوم</div>
+                        <div className="text-4xl font-bold">{dueWords.length}</div>
                     </CardContent>
                 </Card>
-                <Card className="bg-purple-50 dark:bg-purple-900/20">
+                <Card className="bg-green-50">
                     <CardContent className="p-4 text-center">
-                        <div className="text-lg font-bold text-purple-700 dark:text-purple-300">المطابقة</div>
-                        <div className="text-3xl font-bold mt-2">92%</div>
-                        <p className="text-xs text-muted-foreground mt-1">دقة الإجابة</p>
+                        <div className="text-sm font-bold text-green-700 mb-1">إجمالي الكلمات</div>
+                        <div className="text-4xl font-bold">{filteredWords.length}</div>
                     </CardContent>
                 </Card>
-                <Card className="bg-green-50 dark:bg-green-900/20">
-                    <CardContent className="p-4 text-center">
-                        <div className="text-lg font-bold text-green-700 dark:text-green-300">الاستماع</div>
-                        <div className="text-3xl font-bold mt-2">78%</div>
-                        <p className="text-xs text-muted-foreground mt-1">دقة الإجابة</p>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="bg-muted/30 p-4 rounded-lg">
-                <h4 className="font-bold mb-2 flex items-center gap-2"><PieChart className="w-4 h-4"/> توزيع النشاط</h4>
-                <div className="h-4 bg-gray-200 rounded-full overflow-hidden flex">
-                    <div className="h-full bg-blue-500" style={{width: '40%'}} title="اختيار من متعدد"></div>
-                    <div className="h-full bg-purple-500" style={{width: '35%'}} title="مطابقة"></div>
-                    <div className="h-full bg-green-500" style={{width: '25%'}} title="استماع"></div>
-                </div>
-                <div className="flex justify-between text-xs mt-2 text-muted-foreground">
-                    <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500"></div> اختيار من متعدد</span>
-                    <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-purple-500"></div> مطابقة</span>
-                    <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div> استماع</span>
-                </div>
             </div>
         </DialogContent>
       </Dialog>
@@ -479,7 +489,7 @@ export default function SmartReview() {
                             <h4 className="font-bold text-lg">{word.word}</h4>
                             <p className="text-sm text-muted-foreground">{word.surah_name}</p>
                           </div>
-                          <Badge variant="outline">مستحق</Badge>
+                          <Badge variant="outline" className="text-purple-600 border-purple-200 bg-purple-50">للمراجعة اليوم 📅</Badge>
                         </CardContent>
                       </Card>
                     ))}
@@ -497,26 +507,32 @@ export default function SmartReview() {
               >
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
                   <span>بطاقة {currentReviewIndex + 1} من {dueWords.length}</span>
-                  <Button variant="ghost" size="sm" onClick={() => setReviewMode("list")}>إلغاء</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setReviewMode("list")} className="text-muted-foreground">
+                    ← رجوع
+                    <span className="text-xs mr-1 opacity-60">يمكنك الرجوع في أي وقت</span>
+                  </Button>
                 </div>
 
-                <KidsWordCard word={dueWords[currentReviewIndex]} />
+                <KidsWordCard 
+                  word={dueWords[currentReviewIndex]} 
+                  onMarkLearned={() => handleReviewAction(dueWords[currentReviewIndex], 5)}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                   <Button 
                     onClick={() => handleReviewAction(dueWords[currentReviewIndex], 1)} 
                     variant="outline" 
-                    className="h-16 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                    className="h-16 text-lg border-orange-200 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300"
                   >
-                    <XCircle className="w-5 h-5 ml-2" />
-                    بحاجة لمراجعة
+                    <span className="text-2xl ml-2">😅</span>
+                    صعبة — للمراجعة لاحقًا
                   </Button>
                   <Button 
                     onClick={() => handleReviewAction(dueWords[currentReviewIndex], 5)} 
-                    className="h-16 bg-green-600 hover:bg-green-700"
+                    className="h-16 text-lg bg-green-500 hover:bg-green-600"
                   >
-                    <CheckCircle className="w-5 h-5 ml-2" />
-                    أتقنتها
+                    <span className="text-2xl ml-2">🌟</span>
+                    حفظتها!
                   </Button>
                 </div>
               </motion.div>
@@ -536,20 +552,32 @@ export default function SmartReview() {
         {/* --- Tab: Card Library --- */}
         <TabsContent value="library" className="mt-6">
           
-          {/* Filters */}
-          <div className="bg-card p-4 rounded-lg shadow-sm mb-6 flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium text-sm">تصفية حسب:</span>
+          {/* Filters — hidden behind toggle */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="gap-2 text-base h-10 px-4"
+              >
+                <Filter className="w-4 h-4" />
+                🔍 تصفية {showFilters ? "▲" : "▼"}
+              </Button>
+              <div className="text-sm text-muted-foreground">
+                النتائج: {displayedLibraryWords.length} كلمة
+              </div>
             </div>
-            
+
+            {showFilters && (
+              <div className="bg-card p-4 rounded-lg shadow-sm mt-3 flex flex-wrap gap-4 items-center">
             <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="المستوى" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">كل المستويات</SelectItem>
-                <SelectItem value="مبتدئ">مبتدئ</SelectItem>
+                <SelectItem value="مبتدئ">طفل</SelectItem>
                 <SelectItem value="متوسط">متوسط</SelectItem>
                 <SelectItem value="متقدم">متقدم</SelectItem>
               </SelectContent>
@@ -588,11 +616,9 @@ export default function SmartReview() {
                 <SelectItem value="alphabetical">أبجدي</SelectItem>
               </SelectContent>
             </Select>
-
-            <div className="mr-auto text-sm text-muted-foreground">
-              النتائج: {displayedLibraryWords.length} كلمة
-            </div>
-            </div>
+              </div>
+            )}
+          </div>
 
           {/* Cards Grid */}
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -618,17 +644,17 @@ export default function SmartReview() {
                     <Button 
                       onClick={() => handleReviewAction(word, 1)} 
                       variant="outline" 
-                      className="flex-1 text-xs h-8 border-yellow-200 hover:bg-yellow-50"
+                      className="flex-1 text-base h-12 border-yellow-200 hover:bg-yellow-50"
                     >
-                      <RotateCcw className="w-3 h-3 ml-1" />
+                      <RotateCcw className="w-4 h-4 ml-1" />
                        مراجعة
                     </Button>
                     <Button 
                       onClick={() => handleReviewAction(word, 5)} 
                       variant="outline" 
-                      className="flex-1 text-xs h-8 border-green-200 hover:bg-green-50"
+                      className="flex-1 text-base h-12 border-green-200 hover:bg-green-50"
                     >
-                      <CheckCircle className="w-3 h-3 ml-1" />
+                      <CheckCircle className="w-4 h-4 ml-1" />
                       مُدرَكة
                     </Button>
                   </div>

@@ -25,13 +25,6 @@ export default function KidsGame({ words = [], onComplete }) {
       color: "from-purple-400 to-indigo-500",
       description: "اعثر على الأزواج المتطابقة"
     },
-    {
-      id: "quiz",
-      title: "اختبار سريع",
-      icon: "⚡",
-      color: "from-yellow-400 to-orange-500",
-      description: "أجب على الأسئلة بسرعة"
-    }
   ];
 
   if (gameMode === "menu") {
@@ -47,7 +40,7 @@ export default function KidsGame({ words = [], onComplete }) {
           <p className="text-lg text-muted-foreground">اختر لعبتك المفضلة!</p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 gap-6">
           {games.map((game, idx) => (
             <motion.div
               key={game.id}
@@ -78,10 +71,6 @@ export default function KidsGame({ words = [], onComplete }) {
 
   if (gameMode === "memory") {
     return <MemoryGame words={words} onBack={() => setGameMode("menu")} onComplete={onComplete} />;
-  }
-
-  if (gameMode === "quiz") {
-    return <QuickQuizGame words={words} onBack={() => setGameMode("menu")} onComplete={onComplete} />;
   }
 
   return null;
@@ -213,7 +202,7 @@ function MemoryGame({ words, onBack, onComplete }) {
   const [moves, setMoves] = useState(0);
 
   useEffect(() => {
-    const gameWords = words.slice(0, 6);
+    const gameWords = words.slice(0, 3); // 3 أزواج = 6 كروت فقط
     const cardPairs = [];
     gameWords.forEach((word) => {
       cardPairs.push({ id: word.id + "-word", type: "word", content: word.word, matchId: word.id });
@@ -238,8 +227,8 @@ function MemoryGame({ words, onBack, onComplete }) {
         confetti({ spread: 100, startVelocity: 30 });
         setTimeout(() => setFlipped([]), 500);
         
-        if (matched.length + 1 === 6) {
-          setTimeout(() => onComplete({ moves, stars: moves < 15 ? 3 : moves < 20 ? 2 : 1 }), 1000);
+        if (matched.length + 1 === 3) { // 3 أزواج
+          setTimeout(() => onComplete({ moves, stars: moves < 6 ? 3 : moves < 10 ? 2 : 1 }), 1000);
         }
       } else {
         setTimeout(() => setFlipped([]), 1000);

@@ -1,45 +1,74 @@
 import React, { useState, useEffect } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Crown, Gift, Loader2, ArrowRight } from "lucide-react";
-import RewardsDisplay from "@/components/kids/RewardsDisplay";
+import { Crown, Gift, Loader2, ArrowRight, Gamepad2 } from "lucide-react";
+import RewardsDisplay, { RewardAnimation } from "@/components/kids/RewardsDisplay";
+import KidsGame from "@/components/kids/KidsGame";
+import { grantKidsReward } from "@/components/kids/kidsRewardsUtils";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 const STAT_CARDS = [
-  { key: "stars",    emoji: "⭐", label: "نجمة",     from: "from-yellow-400", to: "to-orange-400",  text: "text-yellow-700", bg: "from-yellow-50 to-orange-50",   border: "border-yellow-300"  },
-  { key: "medals",   emoji: "🥇", label: "ميدالية",  from: "from-blue-400",   to: "to-indigo-400",  text: "text-blue-700",   bg: "from-blue-50 to-indigo-50",     border: "border-blue-300"    },
-  { key: "trophies", emoji: "🏆", label: "كأس",      from: "from-purple-400", to: "to-pink-400",    text: "text-purple-700", bg: "from-purple-50 to-pink-50",     border: "border-purple-300"  },
+  { key: "stars",    emoji: "⭐", label: "نجمة",    bg: "from-yellow-50 to-orange-50",  border: "border-yellow-300", text: "text-yellow-700" },
+  { key: "medals",   emoji: "🥇", label: "ميدالية", bg: "from-blue-50 to-indigo-50",    border: "border-blue-300",   text: "text-blue-700"   },
+  { key: "trophies", emoji: "🏆", label: "كأس",     bg: "from-purple-50 to-pink-50",    border: "border-purple-300", text: "text-purple-700" },
 ];
 
 export default function KidsRewards() {
-  const [rewards, setRewards] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [rewards, setRewards]       = useState(null);
+  const [gameWords, setGameWords]   = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [showGame, setShowGame]     = useState(false);
+  const [showReward, setShowReward] = useState(null);
 
-  useEffect(() => { loadRewards(); }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const loadRewards = async () => {
+  const loadData = async () => {
     try {
       const user = await supabaseClient.auth.me();
-      const [userRewards] = await supabaseClient.entities.KidsReward.filter({
-        user_email: user.email
-      });
 
+      // تحميل المكافآت
+      const [userRewards] = await supabaseClient.entities.KidsReward.filter({ user_email: user.email });
       if (!userRewards) {
         const newRewards = await supabaseClient.entities.KidsReward.create({
-          user_email: user.email,
           stars: 0, medals: 0, trophies: 0, level: 1, avatar: "🌟"
         });
         setRewards(newRewards);
       } else {
         setRewards(userRewards);
       }
+
+      // تحميل كلمات المراجعة للألعاب (من الـ flashcards)
+      const flashcards = await supabaseClient.entities.FlashCard.filter({ user_email: user.email });
+      if (flashcards.length > 0) {
+        const wordIds = [...new Set(flashcards.map(fc => fc.word_id))].slice(0, 10);
+        const words = await supabaseClient.entities.QuranicWord.filter({ id: { $in: wordIds } });
+        setGameWords(words);
+      }
     } catch (error) {
-      console.error("Error loading rewards:", error);
+      console.error("Error loading data:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGameComplete = async (result) => {
+    const { score, stars, moves } = result;
+    const earnedMedal   = (score !== undefined && score >= 80) || (moves !== undefined && moves < 6);
+    const earnedTrophy  = score !== undefined && score >= 100;
+
+    await grantKidsReward({
+      stars:    stars || 1,
+      medals:   earnedMedal  ? 1 : 0,
+      trophies: earnedTrophy ? 1 : 0,
+      source:   "ألعاب المراجعة"
+    });
+
+    setShowGame(false);
+    setShowReward(earnedTrophy ? "trophy" : earnedMedal ? "medal" : "star");
+    await loadData();
   };
 
   if (loading) {
@@ -52,25 +81,33 @@ export default function KidsRewards() {
     );
   }
 
-  const collectedRewards  = rewards?.collected_rewards || [];
-  const level             = rewards?.level || 1;
-  const nextLevelStars    = level * 10;
-  const currentStars      = rewards?.stars || 0;
-  const progressToNext    = Math.min(100, ((currentStars % nextLevelStars) / nextLevelStars) * 100);
+  // ── وضع اللعبة ──
+  if (showGame) {
+    return (
+      <div className="relative">
+        <div className="px-4 pt-4">
+          <button
+            onClick={() => setShowGame(false)}
+            className="inline-flex items-center gap-2 text-sm text-foreground/50 hover:text-foreground transition-colors"
+          >
+            <ArrowRight className="w-4 h-4" />
+            العودة للمكافآت
+          </button>
+        </div>
+        <KidsGame words={gameWords} onComplete={handleGameComplete} />
+        {showReward && <RewardAnimation type={showReward} onComplete={() => setShowReward(null)} />}
+      </div>
+    );
+  }
+
+  const collectedRewards = rewards?.collected_rewards || [];
+  const level            = rewards?.level || 1;
+  const nextLevelStars   = level * 10;
+  const currentStars     = rewards?.stars || 0;
+  const progressToNext   = Math.min(100, ((currentStars % nextLevelStars) / nextLevelStars) * 100);
 
   return (
     <div className="p-4 max-w-2xl mx-auto">
-
-      {/* زر العودة */}
-      <div className="mb-4">
-        <Link
-          to={createPageUrl("KidsMode")}
-          className="inline-flex items-center gap-2 text-sm text-foreground/50 hover:text-foreground transition-colors"
-        >
-          <ArrowRight className="w-4 h-4" />
-          العودة لوضع الأطفال
-        </Link>
-      </div>
 
       {/* ── الهيدر ── */}
       <motion.div
@@ -85,7 +122,7 @@ export default function KidsRewards() {
         >
           {rewards?.avatar || "🌟"}
         </motion.div>
-        <h1 className="text-3xl font-bold gradient-text mb-1">مكافآتي</h1>
+        <h1 className="text-3xl font-bold mb-1">مكافآتي</h1>
         <p className="text-foreground/60 text-sm">كل الجوائز التي جمعتها!</p>
       </motion.div>
 
@@ -112,7 +149,6 @@ export default function KidsRewards() {
             </div>
             <span className="text-2xl font-bold text-purple-600">{Math.round(progressToNext)}%</span>
           </div>
-
           <div className="w-full bg-muted rounded-full h-5 overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
@@ -120,9 +156,7 @@ export default function KidsRewards() {
               transition={{ duration: 1.2, ease: "easeOut" }}
               className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-end pr-2"
             >
-              {progressToNext > 15 && (
-                <span className="text-white text-xs font-bold">🌟</span>
-              )}
+              {progressToNext > 15 && <span className="text-white text-xs font-bold">🌟</span>}
             </motion.div>
           </div>
         </CardContent>
@@ -139,7 +173,6 @@ export default function KidsRewards() {
             whileHover={{ scale: 1.05 }}
           >
             <Card className={`overflow-hidden border-2 ${border}`}>
-              <div className={`h-2 bg-gradient-to-r from-${key === "stars" ? "yellow" : key === "medals" ? "blue" : "purple"}-400 to-${key === "stars" ? "orange" : key === "medals" ? "indigo" : "pink"}-400`} />
               <CardContent className={`p-3 text-center bg-gradient-to-br ${bg}`}>
                 <div className="text-3xl mb-1">{emoji}</div>
                 <p className={`text-2xl font-bold ${text}`}>{rewards?.[key] || 0}</p>
@@ -149,6 +182,41 @@ export default function KidsRewards() {
           </motion.div>
         ))}
       </div>
+
+      {/* ── قسم الألعاب ── */}
+      <Card className="overflow-hidden shadow-md mb-5 border-2 border-green-300">
+        <div className="h-3 bg-gradient-to-r from-green-400 to-emerald-500" />
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Gamepad2 className="w-5 h-5 text-green-600" />
+            <h2 className="font-bold text-lg">العب وتعلّم!</h2>
+          </div>
+
+          {gameWords.length >= 3 ? (
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-3">
+                لديك <span className="font-bold text-green-600">{gameWords.length}</span> كلمة مراجعة جاهزة للعب
+              </p>
+              <Button
+                onClick={() => setShowGame(true)}
+                className="w-full h-14 text-lg font-bold rounded-2xl bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white border-0"
+              >
+                🎮 العب الآن!
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-muted-foreground">
+              <div className="text-4xl mb-2">📚</div>
+              <p className="text-sm font-medium">تعلّم كلمات أولاً للعب!</p>
+              <Link to={createPageUrl("Learn")}>
+                <Button variant="outline" className="mt-3 rounded-2xl border-green-300 text-green-700">
+                  ⭐ ابدأ التعلم
+                </Button>
+              </Link>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ── سجل المكافآت ── */}
       <Card className="overflow-hidden shadow-md border border-border">
@@ -160,19 +228,14 @@ export default function KidsRewards() {
           </div>
 
           {collectedRewards.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              <div className="text-6xl mb-3">🎁</div>
+            <div className="text-center py-8 text-muted-foreground">
+              <div className="text-5xl mb-3">🎁</div>
               <p className="font-bold text-base mb-1">لا توجد مكافآت بعد</p>
-              <p className="text-sm opacity-70">العب الألعاب لتحصل على مكافآت!</p>
-              <Link to={createPageUrl("KidsGames")}>
-                <button className="mt-4 px-6 py-3 rounded-2xl bg-gradient-to-r from-pink-400 to-rose-500 text-white font-bold text-sm shadow">
-                  🎮 العب الآن
-                </button>
-              </Link>
+              <p className="text-sm opacity-70">تعلّم واحصل على نجوم!</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {collectedRewards.map((reward, idx) => (
+              {[...collectedRewards].reverse().map((reward, idx) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -183,7 +246,7 @@ export default function KidsRewards() {
                   <Card className="border border-border hover:shadow-md transition-shadow">
                     <CardContent className="p-3 text-center">
                       <div className="text-4xl mb-1">{reward.icon}</div>
-                      <p className="text-xs font-medium text-foreground line-clamp-1">{reward.name}</p>
+                      <p className="text-xs font-bold text-foreground line-clamp-1">{reward.name}</p>
                       <p className="text-xs text-foreground/40 mt-0.5">
                         {new Date(reward.earned_date).toLocaleDateString("ar-SA")}
                       </p>
@@ -196,6 +259,7 @@ export default function KidsRewards() {
         </CardContent>
       </Card>
 
+      {showReward && <RewardAnimation type={showReward} onComplete={() => setShowReward(null)} />}
     </div>
   );
 }

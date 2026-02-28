@@ -74,14 +74,18 @@ export const supabaseClient = {
 }
 
 // Entity wrapper
-const createEntityWrapper = (tableName) => {
-  const dateColumn = tableName === 'app_settings' || tableName === 'app_user_version' || tableName === 'app_users_version'
-    ? 'updated_at'
-    : 'created_date';
-  
-  const updateColumn = tableName === 'app_settings' || tableName === 'app_user_version' || tableName === 'app_users_version'
-    ? 'updated_at'
-    : 'updated_date';
+const createEntityWrapper = (tableName, options = {}) => {
+  const dateColumn = options.dateColumn || (
+    tableName === 'app_settings' || tableName === 'app_user_version' || tableName === 'app_users_version'
+      ? 'updated_at'
+      : 'created_date'
+  );
+
+  const updateColumn = options.updateColumn || (
+    tableName === 'app_settings' || tableName === 'app_user_version' || tableName === 'app_users_version'
+      ? 'updated_at'
+      : 'updated_date'
+  );
 
   const tablesWithoutUserId = [
     'app_settings', 'quran_ayahs', 'quranic_words', 'quran_tafsirs',
@@ -314,6 +318,8 @@ supabaseClient.entities = {
   GroupMessage: createEntityWrapper('group_messages'),
   UserCourseProgress: createEntityWrapper('user_course_progress'),
   QuranTafsir: createEntityWrapper('quran_tafsirs'),
+  WordProgress: createEntityWrapper('word_progress'),
+  KidsReward: createEntityWrapper('kids_rewards', { dateColumn: 'created_at', updateColumn: 'updated_at' }),
 }
 
 export default supabaseClient

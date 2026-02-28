@@ -1,427 +1,237 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/components/api/supabaseClient";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  AreaChart,
-  Area
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer
 } from "recharts";
-import { 
-  Loader2, 
-  TrendingUp, 
-  Users, 
-  Award, 
-  BookOpen, 
-  Target, 
-  Calendar,
-  Download,
-  Share2,
-  AlertCircle,
-  CheckCircle2,
-  Lightbulb
-} from "lucide-react";
-import ShareButton from "@/components/common/ShareButton";
 import { motion } from "framer-motion";
+import ShareButton from "@/components/common/ShareButton";
+
+const STATS = [
+  { key: "wordsLearned", emoji: "📚", label: "كلمة تعلّمتها",    color: "bg-blue-50 border-blue-200",    text: "text-blue-600"   },
+  { key: "totalXP",      emoji: "⭐", label: "نقطة جمعتها",      color: "bg-amber-50 border-amber-200",   text: "text-amber-600"  },
+  { key: "quizAvg",      emoji: "🎯", label: "متوسط نتائجك",     color: "bg-purple-50 border-purple-200", text: "text-purple-600" },
+  { key: "streak",       emoji: "🔥", label: "يوم متتالي",        color: "bg-orange-50 border-orange-200", text: "text-orange-500" },
+];
+
+const SUGGESTION_CONFIG = {
+  success: { emoji: "🌟", card: "border-green-200 bg-green-50"  },
+  warning: { emoji: "⚠️", card: "border-yellow-200 bg-yellow-50"},
+  info:    { emoji: "💡", card: "border-blue-200 bg-blue-50"    },
+};
 
 export default function Reports() {
-  const [activeTab, setActiveTab] = useState("overview");
-
   const { data, isLoading, error } = useQuery({
     queryKey: ["reportsData"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("غير مسجل دخول");
 
-      // جلب بيانات المستخدم الحالي
       const [
-        { data: userProgress, error: progressError },
-        { data: quizSessions, error: quizError },
-        { data: allProgress, error: allProgressError },
-        { data: allQuizSessions, error: allQuizError },
+        { data: userProgress },
+        { data: quizSessions },
+        { data: allProgress },
+        { data: allQuizSessions },
       ] = await Promise.all([
-        supabase
-          .from("user_progress")
+        supabase.from("user_progress")
           .select("total_xp, current_level, words_learned, consecutive_login_days")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("quiz_sessions")
+          .eq("user_id", user.id).maybeSingle(),
+        supabase.from("quiz_sessions")
           .select("score, correct_answers, created_date")
-          .eq("user_id", user.id)
-          .order("created_date", { ascending: true }),
-        supabase
-          .from("user_progress")
-          .select("total_xp, words_learned"),
-        supabase
-          .from("quiz_sessions")
-          .select("score"),
+          .eq("user_id", user.id).order("created_date", { ascending: true }),
+        supabase.from("user_progress").select("total_xp, words_learned"),
+        supabase.from("quiz_sessions").select("score"),
       ]);
 
-      if (progressError) throw progressError;
-      if (quizError) throw quizError;
-      if (allProgressError) throw allProgressError;
-      if (allQuizError) throw allQuizError;
-
-      // إحصائيات المستخدم
       const userQuizSessions = quizSessions || [];
+
       const stats = {
         wordsLearned: userProgress?.words_learned || 0,
-        totalXP: userProgress?.total_xp || 0,
-        level: userProgress?.current_level || 1,
-        streak: userProgress?.consecutive_login_days || 0,
-        quizAvg: userQuizSessions.length > 0
-          ? Math.round(userQuizSessions.reduce((sum, s) => sum + (s.score || 0), 0) / userQuizSessions.length)
+        totalXP:      userProgress?.total_xp || 0,
+        level:        userProgress?.current_level || 1,
+        streak:       userProgress?.consecutive_login_days || 0,
+        quizAvg:      userQuizSessions.length > 0
+          ? Math.round(userQuizSessions.reduce((s, q) => s + (q.score || 0), 0) / userQuizSessions.length)
           : 0,
       };
 
-      // المتوسطات العامة
       const progressList = allProgress || [];
-      const quizList = allQuizSessions || [];
+      const quizList     = allQuizSessions || [];
       const averages = {
-        words: progressList.length > 0
-          ? Math.round(progressList.reduce((sum, p) => sum + (p.words_learned || 0), 0) / progressList.length)
-          : 0,
-        xp: progressList.length > 0
-          ? Math.round(progressList.reduce((sum, p) => sum + (p.total_xp || 0), 0) / progressList.length)
-          : 0,
-        quizAvg: quizList.length > 0
-          ? Math.round(quizList.reduce((sum, s) => sum + (s.score || 0), 0) / quizList.length)
-          : 0,
+        words:   progressList.length > 0 ? Math.round(progressList.reduce((s, p) => s + (p.words_learned || 0), 0) / progressList.length) : 0,
+        quizAvg: quizList.length > 0    ? Math.round(quizList.reduce((s, q) => s + (q.score || 0), 0) / quizList.length) : 0,
       };
 
-      // سجل التعلم الشهري (آخر 6 أشهر)
       const monthNames = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
       const monthlyMap = {};
       userQuizSessions.forEach(session => {
         const date = new Date(session.created_date);
-        const key = `${date.getFullYear()}-${date.getMonth()}`;
-        if (!monthlyMap[key]) {
-          monthlyMap[key] = { name: monthNames[date.getMonth()], words: 0, _ts: date.getTime() };
-        }
+        const key  = `${date.getFullYear()}-${date.getMonth()}`;
+        if (!monthlyMap[key]) monthlyMap[key] = { name: monthNames[date.getMonth()], words: 0, _ts: date.getTime() };
         monthlyMap[key].words += session.correct_answers || 0;
       });
-      const history = Object.values(monthlyMap)
-        .sort((a, b) => a._ts - b._ts)
-        .slice(-6)
-        .map(({ name, words }) => ({ name, words }));
+      const history = Object.values(monthlyMap).sort((a, b) => a._ts - b._ts).slice(-6).map(({ name, words }) => ({ name, words }));
 
-      // التوصيات
       const suggestions = [];
       if (stats.streak >= 7) {
-        suggestions.push({ type: "success", title: "استمرارية رائعة!", description: `حافظت على ${stats.streak} يوماً متتالياً. أنت في المسار الصحيح!` });
+        suggestions.push({ type: "success", title: "استمرارية رائعة! 🎉", description: `حافظت على ${stats.streak} يوماً متتالياً، أنت بطل!` });
       } else if (stats.streak < 3) {
-        suggestions.push({ type: "warning", title: "حافظ على استمراريتك", description: "حاول الدراسة يومياً لبناء عادة قوية.", actionLink: "/Learn", actionLabel: "ابدأ الآن" });
+        suggestions.push({ type: "warning", title: "تذكّر تدرس كل يوم", description: "حاول الدراسة يومياً لبناء عادة قوية.", actionLink: "/Learn", actionLabel: "ابدأ الآن 🚀" });
       }
       if (stats.quizAvg >= averages.quizAvg) {
-        suggestions.push({ type: "success", title: "دقة ممتازة في الاختبارات", description: `دقتك ${stats.quizAvg}% تفوق متوسط المستخدمين ${averages.quizAvg}%.` });
+        suggestions.push({ type: "success", title: "دقتك ممتازة! 🎯", description: `نتائجك ${stats.quizAvg}% أفضل من كثير من المستخدمين.` });
       } else {
-        suggestions.push({ type: "info", title: "حسّن دقتك في الاختبارات", description: "راجع الكلمات الصعبة وكررها أكثر.", actionLink: "/SmartReview", actionLabel: "مراجعة ذكية" });
+        suggestions.push({ type: "info", title: "راجع الكلمات الصعبة", description: "جرّب المراجعة الذكية لتحسين نتائجك.", actionLink: "/SmartReview", actionLabel: "مراجعة ذكية 🧠" });
       }
       if (stats.wordsLearned >= averages.words) {
-        suggestions.push({ type: "success", title: "تقدم ممتاز في الكلمات", description: `تعلمت ${stats.wordsLearned} كلمة، أكثر من المتوسط العام ${averages.words}.` });
+        suggestions.push({ type: "success", title: "تقدّم ممتاز في الكلمات! 📚", description: `تعلّمت ${stats.wordsLearned} كلمة، أحسنت!` });
       } else {
-        suggestions.push({ type: "info", title: "تعلّم المزيد من الكلمات", description: "ابدأ جلسة تعلم جديدة لزيادة عدد الكلمات التي تتقنها.", actionLink: "/Learn", actionLabel: "تعلّم الآن" });
+        suggestions.push({ type: "info", title: "تعلّم المزيد من الكلمات", description: "ابدأ جلسة تعلّم جديدة الآن.", actionLink: "/Learn", actionLabel: "تعلّم الآن 📖" });
       }
 
-      return { stats, averages, history, suggestions };
+      return { stats, history, suggestions };
     }
   });
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <motion.div
+          animate={{ scale: [1, 1.15, 1] }}
+          transition={{ repeat: Infinity, duration: 1.4 }}
+          className="text-6xl"
+        >
+          📊
+        </motion.div>
+        <p className="text-lg font-semibold text-muted-foreground">جاري تحميل تقريرك...</p>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="p-6 text-center space-y-2">
-        <p className="text-red-500">حدث خطأ أثناء تحميل التقرير. يرجى المحاولة لاحقاً.</p>
-        {error && <p className="text-xs text-muted-foreground font-mono">{error.message}</p>}
+      <div className="p-6 text-center">
+        <p className="text-5xl mb-4">😕</p>
+        <p className="font-semibold text-foreground/70">حدث خطأ أثناء تحميل التقرير</p>
+        <p className="text-xs text-muted-foreground mt-1">{error?.message}</p>
       </div>
     );
   }
 
-  const { stats, averages, history, suggestions } = data;
-
-  // Comparison Data for Charts
-  const comparisonData = [
-    { name: "الكلمات المتعلمة", user: stats.wordsLearned, avg: averages.words },
-    { name: "نقاط الخبرة (XP)", user: stats.totalXP, avg: averages.xp },
-  ];
-
-  const quizComparisonData = [
-    { name: "دقة الإجابات", user: stats.quizAvg, avg: averages.quizAvg }
-  ];
-
-  // App details for sharing
+  const { stats, history, suggestions } = data;
   const appShareUrl = window.location.origin;
-  const storeUrl = "https://play.google.com/store/apps/details?id=com.kalimat.quran";
-  
-  const shareText = `
-📊 تقريري في تطبيق كلمات القرآن:
-✨ المستوى: ${stats.level}
-📚 الكلمات المتعلمة: ${stats.wordsLearned}
-🏆 النقاط: ${stats.totalXP}
-🔥 التتابع اليومي: ${stats.streak} يوم
+  const shareText = `📊 تقريري في كلمات القرآن:\n✨ المستوى: ${stats.level}\n📚 كلمة تعلّمتها: ${stats.wordsLearned}\n⭐ النقاط: ${stats.totalXP}\n🔥 التتابع اليومي: ${stats.streak} يوم\nانضم إليّ! ${appShareUrl}`.trim();
 
-انضم إلي وابدأ رحلة تعلم كلمات القرآن!
-حمل التطبيق: ${storeUrl}
-أو زر موقعنا: ${appShareUrl}
-  `.trim();
+  const statsValues = {
+    wordsLearned: stats.wordsLearned,
+    totalXP:      stats.totalXP,
+    quizAvg:      `${stats.quizAvg}%`,
+    streak:       stats.streak,
+  };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold gradient-text flex items-center gap-2">
-              <TrendingUp className="w-8 h-8 text-primary" />
-              التقارير والإحصائيات
-            </h1>
-            <p className="text-foreground/70">تحليل شامل لتقدمك وأدائك مقارنة بالمستخدمين الآخرين</p>
-          </div>
-          <ShareButton 
-            title="تقرير تقدمي في كلمات القرآن" 
-            text={shareText}
-            url={appShareUrl}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          />
+    <div className="p-6 max-w-2xl mx-auto space-y-6">
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-1">📊 تقريرك!</h1>
+          <p className="text-sm text-muted-foreground">
+            أنت في المستوى <strong>{stats.level}</strong> — واصل التقدم! 💪
+          </p>
         </div>
+        <ShareButton
+          title="تقرير تقدمي في كلمات القرآن"
+          text={shareText}
+          url={appShareUrl}
+        />
+      </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard 
-            icon={BookOpen} 
-            label="الكلمات المتعلمة" 
-            value={stats.wordsLearned} 
-            subValue={`${stats.wordsLearned - averages.words > 0 ? '+' : ''}${stats.wordsLearned - averages.words} عن المتوسط`}
-            trend={stats.wordsLearned >= averages.words ? "up" : "down"}
-            color="blue"
-          />
-          <StatCard 
-            icon={Award} 
-            label="نقاط الخبرة (XP)" 
-            value={stats.totalXP} 
-            subValue={`المستوى ${stats.level}`}
-            color="purple"
-          />
-          <StatCard 
-            icon={Target} 
-            label="دقة الاختبارات" 
-            value={`${stats.quizAvg}%`} 
-            subValue={`المتوسط العام ${averages.quizAvg}%`}
-            trend={stats.quizAvg >= averages.quizAvg ? "up" : "down"}
-            color="green"
-          />
-          <StatCard 
-            icon={Calendar} 
-            label="الاستمرارية" 
-            value={`${stats.streak} أيام`} 
-            subValue="تتابع يومي"
-            color="orange"
-          />
-        </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {STATS.map((stat) => (
+          <Card key={stat.key} className={`rounded-2xl border-2 ${stat.color}`}>
+            <CardContent className="p-4 text-center">
+              <div className="text-3xl mb-2">{stat.emoji}</div>
+              <div className={`text-2xl font-bold ${stat.text}`}>{statsValues[stat.key]}</div>
+              <p className="text-xs text-muted-foreground mt-1 leading-tight">{stat.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-            <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
-            <TabsTrigger value="comparison">مقارنة الأداء</TabsTrigger>
-            <TabsTrigger value="suggestions">التوصيات</TabsTrigger>
-          </TabsList>
+      {/* Tabs */}
+      <Tabs defaultValue="progress" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 rounded-2xl h-11">
+          <TabsTrigger value="progress"    className="rounded-xl text-sm font-bold">📈 تقدمي</TabsTrigger>
+          <TabsTrigger value="suggestions" className="rounded-xl text-sm font-bold">💡 نصائح</TabsTrigger>
+        </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Learning History Chart */}
-              <Card className="col-span-1 md:col-span-2">
-                <CardHeader>
-                  <CardTitle>تطور تعلم الكلمات</CardTitle>
-                  <CardDescription>عدد الكلمات التي تعلمتها عبر الزمن</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  {history && history.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={history}>
-                        <defs>
-                          <linearGradient id="colorWords" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#1E7855" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#1E7855" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip 
-                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                        />
-                        <Area type="monotone" dataKey="words" stroke="#1E7855" fillOpacity={1} fill="url(#colorWords)" name="كلمات جديدة" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      لا توجد بيانات كافية للعرض بعد
+        {/* Progress Tab */}
+        <TabsContent value="progress" className="mt-4 space-y-4">
+          <Card className="rounded-2xl border-2">
+            <CardContent className="p-4">
+              <p className="text-sm font-bold text-foreground mb-4">📅 نشاطك آخر 6 أشهر</p>
+              {history.length > 0 ? (
+                <div className="h-[220px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={history}>
+                      <defs>
+                        <linearGradient id="colorWords" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%"  stopColor="#1E7855" stopOpacity={0.7} />
+                          <stop offset="95%" stopColor="#1E7855" stopOpacity={0}   />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+                      <Area type="monotone" dataKey="words" stroke="#1E7855" fillOpacity={1} fill="url(#colorWords)" name="كلمات" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-[180px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                  <span className="text-5xl">📭</span>
+                  <p className="text-sm">لا توجد بيانات بعد — ابدأ التعلّم!</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Suggestions Tab */}
+        <TabsContent value="suggestions" className="mt-4 space-y-3">
+          {suggestions.map((s, idx) => {
+            const cfg = SUGGESTION_CONFIG[s.type] || SUGGESTION_CONFIG.info;
+            return (
+              <Card key={idx} className={`rounded-2xl border-2 ${cfg.card}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">{cfg.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground leading-tight mb-1">{s.title}</p>
+                      <p className="text-sm text-foreground/70">{s.description}</p>
+                    </div>
+                  </div>
+                  {s.actionLink && (
+                    <div className="mt-3">
+                      <Button size="sm" className="rounded-xl font-bold w-full" asChild>
+                        <a href={s.actionLink}>{s.actionLabel}</a>
+                      </Button>
                     </div>
                   )}
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
+            );
+          })}
+        </TabsContent>
+      </Tabs>
 
-          {/* Comparison Tab */}
-          <TabsContent value="comparison" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>مقارنة التقدم</CardTitle>
-                  <CardDescription>أداؤك مقابل متوسط المستخدمين</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={comparisonData} layout="vertical" barSize={20}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={100} />
-                      <Tooltip cursor={{fill: 'transparent'}} />
-                      <Legend />
-                      <Bar dataKey="user" name="أنا" fill="#1E7855" radius={[0, 4, 4, 0]} />
-                      <Bar dataKey="avg" name="المتوسط العام" fill="#94a3b8" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>مقارنة دقة الاختبارات</CardTitle>
-                  <CardDescription>نسبة الإجابات الصحيحة</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={quizComparisonData} barSize={40}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="user" name="أنا" fill="#8884d8" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="avg" name="المتوسط العام" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Suggestions Tab */}
-          <TabsContent value="suggestions" className="space-y-6">
-            <div className="grid gap-4">
-              {suggestions.map((suggestion, idx) => (
-                <Card key={idx} className={`border-r-4 ${
-                    suggestion.type === 'success' ? 'border-r-green-500' : 
-                    suggestion.type === 'warning' ? 'border-r-yellow-500' : 
-                    suggestion.type === 'info' ? 'border-r-blue-500' : 'border-r-gray-500'
-                }`}>
-                  <CardContent className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-full ${
-                             suggestion.type === 'success' ? 'bg-green-100 text-green-600' : 
-                             suggestion.type === 'warning' ? 'bg-yellow-100 text-yellow-600' : 
-                             suggestion.type === 'info' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                            {suggestion.type === 'success' ? <CheckCircle2 className="w-6 h-6" /> : 
-                             suggestion.type === 'warning' ? <AlertCircle className="w-6 h-6" /> : 
-                             <Lightbulb className="w-6 h-6" />}
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold mb-1">{suggestion.title}</h3>
-                            <p className="text-foreground/70">{suggestion.description}</p>
-                        </div>
-                    </div>
-                    {suggestion.actionLink && (
-                        <Button asChild className="shrink-0">
-                            <a href={suggestion.actionLink}>{suggestion.actionLabel}</a>
-                        </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            
-            <Card className="mt-8 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-                <CardContent className="p-8 text-center">
-                    <img 
-                        src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68b74ae8214aa5bfcb70e378/6d983cb3c_.png" 
-                        alt="Logo" 
-                        className="w-16 h-16 mx-auto mb-4"
-                    />
-                    <h3 className="text-xl font-bold mb-2">شارك إنجازاتك مع أصدقائك</h3>
-                    <p className="text-foreground/70 mb-6 max-w-md mx-auto">
-                        شجع أصدقائك على تعلم القرآن من خلال مشاركة تقريرك. ستحصل على نقاط إضافية عند انضمامهم!
-                    </p>
-                    <div className="flex justify-center gap-4">
-                        <ShareButton 
-                            title="كلمات القرآن - تقرير التقدم" 
-                            text={shareText}
-                            url={appShareUrl}
-                            className="bg-primary text-primary-foreground hover:bg-primary/90 w-full md:w-auto"
-                        />
-                         <Button variant="outline" className="gap-2" onClick={() => window.open('https://play.google.com/store/apps/details?id=com.kalimat.quran', '_blank')}>
-                            <Download className="w-4 h-4" />
-                            تحميل التطبيق
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </motion.div>
     </div>
   );
-}
-
-function StatCard({ icon: Icon, label, value, subValue, trend, color }) {
-    const colors = {
-        blue: "text-blue-600 bg-blue-100",
-        purple: "text-purple-600 bg-purple-100",
-        green: "text-green-600 bg-green-100",
-        orange: "text-orange-600 bg-orange-100",
-    };
-
-    return (
-        <Card>
-            <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 rounded-xl ${colors[color]}`}>
-                        <Icon className="w-6 h-6" />
-                    </div>
-                    {trend && (
-                        <Badge variant="outline" className={trend === "up" ? "text-green-600 bg-green-50 border-green-200" : "text-red-600 bg-red-50 border-red-200"}>
-                            {trend === "up" ? "▲" : "▼"}
-                        </Badge>
-                    )}
-                </div>
-                <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground/60">{label}</p>
-                    <h3 className="text-2xl font-bold">{value}</h3>
-                    <p className="text-xs text-foreground/50">{subValue}</p>
-                </div>
-            </CardContent>
-        </Card>
-    );
 }
