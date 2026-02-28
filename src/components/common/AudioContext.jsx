@@ -102,7 +102,8 @@ export const AudioProvider = ({ children }) => {
     }
 
     setIsPlaying(false);
-    setError('⚠️ فشل تحميل الصوت');
+    // تم إزالة تعيين رسالة الخطأ بناءً على طلب المستخدم لإخفائها تمامًا.
+    // setError('⚠️ فشل تحميل الصوت');
     logErrorToBackend('AudioContext/handleError', 'Audio playback error', { 
       error_message: e.message || e.type, 
       error_code: audioRef.current.error?.code, 
@@ -110,11 +111,12 @@ export const AudioProvider = ({ children }) => {
       audio_current_type: currentType,
       audio_current_word: currentWord,
     });
-    setTimeout(() => {
-      setError(null);
+    // ليس هناك حاجة لتأخير مسح الخطأ إذا لم يتم تعيينه.
+    // setTimeout(() => {
+      setError(null); // مسح أي خطأ سابق محتمل
       setCurrentWord(null);
       setCurrentType(null);
-    }, 2500);
+    // }, 2500); 
   }, [currentType, currentWord, setError, setIsPlaying, setCurrentWord, setCurrentType]);
   
   // ✅ 1. تلاوة الآية (مع حالة تحميل)
