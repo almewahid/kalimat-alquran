@@ -66,8 +66,6 @@ export const AudioProvider = ({ children }) => {
   // ✅ مرجع لحفظ عناصر audio الخارجية (الفصحى/العامية)
   const externalAudiosRef = useRef(new Set());
   
-  // ✅ علامة لتجاهل أخطاء الصوت الناتجة عن إيقاف متعمد (src = '')
-  const intentionalStopRef = useRef(false);
 
   // ✅ 1. تلاوة الآية (مع حالة تحميل)
   const playAyah = useCallback(async (surahNumber, ayahNumber, wordData) => {
@@ -400,17 +398,19 @@ export const AudioProvider = ({ children }) => {
     if (currentType === 'meaning') {
       window.speechSynthesis.cancel();
     } else {
-      intentionalStopRef.current = true; // ✅ تجاهل خطأ src = ''
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      audioRef.current.src = ''; // مسح المصدر لإيقاف وإعادة ضبط
-      // تم إزالة audioRef.current.load() لأنه قد يسبب أخطاء بعد مسح src
+      // Temporarily remove error listener to avoid "src cleared" errors
+      audioRef.current.removeEventListener('error', handleError); 
+      audioRef.current.src = ''; // Clear source to stop any background loading/buffering
+      // Re-add listener after src is cleared.
+      audioRef.current.addEventListener('error', handleError);
     }
     setIsPlaying(false);
     setCurrentWord(null); // Hide player
     setCurrentType(null);
     setError(null); // Clear error on close
-  }, [currentType]);
+  }, [currentType, handleError, setIsPlaying, setCurrentWord, setCurrentType, setError]);
 
   // ✅ إيقاف جميع الأصوات (AudioContext + الأصوات الخارجية)
   // exceptAudio: عنصر audio لا نريد إيقافه (للفصحى/العامية)
@@ -421,11 +421,11 @@ export const AudioProvider = ({ children }) => {
     
     // لا نوقف audioRef.current إذا كان في وضع التحميل أو التشغيل
     if (audioRef.current.paused || audioRef.current.ended) {
-      intentionalStopRef.current = true; // ✅ تجاهل خطأ src تلقائي
       audioRef.current.pause(); // التأكد من إيقافه مؤقتاً
       audioRef.current.currentTime = 0;
+      audioRef.current.removeEventListener('error', handleError);
       audioRef.current.src = ''; // مسح المصدر لإيقاف وإعادة ضبط
-      // تم إزالة audioRef.current.load() لأنه قد يسبب أخطاء بعد مسح src
+      audioRef.current.addEventListener('error', handleError);
     }
     
     setIsPlaying(false);
@@ -440,7 +440,7 @@ export const AudioProvider = ({ children }) => {
         audio.currentTime = 0;
       }
     });
-  }, []);
+  }, [handleError, setIsPlaying, setCurrentWord, setCurrentType, setError]);
 
   // ✅ تسجيل عنصر audio خارجي
   const registerAudio = useCallback((audioElement) => {
