@@ -26,6 +26,7 @@ const Friends              = lazy(() => import("./Friends"));
 const Notifications        = lazy(() => import("./Notifications"));
 const QuizTypes            = lazy(() => import("./QuizTypes"));
 const KidsMode             = lazy(() => import("./KidsMode"));
+const KidsHome             = lazy(() => import("./KidsHome"));
 const KidsGames            = lazy(() => import("./KidsGames"));
 const KidsRewards          = lazy(() => import("./KidsRewards"));
 const ReferralSystem       = lazy(() => import("./ReferralSystem"));
@@ -175,6 +176,7 @@ function PagesContent() {
                 <Route path="/Notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/QuizTypes" element={<ProtectedRoute><QuizTypes /></ProtectedRoute>} />
                 <Route path="/KidsMode" element={<ProtectedRoute><KidsMode /></ProtectedRoute>} />
+                <Route path="/KidsHome" element={<ProtectedRoute><KidsHome /></ProtectedRoute>} />
                 <Route path="/KidsGames" element={<ProtectedRoute><KidsGames /></ProtectedRoute>} />
                 <Route path="/KidsRewards" element={<ProtectedRoute><KidsRewards /></ProtectedRoute>} />
                 <Route path="/ReferralSystem" element={<ProtectedRoute><ReferralSystem /></ProtectedRoute>} />

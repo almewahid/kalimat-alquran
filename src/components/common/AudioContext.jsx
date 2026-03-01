@@ -13,15 +13,15 @@ export const useAudio = () => {
   return context;
 };
 
-// ✅ دالة تنظيف النص العربي (مطابقة تماماً لـ AudioTest)
+// ✅ دالة تنظيف النص العربي
 const normalizeArabicText = (text) => {
   if (!text) return '';
   return text
-    .replace(/[\u064B-\u065F]/g, '') // التشكيل الأساسي
-    .replace(/[\u0670]/g, '') // ألف خنجرية
-    .replace(/[\u0600-\u061C]/g, '') // رموز قرآنية
-    .replace(/[\u06D6-\u06FF]/g, '') // رموز التلاوة والوقف
-    .replace(/\u0640/g, '') // Tatweel
+    .replace(/[\u064B-\u065F]/g, '')
+    .replace(/[\u0670]/g, '')
+    .replace(/[\u0600-\u061C]/g, '')
+    .replace(/[\u06D6-\u06FF]/g, '')
+    .replace(/\u0640/g, '')
     .replace(/ٱ/g, 'ا')
     .replace(/أ/g, 'ا')
     .replace(/إ/g, 'ا')
@@ -32,7 +32,7 @@ const normalizeArabicText = (text) => {
     .trim();
 };
 
-// 📝 وظيفة مساعدة لتسجيل الأخطاء في الخلفية
+// 📝 تسجيل الأخطاء في الخلفية
 const logErrorToBackend = async (context, message, details) => {
   console.error(`[${context}] ${message}`, details);
   try {
@@ -40,8 +40,7 @@ const logErrorToBackend = async (context, message, details) => {
     try {
       const user = await supabaseClient.auth.me();
       if (user) userEmail = user.email;
-    } catch (e) { /* ignore auth error */ }
-
+    } catch (e) { /* ignore */ }
     await supabaseClient.entities.ErrorLog.create({
       error_message: message,
       error_details: typeof details === 'object' ? JSON.stringify(details) : String(details),
@@ -52,6 +51,81 @@ const logErrorToBackend = async (context, message, details) => {
   }
 };
 
+// ✅ Web Speech API — يعمل على الموبايل وiOS مع جميع الـ quirks
+const speakWithWebSpeech = (text, { rate = 0.8, pitch = 0.7, volume = 1 } = {}) => {
+  return new Promise((resolve, reject) => {
+    if (!('speechSynthesis' in window)) {
+      return reject(new Error('speechSynthesis not supported'));
+    }
+
+    // إيقاف أي شيء جاري
+    window.speechSynthesis.cancel();
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'ar-SA';
+    utter.rate = rate;
+    utter.pitch = pitch;
+    utter.volume = volume;
+
+    const assignVoiceAndSpeak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const arabicVoice =
+        voices.find(v => v.lang === 'ar-SA') ||
+        voices.find(v => v.lang.startsWith('ar'));
+      if (arabicVoice) utter.voice = arabicVoice;
+
+      // ✅ iOS Safari: speechSynthesis يتوقف بعد ~15 ثانية — نعيد resume() دورياً
+      let resumeInterval = null;
+      const startResumeInterval = () => {
+        resumeInterval = setInterval(() => {
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.resume();
+          } else {
+            clearInterval(resumeInterval);
+          }
+        }, 10000);
+      };
+
+      utter.onstart = () => startResumeInterval();
+
+      utter.onend = () => {
+        clearInterval(resumeInterval);
+        resolve();
+      };
+
+      utter.onerror = (event) => {
+        clearInterval(resumeInterval);
+        // "interrupted" يحدث عند cancel() — ليس خطأ حقيقي
+        if (event.error === 'interrupted' || event.error === 'canceled') {
+          resolve();
+        } else {
+          reject(event);
+        }
+      };
+
+      window.speechSynthesis.speak(utter);
+    };
+
+    // ✅ iOS: الأصوات تُحمَّل بشكل async — ننتظرها إن لم تكن جاهزة
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      assignVoiceAndSpeak();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        assignVoiceAndSpeak();
+      };
+      // timeout للأجهزة التي لا تُطلق onvoiceschanged
+      setTimeout(() => {
+        if (window.speechSynthesis.onvoiceschanged !== null) {
+          window.speechSynthesis.onvoiceschanged = null;
+          assignVoiceAndSpeak();
+        }
+      }, 1000);
+    }
+  });
+};
+
 export const AudioProvider = ({ children }) => {
   const audioRef = useRef(new Audio());
   const [isPlaying, setIsPlaying] = useState(false);
@@ -59,20 +133,24 @@ export const AudioProvider = ({ children }) => {
   const [currentType, setCurrentType] = useState(null); // 'ayah' | 'word' | 'meaning'
   const [error, setError] = useState(null);
   const [volume, setVolume] = useState(1);
-  
-  // 🆕 قائمة تشغيل للمقاطع الصوتية المتتابعة (للكلمات المركبة)
-  const [playlist, setPlaylist] = useState([]);
-  
-  // ✅ مرجع لحفظ عناصر audio الخارجية (الفصحى/العامية)
-  const externalAudiosRef = useRef(new Set());
 
-  // تعريف handleEnded و handleError كدوال useCallback (memoized callbacks)
-  // قبل استخدامها في useEffect وفي دوال useCallback الأخرى.
+  // ✅ playlist محفوظ في ref لتجنب stale closure في handleEnded
+  const playlistRef = useRef([]);
+  const externalAudiosRef = useRef(new Set());
+  const currentTypeRef = useRef(null);
+
+  // مزامنة currentType مع currentTypeRef
+  const updateCurrentType = (type) => {
+    currentTypeRef.current = type;
+    setCurrentType(type);
+  };
+
+  // ✅ handleEnded بدون dependency على playlist (يقرأ من ref)
   const handleEnded = useCallback(async () => {
-    if (playlist.length > 0) {
-      const [nextUrl, ...remaining] = playlist;
-      setPlaylist(remaining);
-      
+    if (playlistRef.current.length > 0) {
+      const [nextUrl, ...remaining] = playlistRef.current;
+      playlistRef.current = remaining;
+
       console.log('[AudioContext] ⏭️ Playing next segment...');
       audioRef.current.src = nextUrl;
       try {
@@ -86,54 +164,41 @@ export const AudioProvider = ({ children }) => {
       setError(null);
       setTimeout(() => {
         setCurrentWord(null);
-        setCurrentType(null);
+        updateCurrentType(null);
       }, 500);
     }
-  }, [playlist, setIsPlaying, setError, setCurrentWord, setCurrentType]);
+  }, []);
 
   const handleError = useCallback((e) => {
-    // التحقق مما إذا كان src فارغًا، مما يشير إلى إعادة تعيين متعمدة أو عدم وجود مصدر.
-    // في هذا الإعداد المنقح، تتعامل دوال `stop` و `stopAll` مع إزالة/إعادة إضافة المستمع،
-    // لذلك يجب أن يتم إطلاق هذا المعالج في المقام الأول لأخطاء التحميل/التشغيل الحقيقية.
-    if (!audioRef.current.src) {
-      // تجاهل الخطأ إذا كان src فارغًا (على سبيل المثال، بعد إعادة تعيين متعمدة عبر `stop` أو `stopAll`)
+    if (!audioRef.current.src || audioRef.current.src === window.location.href) {
       console.log('[AudioContext] Ignored error: audio.src is empty.');
-      return; 
+      return;
     }
-
     setIsPlaying(false);
-    // تم إزالة تعيين رسالة الخطأ بناءً على طلب المستخدم لإخفائها تمامًا.
-    // setError('⚠️ فشل تحميل الصوت');
-    logErrorToBackend('AudioContext/handleError', 'Audio playback error', { 
-      error_message: e.message || e.type, 
-      error_code: audioRef.current.error?.code, 
+    logErrorToBackend('AudioContext/handleError', 'Audio playback error', {
+      error_message: e.message || e.type,
+      error_code: audioRef.current.error?.code,
       audio_src: audioRef.current.src,
-      audio_current_type: currentType,
-      audio_current_word: currentWord,
     });
-    // ليس هناك حاجة لتأخير مسح الخطأ إذا لم يتم تعيينه.
-    // setTimeout(() => {
-      setError(null); // مسح أي خطأ سابق محتمل
-      setCurrentWord(null);
-      setCurrentType(null);
-    // }, 2500); 
-  }, [currentType, currentWord, setError, setIsPlaying, setCurrentWord, setCurrentType]);
-  
-  // ✅ 1. تلاوة الآية (مع حالة تحميل)
+    setError(null);
+    setCurrentWord(null);
+    updateCurrentType(null);
+  }, []);
+
+  // ✅ 1. تلاوة الآية
   const playAyah = useCallback(async (surahNumber, ayahNumber, wordData) => {
     if (!surahNumber || !ayahNumber) {
       const msg = 'معلومات الآية غير متوفرة (رقم السورة أو الآية مفقود)';
       setError(`❌ ${msg}`);
-      logErrorToBackend('AudioContext/playAyah', msg, { surahNumber, ayahNumber, wordData });
+      logErrorToBackend('AudioContext/playAyah', msg, { surahNumber, ayahNumber });
       return;
     }
 
     console.log(`[AudioContext] 🎵 Playing ayah: ${surahNumber}:${ayahNumber}`);
-    setPlaylist([]); // Clear playlist for single ayah
-    
-    // إظهار حالة تحميل
+    playlistRef.current = [];
+
     setCurrentWord(wordData);
-    setCurrentType('ayah');
+    updateCurrentType('ayah');
     setError('⏳ جارٍ تحميل الصوت...');
     setIsPlaying(false);
 
@@ -153,14 +218,11 @@ export const AudioProvider = ({ children }) => {
         try {
           audioRef.current.src = sources[i];
           audioRef.current.volume = volume;
-          // play() يتولى التحميل والتشغيل بنفسه — أكثر موثوقية على الموبايل
           await audioRef.current.play();
-
           setIsPlaying(true);
           setCurrentWord(wordData);
-          setCurrentType('ayah');
+          updateCurrentType('ayah');
           setError(null);
-
           console.log(`[AudioContext] ✅ Playing from source ${i + 1}`);
           played = true;
           break;
@@ -177,7 +239,6 @@ export const AudioProvider = ({ children }) => {
         setIsPlaying(false);
         logErrorToBackend('AudioContext/playAyah', msg, { surahNumber, ayahNumber, sources });
       }
-
     } catch (err) {
       const msg = 'حدث خطأ غير متوقع أثناء تشغيل تلاوة الآية';
       setError(`⚠️ ${msg}`);
@@ -186,7 +247,7 @@ export const AudioProvider = ({ children }) => {
     }
   }, [volume]);
 
-  // ✅ 2. نطق الكلمة (يدعم الكلمات المركبة مثل "النهار معاشا")
+  // ✅ 2. نطق الكلمة (يدعم الكلمات المركبة)
   const playWord = useCallback(async (surahNumber, ayahNumber, word, wordData) => {
     if (!surahNumber || !ayahNumber || !word) {
       const msg = 'معلومات الكلمة غير متوفرة (السورة، الآية، أو نص الكلمة)';
@@ -196,107 +257,79 @@ export const AudioProvider = ({ children }) => {
     }
 
     console.log(`[AudioContext] 🔵 Fetching word audio: ${surahNumber}:${ayahNumber} word: ${word}`);
-    setPlaylist([]); // Reset playlist
-    
-    // إظهار حالة تحميل
+    playlistRef.current = [];
+
     setCurrentWord(wordData || { word, surah_number: surahNumber, ayah_number: ayahNumber });
-    setCurrentType('word');
+    updateCurrentType('word');
     setError('⏳ جارٍ تحميل الصوت...');
     setIsPlaying(false);
 
     try {
-      // استخدام API Quran.com
       const response = await fetch(
         `https://api.quran.com/api/v4/verses/by_key/${surahNumber}:${ayahNumber}?words=true&word_fields=text_uthmani,audio_url`
       );
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`API Error: ${response.status}`);
 
       const data = await response.json();
       const words = data.verse?.words || [];
 
-      // 1. تقسيم الكلمة المدخلة إلى أجزاء (في حال كانت مركبة)
       const targetParts = normalizeArabicText(word).split(/\s+/).filter(p => p.length > 0);
-      
-      if (targetParts.length === 0) {
-        throw new Error("الكلمة فارغة أو تحتوي رموز غير صالحة");
-      }
+
+      if (targetParts.length === 0) throw new Error("الكلمة فارغة أو تحتوي رموز غير صالحة");
 
       console.log(`[AudioContext] 🎯 Target parts:`, targetParts);
 
       let matchedSequence = [];
-      let matchStartIndex = -1;
 
-      // 2. البحث عن التسلسل المتطابق في كلمات الآية
       for (let i = 0; i < words.length; i++) {
-        // تطبيع الكلمة الحالية من الآية
         const currentApiWord = normalizeArabicText(words[i].text_uthmani);
-        
-        // هل تطابق الجزء الأول من الكلمة المستهدفة؟
+
         if (currentApiWord === targetParts[0] || currentApiWord.includes(targetParts[0]) || targetParts[0].includes(currentApiWord)) {
-          // بداية تطابق محتمل
           let potentialSequence = [words[i]];
           let isFullMatch = true;
 
-          // التحقق من باقي الأجزاء
           for (let j = 1; j < targetParts.length; j++) {
-            if (i + j >= words.length) {
-              isFullMatch = false; // تجاوزنا نهاية الآية
-              break;
-            }
-            
+            if (i + j >= words.length) { isFullMatch = false; break; }
             const nextApiWord = normalizeArabicText(words[i + j].text_uthmani);
             const nextTargetPart = targetParts[j];
 
             if (nextApiWord === nextTargetPart || nextApiWord.includes(nextTargetPart) || nextTargetPart.includes(nextApiWord)) {
               potentialSequence.push(words[i + j]);
             } else {
-              isFullMatch = false;
-              break;
+              isFullMatch = false; break;
             }
           }
 
-          if (isFullMatch) {
-            matchedSequence = potentialSequence;
-            matchStartIndex = i;
-            break; // وجدنا التطابق!
+          if (isFullMatch) { matchedSequence = potentialSequence; break; }
+        }
+      }
+
+      // Fallback: loose multi-word match
+      if (matchedSequence.length === 0 && targetParts.length > 1) {
+        const foundWords = [];
+        targetParts.forEach(part => {
+          const found = words.find(w => {
+            const norm = normalizeArabicText(w.text_uthmani);
+            return norm === part || norm.includes(part) || part.includes(norm);
+          });
+          if (found) foundWords.push(found);
+        });
+        if (foundWords.length === targetParts.length) matchedSequence = foundWords;
+      }
+
+      // Fallback: aggressive single-word match
+      if (matchedSequence.length === 0 && targetParts.length === 1) {
+        const superCleanTarget = targetParts[0].replace(/[اأإآ]/g, '');
+        for (const w of words) {
+          const superCleanApi = normalizeArabicText(w.text_uthmani).replace(/[اأإآ]/g, '');
+          if (superCleanApi === superCleanTarget || superCleanApi.includes(superCleanTarget)) {
+            matchedSequence = [w]; break;
           }
         }
       }
 
-      // 3. Fallback: Aggressive search (ignore order if strict sequence fails, mostly for weird edge cases)
-      if (matchedSequence.length === 0 && targetParts.length > 1) {
-         console.log('[AudioContext] 🕵️ Trying loose match for multiple words...');
-         const foundWords = [];
-         targetParts.forEach(part => {
-             const found = words.find(w => {
-                 const norm = normalizeArabicText(w.text_uthmani);
-                 return norm === part || norm.includes(part) || part.includes(norm);
-             });
-             if(found) foundWords.push(found);
-         });
-         if(foundWords.length === targetParts.length) {
-             matchedSequence = foundWords;
-         }
-      }
-
-      // Fallback for single word exact match failure (original logic)
-      if (matchedSequence.length === 0 && targetParts.length === 1) {
-          console.log('[AudioContext] 🕵️ Trying aggressive single word match...');
-          const superCleanTarget = targetParts[0].replace(/[اأإآ]/g, '');
-          for (const w of words) {
-            const superCleanApi = normalizeArabicText(w.text_uthmani).replace(/[اأإآ]/g, '');
-            if (superCleanApi === superCleanTarget || superCleanApi.includes(superCleanTarget)) {
-              matchedSequence = [w];
-              break;
-            }
-          }
-      }
-
       if (matchedSequence.length > 0) {
-        // استخراج روابط الصوت الصالحة
         const audioUrls = matchedSequence
           .map(w => w.audio_url)
           .filter(url => url)
@@ -304,61 +337,56 @@ export const AudioProvider = ({ children }) => {
 
         if (audioUrls.length > 0) {
           console.log(`[AudioContext] ✅ Playing sequence: ${audioUrls.length} clips`);
-          
-          // Set up playlist (first one plays immediately, rest go to state)
           const [firstUrl, ...restUrls] = audioUrls;
-          setPlaylist(restUrls);
+          playlistRef.current = restUrls;
 
           audioRef.current.pause();
           audioRef.current.currentTime = 0;
           audioRef.current.src = firstUrl;
           audioRef.current.volume = volume;
-          
+
           try {
             await audioRef.current.play();
             setIsPlaying(true);
             setCurrentWord(wordData || { word, surah_number: surahNumber, ayah_number: ayahNumber });
-            setCurrentType('word');
-            setError(null); // إزالة رسالة التحميل
+            updateCurrentType('word');
+            setError(null);
           } catch (playErr) {
             throw new Error(`Playback failed: ${playErr.message}`);
           }
         } else {
-           throw new Error("تم العثور على الكلمات لكن لا توجد ملفات صوتية لها");
+          throw new Error("تم العثور على الكلمات لكن لا توجد ملفات صوتية لها");
         }
       } else {
         const msg = `لم يتم العثور على الكلمة/العبارة في نص الآية (${word})`;
         console.warn(`[AudioContext] ${msg}`);
         setError(`⚠️ ${msg}`);
         setIsPlaying(false);
-        logErrorToBackend('AudioContext/playWord', msg, { 
-          surahNumber, ayahNumber, word, targetParts, 
-          apiWords: words.map(w => w.text_uthmani)
-        });
+        logErrorToBackend('AudioContext/playWord', msg, { surahNumber, ayahNumber, word, targetParts, apiWords: words.map(w => w.text_uthmani) });
       }
     } catch (error) {
       const msg = 'فشل تحميل أو تشغيل صوت الكلمة';
       setError(`❌ ${msg}`);
       setIsPlaying(false);
-      logErrorToBackend('AudioContext/playWord', msg, { 
-        error: error.message, surahNumber, ayahNumber, word 
-      });
+      logErrorToBackend('AudioContext/playWord', msg, { error: error.message, surahNumber, ayahNumber, word });
     }
   }, [volume]);
 
-  // ✅ 3. TTS للمعنى - يعمل على الموبايل والكمبيوتر
+  // ✅ 3. TTS للمعنى — يعمل على الموبايل (iOS/Android) وسطح المكتب
   const playMeaning = useCallback(async (meaningText) => {
+    if (!meaningText) return;
+
     console.log('[AudioContext/TTS] Starting playMeaning');
 
-    setPlaylist([]);
+    playlistRef.current = [];
     setIsPlaying(true);
-    setCurrentType('meaning');
+    updateCurrentType('meaning');
     setError(null);
 
     const isNative = Capacitor.isNativePlatform();
 
     if (isNative) {
-      // تطبيق أندرويد النيتف — استخدم Capacitor TTS
+      // ✅ تطبيق Native (Android/iOS) — استخدم Capacitor TTS
       try {
         console.log('[AudioContext/TTS] Native: using Capacitor TTS');
         await TextToSpeech.speak({
@@ -372,22 +400,28 @@ export const AudioProvider = ({ children }) => {
         console.log('[AudioContext/TTS] Capacitor TTS completed');
         setIsPlaying(false);
         setCurrentWord(null);
-        setCurrentType(null);
+        updateCurrentType(null);
       } catch (err) {
         console.error('[AudioContext/TTS] Capacitor TTS failed, trying Web Speech:', err);
         try {
-          await playMeaningWebSpeech(meaningText);
+          await speakWithWebSpeech(meaningText, { volume });
+          setIsPlaying(false);
+          setCurrentWord(null);
+          updateCurrentType(null);
         } catch (webErr) {
           setError('❌ فشل النطق الصوتي');
           setIsPlaying(false);
         }
       }
     } else {
-      // متصفح ويب (سطح مكتب أو موبايل) — استخدم Web Speech API مباشرة
+      // ✅ متصفح ويب (موبايل أو سطح مكتب) — استخدم Web Speech API مع كامل الإصلاحات
       if ('speechSynthesis' in window) {
         console.log('[AudioContext/TTS] Web: using Web Speech API');
         try {
-          await playMeaningWebSpeech(meaningText);
+          await speakWithWebSpeech(meaningText, { volume });
+          setIsPlaying(false);
+          setCurrentWord(null);
+          updateCurrentType(null);
         } catch (err) {
           console.error('[AudioContext/TTS] Web Speech API failed:', err);
           setError('❌ فشل النطق الصوتي');
@@ -400,112 +434,71 @@ export const AudioProvider = ({ children }) => {
     }
   }, [volume]);
 
-  // ✅ Fallback: Web Speech API (للمتصفحات العادية)
-  const playMeaningWebSpeech = useCallback(async (meaningText) => {
-    return new Promise((resolve, reject) => {
-      window.speechSynthesis.cancel();
-      
-      const utterance = new SpeechSynthesisUtterance(meaningText);
-      utterance.lang = 'ar-SA';
-      utterance.rate = 0.8;
-      utterance.pitch = 0.7;
-      utterance.volume = volume;
-
-      utterance.onend = () => {
-        console.log('[AudioContext/TTS] Web Speech ended');
-        setIsPlaying(false);
-        setCurrentWord(null);
-        setCurrentType(null);
-        resolve();
-      };
-
-      utterance.onerror = (event) => {
-        console.error('[AudioContext/TTS] Web Speech error:', event);
-        reject(event);
-      };
-
-      window.speechSynthesis.speak(utterance);
-    });
-  }, [volume]);
-
   // ✅ التحكم بالتشغيل
   const pause = useCallback(() => {
-    if (currentType === 'meaning') {
-      window.speechSynthesis.cancel();
+    if (currentTypeRef.current === 'meaning') {
+      window.speechSynthesis?.cancel();
     } else {
       audioRef.current.pause();
     }
     setIsPlaying(false);
-  }, [currentType]);
+  }, []);
 
   const resume = useCallback(() => {
-    if (currentType !== 'meaning' && audioRef.current.src) {
+    if (currentTypeRef.current !== 'meaning' && audioRef.current.src) {
       audioRef.current.play();
       setIsPlaying(true);
     }
-  }, [currentType]);
+  }, []);
 
   const stop = useCallback(() => {
-    setPlaylist([]); // Clear playlist on stop
-    if (currentType === 'meaning') {
-      window.speechSynthesis.cancel();
+    playlistRef.current = [];
+    if (currentTypeRef.current === 'meaning') {
+      window.speechSynthesis?.cancel();
     } else {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      // قم بإزالة مستمع الخطأ مؤقتًا لتجنب أخطاء "src cleared"
-      audioRef.current.removeEventListener('error', handleError); 
-      audioRef.current.src = ''; // مسح المصدر لإيقاف أي تحميل/تخزين مؤقت
-      // أعد إضافة المستمع بعد مسح src.
+      audioRef.current.removeEventListener('error', handleError);
+      audioRef.current.src = '';
       audioRef.current.addEventListener('error', handleError);
     }
     setIsPlaying(false);
-    setCurrentWord(null); // إخفاء المشغل
-    setCurrentType(null);
-    setError(null); // مسح الخطأ عند الإغلاق
-  }, [currentType, handleError, setIsPlaying, setCurrentWord, setCurrentType, setError]);
+    setCurrentWord(null);
+    updateCurrentType(null);
+    setError(null);
+  }, [handleError]);
 
-  // ✅ إيقاف جميع الأصوات (AudioContext + الأصوات الخارجية)
-  // exceptAudio: عنصر audio لا نريد إيقافه (للفصحى/العامية)
   const stopAll = useCallback((exceptAudio = null) => {
-    // إيقاف AudioContext فقط إذا لم يكن في وضع التشغيل النشط
-    setPlaylist([]);
-    window.speechSynthesis.cancel();
-    
-    // لا نوقف audioRef.current إذا كان في وضع التحميل أو التشغيل
+    playlistRef.current = [];
+    window.speechSynthesis?.cancel();
+
     if (audioRef.current.paused || audioRef.current.ended) {
-      audioRef.current.pause(); // التأكد من إيقافه مؤقتاً
+      audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      audioRef.current.removeEventListener('error', handleError); // قم بإزالة مستمع الخطأ مؤقتًا
-      audioRef.current.src = ''; // مسح المصدر لإيقاف وإعادة ضبط
-      audioRef.current.addEventListener('error', handleError); // أعد إضافة المستمع
+      audioRef.current.removeEventListener('error', handleError);
+      audioRef.current.src = '';
+      audioRef.current.addEventListener('error', handleError);
     }
-    
+
     setIsPlaying(false);
     setCurrentWord(null);
-    setCurrentType(null);
+    updateCurrentType(null);
     setError(null);
-    
-    // إيقاف جميع الأصوات المسجلة (ما عدا المستثنى)
+
     externalAudiosRef.current.forEach(audio => {
       if (audio && audio !== exceptAudio && !audio.paused) {
         audio.pause();
         audio.currentTime = 0;
       }
     });
-  }, [handleError, setIsPlaying, setCurrentWord, setCurrentType, setError]);
+  }, [handleError]);
 
-  // ✅ تسجيل عنصر audio خارجي
   const registerAudio = useCallback((audioElement) => {
-    if (audioElement) {
-      externalAudiosRef.current.add(audioElement);
-    }
+    if (audioElement) externalAudiosRef.current.add(audioElement);
   }, []);
 
-  // ✅ إلغاء تسجيل عنصر audio خارجي
   const unregisterAudio = useCallback((audioElement) => {
-    if (audioElement) {
-      externalAudiosRef.current.delete(audioElement);
-    }
+    if (audioElement) externalAudiosRef.current.delete(audioElement);
   }, []);
 
   const changeVolume = useCallback((newVolume) => {
@@ -513,11 +506,10 @@ export const AudioProvider = ({ children }) => {
     audioRef.current.volume = newVolume;
   }, []);
 
-  // ✅ فتح AudioContext على أول لمسة/نقر (مطلوب على موبايل Android)
+  // ✅ فتح AudioContext على أول لمسة/نقر (مطلوب على Android)
   useEffect(() => {
     const audio = audioRef.current;
     let unlocked = false;
-    // silent wav صغير جداً
     const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 
     const unlock = () => {
@@ -527,7 +519,6 @@ export const AudioProvider = ({ children }) => {
       audio.play().then(() => {
         audio.pause();
         audio.currentTime = 0;
-        // لا نُعيد src لفارغ لأن ذلك يُطلق حدث error
         console.log('[AudioContext] 🔓 Audio unlocked on first gesture');
       }).catch(() => {});
     };
@@ -541,18 +532,16 @@ export const AudioProvider = ({ children }) => {
     };
   }, []);
 
-  // ✅ مراقبة انتهاء الصوت
+  // ✅ ربط event listeners على audioRef — مرة واحدة فقط
   useEffect(() => {
     const audio = audioRef.current;
-    
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
-
     return () => {
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
     };
-  }, [handleEnded, handleError]); // إعادة ربط عندما تتغير handleEnded أو handleError
+  }, [handleEnded, handleError]);
 
   const value = {
     isPlaying,
@@ -566,9 +555,9 @@ export const AudioProvider = ({ children }) => {
     pause,
     resume,
     stop,
-    stopAll, // ✅ إيقاف جميع الأصوات
-    registerAudio, // ✅ تسجيل audio خارجي
-    unregisterAudio, // ✅ إلغاء تسجيل audio
+    stopAll,
+    registerAudio,
+    unregisterAudio,
     changeVolume,
     clearError: () => setError(null)
   };

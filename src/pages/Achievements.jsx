@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { supabaseClient } from "@/components/api/supabaseClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Star, Zap, Crown, Lock, Sparkles, TrendingUp, Loader2 } from "lucide-react";
+import { Trophy, Zap, Crown, Lock, Sparkles, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -219,39 +219,33 @@ export default function Achievements() {
 
         {/* ── الهيدر ── */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Trophy className="w-10 h-10 text-white" />
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-yellow-400 flex items-center justify-center mx-auto mb-4 shadow-xl">
+            <Trophy className="w-12 h-12 text-white" />
           </div>
-          <h1 className="text-4xl font-bold gradient-text mb-2">الإنجازات</h1>
-          <p className="text-foreground/70">اجمع الشارات واكسب الجواهر!</p>
-        </div>
+          <h1 className="text-4xl font-bold gradient-text mb-3">إنجازاتي</h1>
 
-        {/* ── بطاقات الإحصاء ── */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          {[
-            { gradient: "from-amber-500 to-orange-500",  Icon: Sparkles, value: userGems?.current_gems || 0,  label: "جواهرك الحالية" },
-            { gradient: "from-purple-500 to-pink-500",   Icon: Trophy,   value: earnedCount,                  label: "إنجاز مفتوح"    },
-            { gradient: "from-blue-500 to-cyan-500",     Icon: Star,     value: rareCount,                    label: "إنجاز نادر"     },
-            { gradient: "from-green-500 to-emerald-500", Icon: TrendingUp,value: `${completionPct}%`,          label: "نسبة الإكمال"   },
-          ].map(({ gradient, Icon, value, label }, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-            >
-              <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-                <div className={`h-4 bg-gradient-to-r ${gradient}`} />
-                <CardContent className="p-5 text-center">
-                  <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center mx-auto mb-3 shadow-lg`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="text-3xl font-bold">{value}</div>
-                  <p className="text-sm text-foreground/60 mt-1">{label}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+          {/* شريط التقدم العام */}
+          <div className="max-w-sm mx-auto">
+            <div className="flex justify-between text-sm font-semibold text-foreground/70 mb-2">
+              <span>🏅 {earnedCount} مفتوح</span>
+              <span>{completionPct}%</span>
+            </div>
+            <div className="h-4 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden shadow-inner">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-400"
+                initial={{ width: 0 }}
+                animate={{ width: `${completionPct}%` }}
+                transition={{ duration: 1, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+
+          {/* الجواهر */}
+          <div className="inline-flex items-center gap-2 mt-4 px-5 py-2 rounded-full bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-300 shadow">
+            <Sparkles className="w-5 h-5 text-amber-500" />
+            <span className="text-lg font-bold text-amber-700 dark:text-amber-300">{userGems?.current_gems || 0}</span>
+            <span className="text-sm text-amber-600 dark:text-amber-400">جوهرة</span>
+          </div>
         </div>
 
         {/* ── فئات الإنجازات ── */}
@@ -268,18 +262,16 @@ export default function Achievements() {
               transition={{ delay: categoryIndex * 0.08 }}
               className="mb-8"
             >
-              <Card className="overflow-hidden shadow-md">
-                <div className={`h-4 bg-gradient-to-r ${catCfg.bar}`} />
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${catCfg.icon} flex items-center justify-center shadow-lg`}>
-                      <span className="text-lg">{category.icon}</span>
-                    </div>
-                    {category.name}
-                  </CardTitle>
-                </CardHeader>
+              <Card className="overflow-hidden shadow-lg rounded-3xl">
+                <div className={`h-3 bg-gradient-to-r ${catCfg.bar}`} />
+                <div className="px-6 pt-5 pb-2 flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${catCfg.icon} flex items-center justify-center shadow-lg`}>
+                    <span className="text-3xl">{category.icon}</span>
+                  </div>
+                  <h2 className="text-2xl font-bold">{category.name}</h2>
+                </div>
                 <CardContent>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
                     {achievements.map((achievement, index) => {
                       const isEarned = isAchievementEarned(achievement);
                       const progress = getAchievementProgress(achievement);
@@ -297,8 +289,8 @@ export default function Achievements() {
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: index * 0.05 }}
                           whileHover={{ scale: isEarned ? 1.03 : 1.01 }}
-                          className={`
-                            relative rounded-xl border-2 overflow-hidden transition-all duration-300 min-h-[260px]
+                        className={`
+                            relative rounded-3xl border-2 overflow-hidden transition-all duration-300 min-h-[240px]
                             ${isEarned ? `${r.bg} ${r.border} shadow-lg` : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 opacity-60"}
                           `}
                         >
@@ -317,13 +309,13 @@ export default function Achievements() {
                           <div className="p-5">
                             {/* الأيقونة */}
                             <div className="text-center mb-3">
-                              <div className={`text-5xl mb-2 transition-all duration-300 ${!isEarned ? "grayscale" : ""}`}>
+                              <div className={`text-6xl mb-2 transition-all duration-300 ${!isEarned ? "grayscale" : ""}`}>
                                 {achievement.icon}
                               </div>
-                              <h3 className={`font-bold text-lg mb-1 ${isEarned ? r.text : "text-gray-500"}`}>
+                              <h3 className={`font-bold text-xl mb-1 ${isEarned ? r.text : "text-gray-500"}`}>
                                 {achievement.name}
                               </h3>
-                              <Badge className={`text-xs border-0 ${isEarned ? `${r.bg} ${r.text}` : "bg-gray-200 text-gray-600"}`}>
+                              <Badge className={`text-xs border-0 px-3 py-1 rounded-full ${isEarned ? `${r.bg} ${r.text}` : "bg-gray-200 text-gray-600"}`}>
                                 {r.label}
                               </Badge>
                             </div>

@@ -1,4 +1,4 @@
 
 #!/bin/bash
-export GEMINI_API_KEY="AIzaSyDwHZVlIP2d1wbMx8hkOnF1WtHEnpknmts"
+export GEMINI_API_KEY="AIzaSyDUmCv6DZa69xIwBwPFshIuccCBcxrsiek"
 aider --model gemini/gemini-2.5-flash

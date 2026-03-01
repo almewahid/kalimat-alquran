@@ -141,13 +141,15 @@ const adminItems = [
 
 // ── قائمة وضع الأطفال (مبسّطة) ──
 const kidsNavigationItems = [
-  { title: "تعلّم",        emoji: "⭐", url: createPageUrl("Learn"),       color: "from-yellow-400 to-amber-500"  },
-  { title: "مراجعة ذكية", emoji: "🧠", url: createPageUrl("SmartReview"), color: "from-purple-400 to-violet-500" },
-  { title: "اختبار بسيط", emoji: "📝", url: createPageUrl("QuizTypes"),   color: "from-blue-400 to-cyan-500"     },
-  { title: "هدايا",        emoji: "🎁", url: createPageUrl("KidsRewards"), color: "from-pink-400 to-rose-500"     },
+  
+  { title: "رحلتنا",       img: "/images/kids/2_journey.png", url: createPageUrl("Dashboard"), color: "from-green-400 to-teal-500"    },
+  { title: "تَعلَّم",         img: "/images/kids/3_learn.png",   url: createPageUrl("Learn"),         color: "from-blue-400 to-cyan-500"     },
+  { title: "مراجعة ممتعة", img: "/images/kids/4_review.png",  url: createPageUrl("SmartReview"),   color: "from-purple-400 to-violet-500" },
+  { title: "مكافآتي",      img: "/images/kids/5_rewards.png", url: createPageUrl("KidsRewards"),   color: "from-pink-400 to-rose-500"     },
 ];
 
-const LOGO_URL = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68b74ae8214aa5bfcb70e378/6d983cb3c_.png";
+const LOGO_URL      = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68b74ae8214aa5bfcb70e378/6d983cb3c_.png";
+const KIDS_LOGO_URL = "/images/kids/logo2.png";
 
 // زر فتح الشريط الجانبي في الموبايل - يعالج ghost click
 function MobileSidebarTrigger({ className }) {
@@ -267,13 +269,23 @@ export default function Layout({ children }) {
             <Sidebar className="sidebar-right border-l border-border bg-card/95 backdrop-blur-md" side="right" variant="sidebar" collapsible="icon">
               <SidebarHeader className="border-b border-border p-6">
                 <div className="text-center">
-                  <Link to={createPageUrl("Dashboard")}>
-                    <img
-                      src={LOGO_URL}
-                      alt="شعار كلمات القرآن"
-                      className="w-20 h-20 mx-auto cursor-pointer"
-                    />
-                  </Link>
+                  {isKidsMode ? (
+                    <Link to={createPageUrl("KidsHome")}>
+                      <img
+                        src={KIDS_LOGO_URL}
+                        alt="شعار وضع الأطفال"
+                        className="w-24 h-24 mx-auto cursor-pointer object-contain drop-shadow-md"
+                      />
+                    </Link>
+                  ) : (
+                    <Link to={createPageUrl("Dashboard")}>
+                      <img
+                        src={LOGO_URL}
+                        alt="شعار كلمات القرآن"
+                        className="w-20 h-20 mx-auto cursor-pointer"
+                      />
+                    </Link>
+                  )}
                 </div>
               </SidebarHeader>
 
@@ -314,10 +326,10 @@ export default function Layout({ children }) {
                           <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton
                               asChild
-                              className={`rounded-2xl h-16 transition-all duration-300 ${
+                              className={`rounded-2xl h-16 transition-all duration-300 bg-gradient-to-r ${item.color} text-white ${
                                 location.pathname === item.url
-                                  ? `bg-gradient-to-r ${item.color} text-white shadow-lg`
-                                  : "border border-border hover:bg-primary/5 hover:border-primary/30"
+                                  ? "shadow-xl ring-4 ring-white ring-offset-2 brightness-110"
+                                  : "shadow-md opacity-85 hover:opacity-100 hover:shadow-lg hover:scale-[1.02]"
                               }`}
                             >
                               <Link
@@ -325,7 +337,7 @@ export default function Layout({ children }) {
                                 className="flex items-center gap-3 px-4"
                                 onClick={() => isMobile && setSidebarOpen(false)}
                               >
-                                <span className="text-3xl">{item.emoji}</span>
+                                <img src={item.img} alt={item.title} className={`object-contain flex-shrink-0 transition-all duration-300 ${location.pathname === item.url ? "w-14 h-14" : "w-10 h-10"}`} />
                                 <span className="font-bold text-base">{item.title}</span>
                               </Link>
                             </SidebarMenuButton>

@@ -1,2 +1,2 @@
-$env:GEMINI_API_KEY="AIzaSyDwHZVlIP2d1wbMx8hkOnF1WtHEnpknmts"
+$env:GEMINI_API_KEY="AIzaSyDUmCv6DZa69xIwBwPFshIuccCBcxrsiek"
 aider --model gemini/gemini-2.0-flash

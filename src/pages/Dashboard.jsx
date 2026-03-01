@@ -248,7 +248,7 @@ export default function Dashboard() {
             <Link to="/Quiz">
               <div className="h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-200 dark:shadow-none">
                 <Brain className="w-5 h-5 text-white" />
-                <span className="text-white text-base font-bold">اختبر نفسك</span>
+                <span className="text-white text-base font-bold">اختبار بسيط</span>
               </div>
             </Link>
           </motion.div>
@@ -261,7 +261,7 @@ export default function Dashboard() {
             <Link to="/Achievements">
               <div className="h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-purple-200 dark:shadow-none">
                 <Trophy className="w-5 h-5 text-white" />
-                <span className="text-white text-base font-bold">إنجازاتك</span>
+                <span className="text-white text-base font-bold">إنجازاتي</span>
               </div>
             </Link>
           </motion.div>
