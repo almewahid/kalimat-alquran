@@ -170,8 +170,10 @@ export const AudioProvider = ({ children }) => {
   }, []);
 
   const handleError = useCallback((e) => {
-    if (!audioRef.current.src || audioRef.current.src === window.location.href) {
-      console.log('[AudioContext] Ignored error: audio.src is empty.');
+    const src = audioRef.current.src || '';
+    // تجاهل الأخطاء للـ data URIs (silent unlock) والـ src الفارغ
+    if (!src || src === window.location.href || src.startsWith('data:')) {
+      console.log('[AudioContext] Ignored benign error for src:', src.slice(0, 30));
       return;
     }
     setIsPlaying(false);

@@ -100,8 +100,14 @@ export default function Groups() {
       setMyGroups(userGroups);
 
       // طلبات الانضمام الواردة للمستخدم بصفته رئيساً
-      const allNotifs = await supabaseClient.entities.Notification.filter({ user_email: currentUser.email });
-      const pending = allNotifs.filter(n => n.notification_type === "join_request" && !n.is_read);
+      const { data: allNotifs } = await supabaseClient.supabase
+        .from("user_notifications")
+        .select("*")
+        .eq("user_email", currentUser.email);
+
+      const pending = (allNotifs || []).filter(
+        n => n.type === "join_request" && n.status === "pending"
+      );
       setJoinRequests(pending);
     } catch (error) {
       console.error("Error loading groups:", error);
@@ -140,29 +146,65 @@ export default function Groups() {
   };
 
   // ── إرسال طلب انضمام (مشترك) ────────────────────────────────────────────────
-  const sendJoinRequest = async (group) => {
-    if (!group) return false;
-    if (group.leader_email === user.email || group.members?.includes(user.email)) {
-      toast({ title: "ℹ️ أنت عضو بالفعل في هذه المجموعة" });
+const sendJoinRequest = async (group) => {
+  if (!group) return false;
+
+  // لو هو بالفعل عضو
+  if (group.leader_email === user.email || group.members?.includes(user.email)) {
+    toast({ title: "ℹ️ أنت عضو بالفعل في هذه المجموعة" });
+    return false;
+  }
+
+  // 🔎 فحص هل يوجد طلب سابق غير مقروء لنفس المجموعة
+  const { data: existingRequests, error: checkError } =
+    await supabaseClient.supabase
+      .from("user_notifications")
+    .select("id, message")
+    .eq("user_email", group.leader_email)
+    .eq("type", "join_request")
+    .eq("status", "pending");
+
+  if (checkError) throw checkError;
+
+  const alreadyRequested = (existingRequests || []).some((req) => {
+    try {
+      const parsed = JSON.parse(req.message);
+      return (
+        parsed.requester_email === user.email &&
+        parsed.group_id === group.id
+      );
+    } catch {
       return false;
     }
-    const { error } = await supabaseClient.supabase.from("user_notifications").insert({
-      user_email:        group.leader_email,
-      notification_type: "join_request",
-      title:             `طلب انضمام لمجموعة "${group.name}"`,
-      message:           JSON.stringify({
-        requester_email: user.email,
-        group_id:        group.id,
-        group_name:      group.name,
-      }),
-      icon:        "🤝",
-      is_read:     false,
-      created_date: new Date().toISOString(),
-    });
-    if (error) throw error;
-    setSentRequests(prev => new Set([...prev, group.id]));
-    return true;
-  };
+  });
+
+  if (alreadyRequested) {
+    toast({ title: "⏳ تم إرسال طلب انضمام مسبقاً لهذه المجموعة" });
+    return false;
+  }
+
+  // ✉️ إدخال الطلب
+  const { error } = await supabaseClient.supabase
+    .from("user_notifications")
+    .insert({
+      user_email: group.leader_email,
+    type: "join_request",
+    status: "pending",
+    title: `طلب انضمام لمجموعة "${group.name}"`,
+    message: JSON.stringify({
+      requester_email: user.email,
+      group_id: group.id,
+      group_name: group.name,
+    }),
+    is_read: false,
+    created_date: new Date().toISOString(),
+  });
+
+  if (error) throw error;
+
+  setSentRequests((prev) => new Set([...prev, group.id]));
+  return true;
+};
 
   // ── انضمام بالكود ────────────────────────────────────────────────────────────
   const handleJoinByCode = async () => {
@@ -201,59 +243,83 @@ export default function Groups() {
   };
 
   // ── قبول طلب الانضمام ───────────────────────────────────────────────────────
-  const handleApproveRequest = async (request) => {
-    try {
-      const data = JSON.parse(request.message);
-      const group = groups.find(g => g.id === data.group_id);
-      if (!group) { toast({ title: "❌ المجموعة غير موجودة", variant: "destructive" }); return; }
+const handleApproveRequest = async (request) => {
+  try {
+    const data = JSON.parse(request.message);
+    const group = groups.find(g => g.id === data.group_id);
+    if (!group) {
+      toast({ title: "❌ المجموعة غير موجودة", variant: "destructive" });
+      return;
+    }
 
-      const updatedMembers = [...(group.members || []), data.requester_email];
-      await supabaseClient.supabase.from("groups").update({ members: updatedMembers }).eq("id", group.id);
-      await supabaseClient.supabase.from("notifications").update({ is_read: true }).eq("id", request.id);
+    // تحديث أعضاء المجموعة
+    const updatedMembers = [...(group.members || []), data.requester_email];
+    await supabaseClient.supabase
+      .from("groups")
+      .update({ members: updatedMembers })
+      .eq("id", group.id);
 
-      // إشعار الموافقة للطالب
-      await supabaseClient.supabase.from("user_notifications").insert({
-        user_email:        data.requester_email,
-        notification_type: "join_approved",
-        title:             `✅ تمت الموافقة على انضمامك`,
-        message:           `تمت الموافقة على انضمامك إلى مجموعة "${data.group_name}"`,
-        icon:         "✅",
-        is_read:      false,
+    // تحديث حالة الطلب
+    await supabaseClient.supabase
+      .from("user_notifications")
+      .update({ status: "approved", is_read: true })
+      .eq("id", request.id);
+
+    // إرسال إشعار الموافقة للطالب
+    await supabaseClient.supabase
+      .from("user_notifications")
+      .insert({
+        user_email: data.requester_email,
+        type: "join_approved",  // أو notification_type حسب جدولك
+        title: `✅ تمت الموافقة على انضمامك`,
+        message: `تمت الموافقة على انضمامك إلى مجموعة "${data.group_name}"`,
+        is_read: false,
         created_date: new Date().toISOString(),
       });
 
-      toast({ title: "✅ تمت الموافقة", description: `تم إضافة ${data.requester_email} للمجموعة`, className: "bg-green-100 text-green-800" });
-      loadData();
-    } catch (error) {
-      console.error("Error approving request:", error);
-      toast({ title: "❌ خطأ في قبول الطلب", variant: "destructive" });
-    }
-  };
+    toast({
+      title: "✅ تمت الموافقة",
+      description: `تم إضافة ${data.requester_email} للمجموعة`,
+      className: "bg-green-100 text-green-800",
+    });
+
+    loadData();
+  } catch (error) {
+    console.error("Error approving request:", error);
+    toast({ title: "❌ خطأ في قبول الطلب", variant: "destructive" });
+  }
+};
 
   // ── رفض طلب الانضمام ────────────────────────────────────────────────────────
-  const handleRejectRequest = async (request) => {
-    try {
-      const data = JSON.parse(request.message);
-      await supabaseClient.supabase.from("notifications").update({ is_read: true }).eq("id", request.id);
+const handleRejectRequest = async (request) => {
+  try {
+    const data = JSON.parse(request.message);
 
-      // إشعار الرفض للطالب
-      await supabaseClient.supabase.from("user_notifications").insert({
-        user_email:        data.requester_email,
-        notification_type: "join_rejected",
-        title:             `تعذّر الانضمام`,
-        message:           `لم تتم الموافقة على انضمامك إلى مجموعة "${data.group_name}"`,
-        icon:         "❌",
-        is_read:      false,
+    // تحديث حالة الطلب
+    await supabaseClient.supabase
+      .from("user_notifications")
+      .update({ status: "rejected", is_read: true })
+      .eq("id", request.id);
+
+    // إرسال إشعار الرفض للطالب
+    await supabaseClient.supabase
+      .from("user_notifications")
+      .insert({
+        user_email: data.requester_email,
+        type: "join_rejected", // أو notification_type حسب جدولك
+        title: `تعذّر الانضمام`,
+        message: `لم تتم الموافقة على انضمامك إلى مجموعة "${data.group_name}"`,
+        is_read: false,
         created_date: new Date().toISOString(),
       });
 
-      toast({ title: "تم رفض الطلب" });
-      loadData();
-    } catch (error) {
-      console.error("Error rejecting request:", error);
-      toast({ title: "❌ خطأ في رفض الطلب", variant: "destructive" });
-    }
-  };
+    toast({ title: "✅ تم رفض الطلب" });
+    loadData();
+  } catch (error) {
+    console.error("Error rejecting request:", error);
+    toast({ title: "❌ خطأ في رفض الطلب", variant: "destructive" });
+  }
+};
 
   // ── حذف المجموعة ────────────────────────────────────────────────────────────
   const handleDeleteGroup = async () => {
@@ -269,36 +335,34 @@ export default function Groups() {
       toast({ title: "❌ خطأ في حذف المجموعة", variant: "destructive" });
     }
   };
+// ── إرسال إشعار للمجموعة ────────────────────────────────────────────────────
+const handleSendGroupNotification = async () => {
+  if (!notifyMessage.trim() || !notifyingGroup) return;
+  setIsSendingNotification(true);
+  try {
+    const recipients = notifyingGroup.members.filter(m => m !== user.email);
+    await Promise.all(recipients.map(email =>
+      supabaseClient.supabase.from("user_notifications").insert({
+        user_email: email,
+        type: "group_message", // أو notification_type حسب جدولك
+        title: `📢 رسالة من مجموعة ${notifyingGroup.name}`,
+        message: notifyMessage,
+        is_read: false,
+        created_date: new Date().toISOString(),
+      })
+    ));
 
-  // ── إرسال إشعار للمجموعة ────────────────────────────────────────────────────
-  const handleSendGroupNotification = async () => {
-    if (!notifyMessage.trim() || !notifyingGroup) return;
-    setIsSendingNotification(true);
-    try {
-      const recipients = notifyingGroup.members.filter(m => m !== user.email);
-      await Promise.all(recipients.map(email =>
-        supabaseClient.supabase.from("user_notifications").insert({
-          user_email:        email,
-          notification_type: "group_message",
-          title:             `📢 رسالة من مجموعة ${notifyingGroup.name}`,
-          message:           notifyMessage,
-          icon:         "📢",
-          is_read:      false,
-          created_date: new Date().toISOString(),
-        })
-      ));
-      toast({ title: "✅ تم إرسال الإشعار للأعضاء" });
-      setShowNotifyModal(false);
-      setNotifyMessage("");
-      setNotifyingGroup(null);
-    } catch (error) {
-      console.error(error);
-      toast({ title: "❌ فشل الإرسال", variant: "destructive" });
-    } finally {
-      setIsSendingNotification(false);
-    }
-  };
-
+    toast({ title: "✅ تم إرسال الإشعار للأعضاء" });
+    setShowNotifyModal(false);
+    setNotifyMessage("");
+    setNotifyingGroup(null);
+  } catch (error) {
+    console.error(error);
+    toast({ title: "❌ فشل الإرسال", variant: "destructive" });
+  } finally {
+    setIsSendingNotification(false);
+  }
+};
   // المجموعات التي يمكن اكتشافها (المستخدم ليس فيها)
   const discoverGroups = groups.filter(g =>
     g.is_active !== false &&

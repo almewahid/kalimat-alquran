@@ -65,17 +65,20 @@ export default function CreateChallengeModal({ isOpen, onClose, groupId, onSucce
 
       const created = await supabaseClient.entities.GroupChallenge.create(challengeData);
 
-      // Create progress records for all group members
       const group = await supabaseClient.entities.Group.filter({ id: groupId });
       if (group[0] && group[0].members) {
         for (const memberEmail of group[0].members) {
-          await supabaseClient.entities.ChallengeProgress.create({
-            challenge_id: created.id,
-            user_email: memberEmail,
-            progress_value: 0,
-            completed: false,
-            last_update: now.toISOString()
-          });
+          try {
+            await supabaseClient.entities.ChallengeProgress.create({
+              challenge_id: created.id,
+              user_email: memberEmail,
+              progress_value: 0,
+              completed: false,
+              last_update: now.toISOString()
+            });
+          } catch (e) {
+            console.log("Progress already exists for", memberEmail);
+          }
         }
       }
 
@@ -99,9 +102,7 @@ export default function CreateChallengeModal({ isOpen, onClose, groupId, onSucce
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>إنشاء تحدي جديد</DialogTitle>
-          <DialogDescription>
-            أنشئ تحدياً لأعضاء مجموعتك
-          </DialogDescription>
+          <DialogDescription>أنشئ تحدياً لأعضاء مجموعتك</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -156,7 +157,6 @@ export default function CreateChallengeModal({ isOpen, onClose, groupId, onSucce
                 onChange={(e) => setChallenge({...challenge, goal_count: e.target.value})}
               />
             </div>
-
             <div>
               <Label htmlFor="duration">المدة (بالأيام) *</Label>
               <Input
@@ -198,7 +198,6 @@ export default function CreateChallengeModal({ isOpen, onClose, groupId, onSucce
                 onChange={(e) => setChallenge({...challenge, reward_badge: e.target.value})}
               />
             </div>
-
             <div>
               <Label htmlFor="xp">نقاط الخبرة المكافأة</Label>
               <Input
@@ -223,11 +222,7 @@ export default function CreateChallengeModal({ isOpen, onClose, groupId, onSucce
                 <><Plus className="w-4 h-4 ml-2" />إنشاء التحدي</>
               )}
             </Button>
-            <Button
-              onClick={onClose}
-              variant="outline"
-              disabled={isCreating}
-            >
+            <Button onClick={onClose} variant="outline" disabled={isCreating}>
               إلغاء
             </Button>
           </div>
