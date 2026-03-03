@@ -50,7 +50,7 @@ const CreateChallengeFromPath  = lazy(() => import("./CreateChallengeFromPath"))
 const CustomLearningPaths      = lazy(() => import("./CustomLearningPaths"));
 const CustomPathLearn          = lazy(() => import("./CustomPathLearn"));
 const TranslationHelper        = lazy(() => import("./TranslationHelper"));
-const PrivacyPolicy            = lazy(() => import("./PrivacyPolicy"));
+
 // صفحات المدير
 const AdminPanel           = lazy(() => import("./AdminPanel"));
 const Analytics            = lazy(() => import("./Analytics"));
@@ -152,7 +152,9 @@ function PagesContent() {
                 {/* مسارات مفتوحة */}
                 <Route path="/" element={<Login />} />
                 <Route path="/Login" element={<Login />} />
-                <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+                <Route path="/Register" element={<Register />} />
+                <Route path="/ForgotPassword" element={<ForgotPassword />} />
+                <Route path="/ResetPassword" element={<ResetPassword />} />
 
                 {/* مسارات المستخدم المسجّل */}
                 <Route path="/Dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
