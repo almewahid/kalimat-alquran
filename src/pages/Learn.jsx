@@ -64,6 +64,53 @@ export default function Learn() {
     try {
       const currentUser = await supabaseClient.auth.me();
       setUser(currentUser);
+
+      // ── تحقق من challenge_id في الـ URL ──
+      const urlParams = new URLSearchParams(window.location.search);
+      const challengeId = urlParams.get('challenge_id');
+
+      if (challengeId) {
+        const challengeData = await supabaseClient.entities.GroupChallenge.filter({ id: challengeId });
+        if (challengeData.length > 0) {
+          const ch = challengeData[0];
+
+          const [allChallengeWords, allFlashCards] = await Promise.all([
+            supabaseClient.entities.QuranicWord.list(),
+            supabaseClient.entities.FlashCard.filter({ user_email: currentUser.email })
+          ]);
+
+          let challengeWords = allChallengeWords;
+
+          if (ch.source_type === "surah" && ch.source_details?.length > 0) {
+            challengeWords = allChallengeWords.filter(w =>
+              ch.source_details.includes(String(w.surah_number))
+            );
+          } else if (ch.source_type === "juz" && ch.source_details?.length > 0) {
+            challengeWords = allChallengeWords.filter(w =>
+              ch.source_details.includes(String(w.juz_number))
+            );
+          }
+
+          // تصفية الكلمات المتعلمة مسبقاً
+          const learnedWordIds = new Set(
+            allFlashCards.filter(fc => !fc.is_new).map(fc => fc.word_id)
+          );
+          const unlearnedWords = challengeWords.filter(w => !learnedWordIds.has(w.id));
+
+          const newFlashCardMap = new Map(allFlashCards.map(fc => [fc.word_id, fc]));
+          setFlashCardMap(newFlashCardMap);
+
+          const level = currentUser?.preferences?.learning_level || "all";
+          setUserLevel(level);
+          setWords(unlearnedWords);
+          setOriginalWords(unlearnedWords);
+          setCurrentIndex(0);
+          setIsShuffled(false);
+          setLearnedIndices(new Set());
+          setIsLoading(false);
+          return;
+        }
+      }
       
       const level = currentUser?.preferences?.learning_level || "all";
       setUserLevel(level);
@@ -246,6 +293,66 @@ export default function Learn() {
   }, [currentIndex, words]);
 
 
+
+  const updateChallengesProgress = async (learnedWord) => {
+    try {
+      console.log("[Challenge] جاري تحديث التحديات للكلمة:", learnedWord?.word);
+      
+      // جلب كل سجلات التقدم للمستخدم بدون فلتر completed
+      const userProgressList = await supabaseClient.entities.ChallengeProgress.filter({
+        user_email: user.email
+      });
+      
+      console.log("[Challenge] عدد سجلات التقدم:", userProgressList.length);
+      
+      // تصفية غير المكتملة يدوياً
+      const incomplete = userProgressList.filter(cp => !cp.completed);
+      console.log("[Challenge] غير مكتملة:", incomplete.length);
+
+      for (const cp of incomplete) {
+        const challengeData = await supabaseClient.entities.GroupChallenge.filter({ id: cp.challenge_id });
+        if (challengeData.length === 0) continue;
+        const ch = challengeData[0];
+        
+        console.log("[Challenge] التحدي:", ch.title, "- النوع:", ch.challenge_type, "- نشط:", ch.is_active);
+        
+        if (!ch.is_active) continue;
+        
+        let wordBelongs = false;
+        if (ch.source_type === "all") { wordBelongs = true; }
+        else if (ch.source_type === "surah" && ch.source_details?.length > 0) {
+          wordBelongs = ch.source_details.includes(String(learnedWord.surah_number));
+        } else if (ch.source_type === "juz" && ch.source_details?.length > 0) {
+          wordBelongs = ch.source_details.includes(String(learnedWord.juz_number));
+        }
+        
+        console.log("[Challenge] الكلمة تنتمي للتحدي:", wordBelongs);
+        
+        if (wordBelongs) {
+          const newValue = (cp.progress_value || 0) + 1;
+          const isCompleted = newValue >= ch.goal_count;
+          
+          // استخدام Supabase مباشرة لتجاوز أي مشكلة في الـ entity
+          const { error } = await supabaseClient.supabase
+            .from('challenge_progress')
+            .update({
+              progress_value: newValue,
+              completed: isCompleted,
+              last_update: new Date().toISOString(),
+              ...(isCompleted ? { completion_date: new Date().toISOString() } : {})
+            })
+            .eq('id', cp.id);
+            
+          if (error) {
+            console.error("[Challenge] خطأ في التحديث:", error);
+          } else {
+            console.log("[Challenge] ✅ تم تحديث التقدم:", newValue, "/", ch.goal_count);
+          }
+        }
+      }
+    } catch (e) { console.error("[Challenge] خطأ:", e); }
+  };
+
   const handleWordLearned = async () => {
     if (!displayWord || !user) return;
     
@@ -359,6 +466,9 @@ export default function Learn() {
         if (newLevel > oldLevel && userPreferences.confetti_enabled) {
           triggerConfetti('levelUp');
         }
+
+        // تحديث تقدم التحديات النشطة
+        updateChallengesProgress(currentWord).catch(() => {});
 
         toast({
           title: "✅ تم الحفظ بنجاح",
