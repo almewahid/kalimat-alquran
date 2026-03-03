@@ -109,6 +109,18 @@ export default function Groups() {
         n => n.type === "join_request" && n.status === "pending"
       );
       setJoinRequests(pending);
+
+      // ✅ تحميل الطلبات المعلقة للمستخدم من group_join_requests
+      // يمنع إرسال طلب مكرر حتى بعد إعادة تحميل الصفحة
+      const { data: myPendingRequests } = await supabaseClient.supabase
+        .from("group_join_requests")
+        .select("group_id")
+        .eq("user_email", currentUser.email)
+        .eq("status", "pending");
+
+      // دائماً نعيد بناء الـ Set من DB — يضمن مسح الطلبات المرفوضة أو الملغاة
+      setSentRequests(new Set((myPendingRequests || []).map(r => r.group_id)));
+
     } catch (error) {
       console.error("Error loading groups:", error);
     } finally {
@@ -155,48 +167,49 @@ const sendJoinRequest = async (group) => {
     return false;
   }
 
-  // 🔎 فحص هل يوجد طلب سابق غير مقروء لنفس المجموعة
+  // 🔎 التحقق من group_join_requests مباشرةً — المصدر الموثوق الوحيد
   const { data: existingRequests, error: checkError } =
     await supabaseClient.supabase
-      .from("user_notifications")
-    .select("id, message")
-    .eq("user_email", group.leader_email)
-    .eq("type", "join_request")
-    .eq("status", "pending");
+      .from("group_join_requests")
+      .select("id")
+      .eq("group_id", group.id)
+      .eq("user_email", user.email)
+      .in("status", ["pending"])
+      .limit(1);
 
   if (checkError) throw checkError;
 
-  const alreadyRequested = (existingRequests || []).some((req) => {
-    try {
-      const parsed = JSON.parse(req.message);
-      return (
-        parsed.requester_email === user.email &&
-        parsed.group_id === group.id
-      );
-    } catch {
-      return false;
-    }
-  });
-
-  if (alreadyRequested) {
-    toast({ title: "⏳ تم إرسال طلب انضمام مسبقاً لهذه المجموعة" });
+  if (existingRequests && existingRequests.length > 0) {
+    toast({ title: "⏳ طلبك قيد الانتظار", description: "لقد أرسلت طلب انضمام بالفعل وهو بانتظار موافقة المدير." });
+    setSentRequests(prev => new Set([...prev, group.id]));
     return false;
   }
 
-  // ✉️ إدخال الطلب
+  // إذا كان هناك طلب مرفوض سابق، نحذفه ونسمح بإرسال جديد
+  await supabaseClient.supabase
+    .from("group_join_requests")
+    .delete()
+    .eq("group_id", group.id)
+    .eq("user_email", user.email)
+    .eq("status", "rejected");
+
+  // ✉️ إدخال الطلب في group_join_requests
   const { error } = await supabaseClient.supabase
-    .from("user_notifications")
+    .from("group_join_requests")
     .insert({
-      user_email: group.leader_email,
-    type: "join_request",
-    status: "pending",
-    title: `طلب انضمام لمجموعة "${group.name}"`,
-    message: JSON.stringify({
-      requester_email: user.email,
-      group_id: group.id,
-      group_name: group.name,
-    }),
-    is_read: false,
+      group_id:   group.id,
+      user_email: user.email,
+      status:     "pending",
+    });
+
+  // إشعار للمدير
+  await supabaseClient.supabase.from("user_notifications").insert({
+    user_email: group.leader_email,
+    type:       "join_request",
+    status:     "pending",
+    title:      `طلب انضمام لمجموعة "${group.name}"`,
+    message:    JSON.stringify({ requester_email: user.email, group_id: group.id, group_name: group.name }),
+    is_read:    false,
     created_date: new Date().toISOString(),
   });
 
@@ -259,11 +272,19 @@ const handleApproveRequest = async (request) => {
       .update({ members: updatedMembers })
       .eq("id", group.id);
 
-    // تحديث حالة الطلب
+    // تحديث حالة الطلب في user_notifications
     await supabaseClient.supabase
       .from("user_notifications")
       .update({ status: "approved", is_read: true })
       .eq("id", request.id);
+
+    // ✅ تحديث حالة الطلب في group_join_requests
+    await supabaseClient.supabase
+      .from("group_join_requests")
+      .update({ status: "accepted" })
+      .eq("group_id", data.group_id)
+      .eq("user_email", data.requester_email)
+      .eq("status", "pending");
 
     // إرسال إشعار الموافقة للطالب
     await supabaseClient.supabase
@@ -295,11 +316,19 @@ const handleRejectRequest = async (request) => {
   try {
     const data = JSON.parse(request.message);
 
-    // تحديث حالة الطلب
+    // تحديث حالة الطلب في user_notifications
     await supabaseClient.supabase
       .from("user_notifications")
       .update({ status: "rejected", is_read: true })
       .eq("id", request.id);
+
+    // ✅ تحديث حالة الطلب في group_join_requests
+    await supabaseClient.supabase
+      .from("group_join_requests")
+      .update({ status: "rejected" })
+      .eq("group_id", data.group_id)
+      .eq("user_email", data.requester_email)
+      .eq("status", "pending");
 
     // إرسال إشعار الرفض للطالب
     await supabaseClient.supabase
@@ -314,6 +343,12 @@ const handleRejectRequest = async (request) => {
       });
 
     toast({ title: "✅ تم رفض الطلب" });
+    // ✅ إزالة المجموعة من sentRequests حتى يتمكن المستخدم من إرسال طلب جديد لاحقاً
+    setSentRequests(prev => {
+      const next = new Set(prev);
+      next.delete(data.group_id);
+      return next;
+    });
     loadData();
   } catch (error) {
     console.error("Error rejecting request:", error);
@@ -453,7 +488,7 @@ const handleSendGroupNotification = async () => {
           {myGroups.length === 0 ? (
             <Card className="bg-card">
               <CardContent className="py-16 text-center flex flex-col items-center gap-4">
-                <div className="text-7xl">👫</div>
+                <img src="/groups-icon.svg" alt="مجموعات" className="w-20 h-20" />
                 <h3 className="text-xl font-bold">لم تنضم لأي مجموعة بعد!</h3>
                 <p className="text-foreground/60 max-w-sm">
                   أنشئ مجموعتك أو انضم لأصدقائك وتعلّموا معاً

@@ -49,6 +49,10 @@ export default function GroupDetail() {
   const [suggestedWords, setSuggestedWords] = useState([]);
   const [isLoading,      setIsLoading]      = useState(true);
 
+  // ── طلبات الانضمام ─────────────────────────────────────────────────────────
+  const [pendingRequests,     setPendingRequests]     = useState([]);
+  const [joinRequests,        setJoinRequests]        = useState([]);
+
   // ── نوافذ الإنشاء ──────────────────────────────────────────────────────────
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [showCreateQuiz,      setShowCreateQuiz]      = useState(false);
@@ -105,6 +109,21 @@ export default function GroupDetail() {
         })
       );
       setMembers(membersWithProgress);
+
+      // طلبات الانضمام المعلقة
+      try {
+        const allJoinRequests = await supabaseClient.entities.GroupJoinRequest.filter({
+          group_id: groupId,
+          status: "pending",
+        });
+        setJoinRequests(allJoinRequests);
+
+        // هل للمستخدم الحالي طلب معلق؟
+        const myPending = allJoinRequests.filter(r => r.user_email === currentUser.email);
+        setPendingRequests(myPending);
+      } catch (e) {
+        // الجدول غير موجود أو لا توجد طلبات — تجاهل بصمت
+      }
 
       // لوحة الترتيب
       const challengeIds = groupChallenges.map(c => c.id);
@@ -223,6 +242,91 @@ export default function GroupDetail() {
       navigate(createPageUrl("Groups"));
     } catch {
       toast({ title: "❌ فشل المغادرة", variant: "destructive" });
+    }
+  };
+
+  // ── طلبات الانضمام ───────────────────────────────────────────────────────────
+  const handleSendJoinRequest = async () => {
+    if (!user || !group) return;
+
+    // هل للمستخدم طلب معلق بالفعل؟
+    if (pendingRequests.length > 0) {
+      toast({
+        title: "⏳ طلبك قيد الانتظار",
+        description: "لقد أرسلت طلب انضمام بالفعل وهو بانتظار موافقة المدير.",
+        variant: "default",
+      });
+      return;
+    }
+
+    // هل المستخدم عضو بالفعل؟
+    if (group.members?.includes(user.email)) {
+      toast({ title: "✅ أنت بالفعل عضو في هذه المجموعة" });
+      return;
+    }
+
+    // هل المستخدم محظور؟
+    if (group.banned_members?.includes(user.email)) {
+      toast({ title: "⛔ أنت محظور من هذه المجموعة", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await supabaseClient.entities.GroupJoinRequest.create({
+        group_id:   groupId,
+        user_email: user.email,
+        status:     "pending",
+      });
+      // إشعار للمدير
+      await supabaseClient.entities.Notification.create({
+        user_email:        group.leader_email,
+        notification_type: "join_request",
+        title:             `📨 طلب انضمام جديد لمجموعة: ${group.name}`,
+        message:           `${user.full_name || user.email} يطلب الانضمام للمجموعة`,
+        icon:              "👋",
+        is_read:           false,
+        action_url:        `/GroupDetail?id=${groupId}`,
+      });
+      toast({ title: "✅ تم إرسال طلب الانضمام", description: "سيُخطرك المدير عند الموافقة أو الرفض." });
+      loadGroupData();
+    } catch (error) {
+      console.error(error);
+      toast({ title: "❌ فشل إرسال الطلب", variant: "destructive" });
+    }
+  };
+
+  const handleRespondJoinRequest = async (requestId, requesterEmail, accept) => {
+    try {
+      await supabaseClient.supabase
+        .from("group_join_requests")
+        .update({ status: accept ? "accepted" : "rejected" })
+        .eq("id", requestId);
+
+      if (accept) {
+        const updatedMembers = [...(group.members || []), requesterEmail];
+        await supabaseClient.supabase.from("groups").update({ members: updatedMembers }).eq("id", group.id);
+      }
+
+      // إشعار للطالب بالنتيجة
+      await supabaseClient.entities.Notification.create({
+        user_email:        requesterEmail,
+        notification_type: "join_request_response",
+        title:             accept
+          ? `✅ تمت الموافقة على طلبك للانضمام لـ ${group.name}`
+          : `❌ تم رفض طلبك للانضمام لـ ${group.name}`,
+        message:           accept
+          ? "أهلاً بك في المجموعة! يمكنك الآن المشاركة في التحديات."
+          : "يمكنك التواصل مع مدير المجموعة لمزيد من المعلومات.",
+        icon:              accept ? "🎉" : "😔",
+        is_read:           false,
+        action_url:        accept ? `/GroupDetail?id=${groupId}` : "/Groups",
+      });
+
+      toast({ title: accept ? "✅ تم قبول الطلب وإضافة العضو" : "🚫 تم رفض الطلب" });
+      loadGroupData();
+    } catch (error) {
+      console.error(error);
+      toast({ title: "❌ حدث خطأ", variant: "destructive" });
     }
   };
 
@@ -499,6 +603,53 @@ export default function GroupDetail() {
           <TabsContent value="members">
             <div className="grid gap-6">
 
+              {/* طلبات الانضمام المعلقة — للرئيس فقط */}
+              {isLeader && joinRequests.length > 0 && (
+                <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+                  <CardHeader>
+                    <CardTitle className="text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                      <Bell className="w-5 h-5" />
+                      طلبات الانضمام المعلقة
+                      <Badge className="bg-amber-500 text-white">{joinRequests.length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {joinRequests.map(req => (
+                        <div key={req.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+                              <span className="text-amber-600 font-bold text-sm">{req.user_email.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{req.user_email}</p>
+                              <p className="text-xs text-foreground/50">طلب انضمام معلق</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-green-500 hover:bg-green-600 text-white gap-1"
+                              onClick={() => handleRespondJoinRequest(req.id, req.user_email, true)}
+                            >
+                              <Check className="w-3 h-3" /> قبول
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-300 text-red-600 hover:bg-red-50 gap-1"
+                              onClick={() => handleRespondJoinRequest(req.id, req.user_email, false)}
+                            >
+                              <UserX className="w-3 h-3" /> رفض
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* المحظورون — للرئيس فقط */}
               {isLeader && group.banned_members && group.banned_members.length > 0 && (
                 <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
@@ -621,7 +772,7 @@ export default function GroupDetail() {
         </Tabs>
 
         {/* ── منطقة الخطر: مغادرة المجموعة ───────────────────────────────── */}
-        {!isLeader && (
+        {!isLeader && group.members?.includes(user?.email) && (
           <div className="mt-4 pt-6 border-t border-dashed border-red-200 dark:border-red-900">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
@@ -637,6 +788,32 @@ export default function GroupDetail() {
               >
                 <LogOut className="w-4 h-4" />
                 مغادرة المجموعة
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── زر الانضمام للزوار غير الأعضاء ─────────────────────────────── */}
+        {user && !isLeader && !group.members?.includes(user.email) && (
+          <div className="mt-4 pt-6 border-t border-dashed border-primary/20">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <p className="font-medium text-primary">الانضمام للمجموعة</p>
+                <p className="text-sm text-foreground/60">
+                  {pendingRequests.length > 0
+                    ? "⏳ طلبك قيد المراجعة من قِبَل المدير"
+                    : "أرسل طلب انضمام وسيُراجعه مدير المجموعة"}
+                </p>
+              </div>
+              <Button
+                onClick={handleSendJoinRequest}
+                disabled={pendingRequests.length > 0 || group.banned_members?.includes(user.email)}
+                className={`gap-2 ${pendingRequests.length > 0 ? "bg-amber-400 hover:bg-amber-400 cursor-not-allowed" : "bg-primary"}`}
+              >
+                {pendingRequests.length > 0
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> طلب معلق...</>
+                  : <><Plus className="w-4 h-4" /> طلب الانضمام</>
+                }
               </Button>
             </div>
           </div>

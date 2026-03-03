@@ -142,10 +142,10 @@ const adminItems = [
 // ── قائمة وضع الأطفال (مبسّطة) ──
 const kidsNavigationItems = [
   
-  { title: "رحلتنا",       img: "/images/kids/2_journey.png", url: createPageUrl("Dashboard"), color: "from-green-400 to-teal-500"    },
-  { title: "تَعلَّم",         img: "/images/kids/3_learn.png",   url: createPageUrl("Learn"),         color: "from-blue-400 to-cyan-500"     },
-  { title: "مراجعة ممتعة", img: "/images/kids/4_review.png",  url: createPageUrl("SmartReview"),   color: "from-purple-400 to-violet-500" },
-  { title: "مكافآتي",      img: "/images/kids/5_rewards.png", url: createPageUrl("KidsRewards"),   color: "from-pink-400 to-rose-500"     },
+  { title: "رحلتنا",       img: "/images/kids/2_journey.png", url: createPageUrl("Dashboard"),      color: "from-green-400 to-teal-500"    },
+  { title: "تَعلَّم",         img: "/images/kids/3_learn.png",   url: createPageUrl("Learn"),          color: "from-blue-400 to-cyan-500"     },
+  { title: "مراجعة ممتعة", img: "/images/kids/4_review.png",  url: createPageUrl("SmartReview"),    color: "from-purple-400 to-violet-500" },
+  { title: "مكافآتي",      img: "/images/kids/5_rewards.png", url: createPageUrl("KidsRewards"),    color: "from-pink-400 to-rose-500"     },
 ];
 
 const LOGO_URL      = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68b74ae8214aa5bfcb70e378/6d983cb3c_.png";
@@ -209,6 +209,7 @@ export default function Layout({ children }) {
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [kidsGroupChallenges, setKidsGroupChallenges] = useState(0); // عدد المجموعات النشطة بتحديات
 
   useEffect(() => {
     const checkMobile = () => {
@@ -249,6 +250,30 @@ export default function Layout({ children }) {
   useEffect(() => {
     if (isMobile) setSidebarOpen(false);
   }, [location.pathname, isMobile]);
+
+  // جلب تحديات المجموعات النشطة للطفل — لإظهار الشارة في وضع الأطفال
+  useEffect(() => {
+    if (!user || !isKidsMode) return;
+    const fetchKidsGroupChallenges = async () => {
+      try {
+        const allGroups = await supabaseClient.entities.Group.list();
+        const myGroups  = allGroups.filter(g => g.members?.includes(user.email));
+        if (myGroups.length === 0) return;
+
+        const now = new Date().toISOString();
+        let activeChallengesCount = 0;
+        for (const g of myGroups) {
+          const challenges = await supabaseClient.entities.GroupChallenge.filter({ group_id: g.id });
+          const active = challenges.filter(c => c.is_active && c.end_date > now);
+          if (active.length > 0) activeChallengesCount++;
+        }
+        setKidsGroupChallenges(activeChallengesCount);
+      } catch {
+        // تجاهل الخطأ بصمت
+      }
+    };
+    fetchKidsGroupChallenges();
+  }, [user, isKidsMode]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -316,6 +341,33 @@ export default function Layout({ children }) {
                               >
                                 <span className="text-3xl">🏆</span>
                                 <span className="font-bold text-base">{activeContest.name}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )}
+
+                        {/* 🌟 زر المجموعات — يظهر فقط إذا كان الطفل في مجموعة بها تحدي نشط */}
+                        {kidsGroupChallenges > 0 && (
+                          <SidebarMenuItem>
+                            <SidebarMenuButton
+                              asChild
+                              className={`rounded-2xl h-16 transition-all duration-300 relative ${
+                                location.pathname === createPageUrl("Groups")
+                                  ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-xl ring-4 ring-white ring-offset-2"
+                                  : "bg-gradient-to-r from-violet-400 to-purple-500 text-white shadow-md opacity-90 hover:opacity-100 hover:shadow-lg hover:scale-[1.02]"
+                              }`}
+                            >
+                              <Link
+                                to={createPageUrl("Groups")}
+                                className="flex items-center gap-3 px-4"
+                                onClick={() => isMobile && setSidebarOpen(false)}
+                              >
+                                <img src="/images/kids/تحديات.webp" alt="التحدي" className="w-12 h-12 object-contain flex-shrink-0" />
+                                <span className="font-bold text-base">التحدي</span>
+                                {/* شارة عدد المجموعات النشطة */}
+                                <span className="absolute top-2 left-2 min-w-[22px] h-[22px] bg-yellow-400 text-purple-900 text-xs font-black rounded-full flex items-center justify-center px-1 shadow-md animate-pulse">
+                                  {kidsGroupChallenges}
+                                </span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>

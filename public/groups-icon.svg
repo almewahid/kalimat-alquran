@@ -1,0 +1,88 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- خلفية دائرة ناعمة -->
+  <circle cx="60" cy="60" r="56" fill="url(#bgGrad)"/>
+  <circle cx="60" cy="60" r="56" fill="url(#bgGlow)" opacity="0.4"/>
+
+  <!-- حلقة نقاط زينة -->
+  <circle cx="60" cy="10" r="3" fill="#fde68a" opacity="0.7"/>
+  <circle cx="96" cy="24" r="2.5" fill="#fda4af" opacity="0.7"/>
+  <circle cx="110" cy="60" r="3" fill="#a5f3fc" opacity="0.7"/>
+  <circle cx="96" cy="96" r="2.5" fill="#c4b5fd" opacity="0.7"/>
+  <circle cx="60" cy="110" r="3" fill="#fde68a" opacity="0.7"/>
+  <circle cx="24" cy="96" r="2.5" fill="#fda4af" opacity="0.7"/>
+  <circle cx="10" cy="60" r="3" fill="#a5f3fc" opacity="0.7"/>
+  <circle cx="24" cy="24" r="2.5" fill="#c4b5fd" opacity="0.7"/>
+
+  <!-- نجوم صغيرة على الحلقة -->
+  <!-- نجمة أعلى -->
+  <g transform="translate(60,19) rotate(0)">
+    <polygon points="0,-7 1.8,-2.2 6.7,-2.2 2.8,0.8 4.3,5.7 0,2.8 -4.3,5.7 -2.8,0.8 -6.7,-2.2 -1.8,-2.2" fill="#fbbf24"/>
+  </g>
+  <!-- نجمة يمين أعلى -->
+  <g transform="translate(98,33)">
+    <polygon points="0,-7 1.8,-2.2 6.7,-2.2 2.8,0.8 4.3,5.7 0,2.8 -4.3,5.7 -2.8,0.8 -6.7,-2.2 -1.8,-2.2" fill="#f9a8d4"/>
+  </g>
+  <!-- نجمة يمين -->
+  <g transform="translate(101,60)">
+    <polygon points="0,-7 1.8,-2.2 6.7,-2.2 2.8,0.8 4.3,5.7 0,2.8 -4.3,5.7 -2.8,0.8 -6.7,-2.2 -1.8,-2.2" fill="#86efac"/>
+  </g>
+  <!-- نجمة يمين أسفل -->
+  <g transform="translate(98,87)">
+    <polygon points="0,-7 1.8,-2.2 6.7,-2.2 2.8,0.8 4.3,5.7 0,2.8 -4.3,5.7 -2.8,0.8 -6.7,-2.2 -1.8,-2.2" fill="#a5f3fc"/>
+  </g>
+  <!-- نجمة أسفل -->
+  <g transform="translate(60,101)">
+    <polygon points="0,-7 1.8,-2.2 6.7,-2.2 2.8,0.8 4.3,5.7 0,2.8 -4.3,5.7 -2.8,0.8 -6.7,-2.2 -1.8,-2.2" fill="#c4b5fd"/>
+  </g>
+  <!-- نجمة يسار أسفل -->
+  <g transform="translate(22,87)">
+    <polygon points="0,-7 1.8,-2.2 6.7,-2.2 2.8,0.8 4.3,5.7 0,2.8 -4.3,5.7 -2.8,0.8 -6.7,-2.2 -1.8,-2.2" fill="#fda4af"/>
+  </g>
+  <!-- نجمة يسار -->
+  <g transform="translate(19,60)">
+    <polygon points="0,-7 1.8,-2.2 6.7,-2.2 2.8,0.8 4.3,5.7 0,2.8 -4.3,5.7 -2.8,0.8 -6.7,-2.2 -1.8,-2.2" fill="#fbbf24"/>
+  </g>
+  <!-- نجمة يسار أعلى -->
+  <g transform="translate(22,33)">
+    <polygon points="0,-7 1.8,-2.2 6.7,-2.2 2.8,0.8 4.3,5.7 0,2.8 -4.3,5.7 -2.8,0.8 -6.7,-2.2 -1.8,-2.2" fill="#86efac"/>
+  </g>
+
+  <!-- النجمة الكبيرة في المنتصف -->
+  <g filter="url(#starGlow)">
+    <polygon points="60,28 65.5,44.5 83,44.5 69.5,54.5 74.5,71 60,61 45.5,71 50.5,54.5 37,44.5 54.5,44.5" fill="url(#starGrad)"/>
+  </g>
+
+  <!-- بريق صغير فوق يسار -->
+  <g transform="translate(36,28)">
+    <line x1="0" y1="-5" x2="0" y2="5" stroke="#fde68a" stroke-width="2" stroke-linecap="round"/>
+    <line x1="-5" y1="0" x2="5" y2="0" stroke="#fde68a" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <!-- بريق صغير يمين أسفل -->
+  <g transform="translate(84,82)">
+    <line x1="0" y1="-4" x2="0" y2="4" stroke="#c4b5fd" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="-4" y1="0" x2="4" y2="0" stroke="#c4b5fd" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <defs>
+    <radialGradient id="bgGrad" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#ede9fe"/>
+      <stop offset="100%" stop-color="#dbeafe"/>
+    </radialGradient>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fdf4ff"/>
+      <stop offset="100%" stop-color="#ede9fe" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="50%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <filter id="starGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+</svg>
