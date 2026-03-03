@@ -5,7 +5,11 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/((?!PrivacyPolicy).*)",
+      "source": "/PrivacyPolicy",
+      "destination": "/PrivacyPolicy.html"
+    },
+    {
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]
