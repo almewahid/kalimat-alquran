@@ -179,7 +179,7 @@ function MobileSidebarTrigger({ className }) {
       onTouchEnd={handleTouchEnd}
       onClick={handleClick}
     >
-      <Menu className="w-5 h-5" />
+      <Menu className="w-8 h-8" />
     </button>
   );
 }
@@ -362,7 +362,7 @@ export default function Layout({ children }) {
                                 className="flex items-center gap-3 px-4"
                                 onClick={() => isMobile && setSidebarOpen(false)}
                               >
-                                <img src="/images/kids/تحديات.webp" alt="التحدي" className="w-12 h-12 object-contain flex-shrink-0" />
+                                <img src="/images/kids/تحديات.png" alt="التحدي" className="w-12 h-12 object-contain flex-shrink-0" />
                                 <span className="font-bold text-base">التحدي</span>
                                 {/* شارة عدد المجموعات النشطة */}
                                 <span className="absolute top-2 left-2 min-w-[22px] h-[22px] bg-yellow-400 text-purple-900 text-xs font-black rounded-full flex items-center justify-center px-1 shadow-md animate-pulse">
@@ -604,7 +604,7 @@ export default function Layout({ children }) {
             </Sidebar>
 
             <main className="flex-1 overflow-auto bg-background">
-              <header className="bg-card/80 backdrop-blur-sm border-b border-border px-6 py-4 md:hidden sticky top-0 z-40">
+              <header className="bg-blue-100/90 backdrop-blur-sm border-b border-blue-200 px-6 py-4 md:hidden sticky top-0 z-40">
                 <div className="flex items-center gap-4">
                   <h1 className="text-xl font-bold gradient-text">كلمات القرآن</h1>
                   <MobileSidebarTrigger className="mr-auto" />

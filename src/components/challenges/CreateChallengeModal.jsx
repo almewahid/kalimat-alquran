@@ -10,10 +10,10 @@ import { Loader2, Plus, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const CHALLENGE_TYPES = [
-  { value: "learn_new_words", label: "تعلم كلمات جديدة", icon: "📚" },
-  { value: "review_words", label: "مراجعة كلمات", icon: "🔄" },
-  { value: "complete_quizzes", label: "إكمال اختبارات", icon: "🧠" },
-  { value: "maintain_streak", label: "الحفاظ على السلسلة", icon: "🔥" }
+  { value: "learn_new_words", label: "تعلم كلمات جديدة", icon: "📚", description: "يُحتسب عند تعلم كلمات لأول مرة من خلال بطاقات التعلم" },
+  { value: "learn_and_review", label: "تعلم الجديد ومراجعة القديم", icon: "🔄", description: "يُحتسب عند تعلم كلمات جديدة ومراجعة كلمات سبق تعلمها معاً" },
+  { value: "complete_quizzes", label: "إكمال اختبارات", icon: "🧠", description: "يُحتسب عند إنهاء اختبارات المجموعة بنجاح" },
+  { value: "maintain_streak", label: "الحفاظ على السلسلة", icon: "🔥", description: "يُحتسب عند تسجيل الدخول والتعلم يومياً دون انقطاع" }
 ];
 
 const DIFFICULTY_LEVELS = [
@@ -141,7 +141,7 @@ export default function CreateChallengeModal({ isOpen, onClose, groupId, onSucce
         reward_badge: challenge.reward_badge || `🏆 ${challenge.title}`,
         reward_xp: parseInt(challenge.reward_xp),
         is_active: true,
-        difficulty_level: challenge.difficulty_level,
+        difficulty_level: challenge.difficulty_level === "الكل" ? null : challenge.difficulty_level,
         source_type: challenge.source_type,
         source_details: challenge.source_details
       };
@@ -230,11 +230,21 @@ export default function CreateChallengeModal({ isOpen, onClose, groupId, onSucce
               <SelectContent>
                 {CHALLENGE_TYPES.map(type => (
                   <SelectItem key={type.value} value={type.value}>
-                    {type.icon} {type.label}
+                    <div className="flex flex-col">
+                      <span>{type.icon} {type.label}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {challenge.challenge_type && (() => {
+              const selected = CHALLENGE_TYPES.find(t => t.value === challenge.challenge_type);
+              return selected ? (
+                <p className="text-xs text-muted-foreground mt-1 pr-1">
+                  ℹ️ {selected.description}
+                </p>
+              ) : null;
+            })()}
           </div>
 
           {/* مصدر المادة */}

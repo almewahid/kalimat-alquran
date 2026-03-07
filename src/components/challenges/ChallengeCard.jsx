@@ -12,7 +12,7 @@ import { ar } from "date-fns/locale";
 
 const CHALLENGE_TYPE_LABELS = {
   learn_new_words: { label: "تعلم كلمات جديدة", icon: "📚", color: "bg-blue-100 text-blue-700" },
-  review_words: { label: "مراجعة كلمات", icon: "🔄", color: "bg-purple-100 text-purple-700" },
+  learn_and_review: { label: "تعلم الجديد ومراجعة القديم", icon: "🔄", color: "bg-purple-100 text-purple-700" },
   complete_quizzes: { label: "إكمال اختبارات", icon: "🧠", color: "bg-green-100 text-green-700" },
   maintain_streak: { label: "الحفاظ على السلسلة", icon: "🔥", color: "bg-orange-100 text-orange-700" }
 };

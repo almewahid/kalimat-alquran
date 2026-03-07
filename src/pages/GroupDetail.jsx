@@ -46,7 +46,7 @@ export default function GroupDetail() {
   const [challenges,     setChallenges]     = useState([]);
   const [members,        setMembers]        = useState([]);
   const [leaderboard,    setLeaderboard]    = useState([]);
-  const [suggestedWords, setSuggestedWords] = useState([]);
+
   const [isLoading,      setIsLoading]      = useState(true);
 
   // ── طلبات الانضمام ─────────────────────────────────────────────────────────
@@ -80,7 +80,6 @@ export default function GroupDetail() {
 
   useEffect(() => {
     loadGroupData();
-    loadSuggestions();
   }, [groupId]);
 
   // ── تحميل البيانات ──────────────────────────────────────────────────────────
@@ -147,16 +146,7 @@ export default function GroupDetail() {
     }
   };
 
-  const loadSuggestions = async () => {
-    try {
-      const words = await supabaseClient.entities.QuranicWord.list();
-      setSuggestedWords(words.sort(() => 0.5 - Math.random()).slice(0, 5));
-    } catch (e) {
-      console.error("Failed to load suggestions", e);
-    }
-  };
-
-  const copyJoinCode = () => {
+const copyJoinCode = () => {
     navigator.clipboard.writeText(group.join_code);
     setCopiedCode(true);
     toast({ title: "✅ تم نسخ كود الانضمام" });
@@ -524,31 +514,7 @@ export default function GroupDetail() {
               </CardContent>
             </Card>
 
-            {/* كلمات مقترحة — منقولة من تبويب الأعضاء */}
-            {suggestedWords.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-primary flex items-center gap-2">
-                    <Brain className="w-5 h-5" />
-                    كلمات مقترحة للمجموعة
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {suggestedWords.map(word => (
-                      <Badge key={word.id} variant="secondary" className="px-3 py-1 text-base">
-                        {word.word}
-                      </Badge>
-                    ))}
-                  </div>
-                  {isLeader && (
-                    <Button variant="outline" size="sm" onClick={() => setShowCreateQuiz(true)} className="gap-1">
-                      <Plus className="w-4 h-4" /> إنشاء اختبار من هذه الكلمات
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+
           </TabsContent>
 
           {/* ── تبويب الترتيب ──────────────────────────────────────────────── */}

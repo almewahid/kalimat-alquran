@@ -216,7 +216,7 @@ const Sidebar = React.forwardRef((
 })
 Sidebar.displayName = "Sidebar"
 
-const SidebarTrigger = React.forwardRef(({ className, onClick, ...props }, ref) => {
+const SidebarTrigger = React.forwardRef(({ className, onClick, asChild = false, ...props }, ref) => {
   const { toggleSidebar } = useSidebar()
 
   return (
@@ -230,9 +230,16 @@ const SidebarTrigger = React.forwardRef(({ className, onClick, ...props }, ref) 
         onClick?.(event)
         toggleSidebar()
       }}
+      asChild={asChild}
       {...props}>
-      <PanelLeft />
-      <span className="sr-only">Toggle Sidebar</span>
+      {asChild ? (
+        <PanelLeft />
+      ) : (
+        <>
+          <PanelLeft />
+          <span className="sr-only">Toggle Sidebar</span>
+        </>
+      )}
     </Button>)
   );
 })
@@ -434,28 +441,24 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-const SidebarMenuButton = React.forwardRef((
-  {
-    asChild = false,
-    isActive = false,
-    variant = "default",
-    size = "default",
-    tooltip,
-    className,
-    ...props
-  },
+const SidebarMenuButton = React.forwardRef(function SidebarMenuButtonInner(
+  { asChild, isActive, variant, size, tooltip, className, ...props },
   ref
-) => {
-  const Comp = asChild ? Slot : "button"
+) {
+  const resolvedAsChild = asChild ?? false;
+  const resolvedIsActive = isActive ?? false;
+  const resolvedVariant = variant ?? "default";
+  const resolvedSize = size ?? "default";
+  const Comp = resolvedAsChild ? Slot : "button"
   const { isMobile, state } = useSidebar()
 
   const button = (
     <Comp
       ref={ref}
       data-sidebar="menu-button"
-      data-size={size}
-      data-active={isActive}
-      className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+      data-size={resolvedSize}
+      data-active={resolvedIsActive}
+      className={cn(sidebarMenuButtonVariants({ variant: resolvedVariant, size: resolvedSize }), className)}
       {...props} />
   )
 
@@ -482,6 +485,7 @@ const SidebarMenuButton = React.forwardRef((
 })
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
+
 const SidebarMenuAction = React.forwardRef(({ className, asChild = false, showOnHover = false, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
 
@@ -498,7 +502,7 @@ const SidebarMenuAction = React.forwardRef(({ className, asChild = false, showOn
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-          "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
+        "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
         className
       )}
       {...props} />)

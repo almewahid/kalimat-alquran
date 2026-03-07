@@ -9,7 +9,26 @@ import { Mail, Lock, Loader2 } from 'lucide-react';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+
+const DEFAULT_PREFERENCES = {
+  theme: 'light',
+  learning_level: 'مبتدئ',
+  kids_mode_enabled: true,
+  source_type: 'juz',
+  selected_juz: [30],
+  selected_surahs: [
+    114, 113, 112, 111, 110, 109, 108, 107, 106, 105,
+    104, 103, 102, 101, 100,  99,  98,  97,  96,  95,
+     94,  93,  92,  91,  90,  89,  88,  87,  86,  85,
+     84,  83,  82,  81,  80,  79,  78
+  ],
+  sound_effects_enabled: true,
+  confetti_enabled: true,
+  animations_enabled: true,
+  quiz_time_limit: 60
+};
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -17,13 +36,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const navigate = useNavigate();
   const { user, isLoading } = useAuth(); // استخراج user و isLoading من AuthContext
 
   // معالجة إعادة التوجيه بعد أن يقوم AuthContext بتحميل المستخدم بالكامل
   useEffect(() => {
     // إعادة التوجيه فقط إذا كان المستخدم موجودًا ولم يعد AuthContext في حالة تحميل
     if (user && !isLoading) {
-      window.location.href = '/Dashboard';
+      navigate('/Dashboard', { replace: true });
     }
   }, [user, isLoading]); // إعادة تشغيل التأثير عند تغيير user أو isLoading
 
@@ -68,6 +88,7 @@ export default function Login() {
                     email: sessionData.user.email,
                     full_name: sessionData.user.user_metadata?.full_name || 'مستخدم',
                     role: 'user',
+                    preferences: DEFAULT_PREFERENCES,
                   });
 
                   await supabaseClient.supabase.from('user_gems').insert({
@@ -134,6 +155,7 @@ export default function Login() {
             email: email,
             full_name: email.split('@')[0],
             role: 'user',
+            preferences: DEFAULT_PREFERENCES,
           });
 
           await supabaseClient.supabase.from('user_gems').insert({

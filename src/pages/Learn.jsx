@@ -82,12 +82,18 @@ export default function Learn() {
           let challengeWords = allChallengeWords;
 
           if (ch.source_type === "surah" && ch.source_details?.length > 0) {
-            challengeWords = allChallengeWords.filter(w =>
+            challengeWords = challengeWords.filter(w =>
               ch.source_details.includes(String(w.surah_number))
             );
           } else if (ch.source_type === "juz" && ch.source_details?.length > 0) {
-            challengeWords = allChallengeWords.filter(w =>
+            challengeWords = challengeWords.filter(w =>
               ch.source_details.includes(String(w.juz_number))
+            );
+          }
+
+          if (ch.difficulty_level && ch.difficulty_level !== "الكل") {
+            challengeWords = challengeWords.filter(w =>
+              w.difficulty_level === ch.difficulty_level
             );
           }
 

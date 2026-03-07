@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { supabaseClient } from "@/components/api/supabaseClient";
 import {
   Dialog,
   DialogContent,
@@ -16,44 +15,44 @@ import { motion, AnimatePresence } from "framer-motion";
 const tutorialSteps = [
   {
     id: "welcome",
-    title: "مرحباً بك في كلمات القرآن! ✨",
-    content: "تطبيق تفاعلي لتعلم معاني كلمات القرآن الكريم بطريقة ممتعة وتدريجية مع نظام مراجعة ذكي",
+    title: "أهلاً وسهلاً! 🌟",
+    content: "مرحباً بك في رحلة تعلم كلمات القرآن الكريم!\nهنا ستتعلم معاني الكلمات القرآنية بطريقة ممتعة وسهلة مع ألعاب واختبارات تحفّزك على الاستمرار 🎮",
     icon: BookOpen,
     color: "emerald"
   },
   {
     id: "hearts",
-    title: "نظام القلوب 💕",
-    content: "تبدأ بـ 5 قلوب في كل اختبار. كل خطأ يكلفك قلباً واحداً. عند انتهاء القلوب، يمكنك استعادة قلب واحد عبر التسبيح",
+    title: "القلوب هي حياتك 💕",
+    content: "تبدأ كل جلسة اختبار بـ 5 قلوب ❤️❤️❤️❤️❤️\n\nكل إجابة خاطئة تأخذ منك قلباً واحداً.\n\n💡 نصيحة: عند انتهاء القلوب يمكنك استعادة قلب عبر التسبيح!",
     icon: Heart,
     color: "red"
   },
   {
     id: "xp",
-    title: "اكسب النقاط والمستويات 🏆",
-    content: "اكسب نقاط الخبرة (XP) من خلال تعلم الكلمات الجديدة وإجتياز الاختبارات. ارتق بمستواك وحقق الإنجازات",
+    title: "ارتقِ في المستويات! 🏆",
+    content: "كل كلمة تتعلمها = 10 نقاط XP ⭐\nكل اختبار تجتازه = المزيد من النقاط!\n\nكلما ارتفعت نقاطك، ارتفع مستواك وحصلت على إنجازات رائعة.",
     icon: Trophy,
     color: "blue"
   },
   {
     id: "features",
-    title: "مزايا التطبيق الرائعة 🎁",
-    content: "• قارئ القرآن بالتفسير والصوت\n• المراجعة الذكية (SRS)\n• المسارات والدورات التعليمية\n• المجموعات والتحديات\n• الشهادات الرسمية\n• لوحة الترتيب والإنجازات",
+    title: "ماذا ستجد في التطبيق؟ 🎁",
+    content: "📖 قارئ القرآن مع التفسير والصوت\n🧠 مراجعة ذكية تتذكر ما تعلمته\n👥 مجموعات وتحديات مع الأصدقاء\n🏅 شهادات رسمية عند إتمام الدورات\n🎯 مسارات تعليمية منظمة",
     icon: Sparkles,
     color: "purple"
   },
   {
     id: "settings",
-    title: "لنضبط إعداداتك الأساسية ⚙️",
-    content: "اختر تفضيلاتك لتخصيص تجربتك التعليمية",
+    title: "اضبط تجربتك الآن ⚙️",
+    content: "اختر ما يناسبك لنبدأ رحلة التعلم معاً",
     icon: Settings,
     color: "orange",
     isSettings: true
   },
   {
     id: "ready",
-    title: "ابدأ رحلة التعلم! 🚀",
-    content: "الآن أنت جاهز لبدء تعلم كلمات القرآن الكريم. انقر على 'التعلم' لتبدأ أو 'الاختبار' لتختبر معرفتك",
+    title: "أنت جاهز! انطلق الآن 🚀",
+    content: "رحلتك في تعلم كلمات القرآن الكريم تبدأ الآن!\n\n🟢 اضغط على «التعلم» لتتعلم كلمات جديدة\n🎯 أو «الاختبار» لتختبر ما تعرفه\n\nبالتوفيق! 🤲",
     icon: Brain,
     color: "green"
   }
@@ -67,7 +66,7 @@ export default function TutorialModal({ isOpen, onClose }) {
     learning_level: "مبتدئ",
     daily_new_words_goal: 10,
     daily_review_words_goal: 20,
-    sound_effects_enabled: false,
+    sound_effects_enabled: true,
     animations_enabled: true,
     confetti_enabled: true
   });
@@ -91,31 +90,9 @@ export default function TutorialModal({ isOpen, onClose }) {
     handleFinish();
   };
 
-  const handleFinish = async () => {
-    try {
-      // حفظ الإعدادات في user_preferences
-      const user = await supabaseClient.auth.me();
-      
-      if (user) {
-        // تحديث user_profiles مع الإعدادات
-        await supabaseClient.supabase
-          .from('user_profiles')
-          .update({
-            preferences: {
-              ...userSettings,
-              tutorial_completed: true // علامة أن المستخدم أكمل الشرح
-            }
-          })
-          .eq('user_id', user.id);
-      }
-      
-      // تمرير الإعدادات للـ parent component
-      onClose(userSettings);
-    } catch (error) {
-      console.error('Error saving tutorial settings:', error);
-      // إغلاق حتى لو فشل الحفظ
-      onClose(userSettings);
-    }
+  const handleFinish = () => {
+    // سيتم تمرير الإعدادات إلى الـ parent component
+    onClose(userSettings);
   };
 
   const currentStepData = tutorialSteps[currentStep];
@@ -141,7 +118,7 @@ export default function TutorialModal({ isOpen, onClose }) {
                 <SelectContent>
                   <SelectItem value="مبتدئ">
                     <div className="flex flex-col items-start">
-                      <span className="font-semibold">طفل</span>
+                      <span className="font-semibold">مبتدئ</span>
                       <span className="text-xs text-foreground/70">مبسط جداً ومناسب للأطفال</span>
                     </div>
                   </SelectItem>
@@ -205,8 +182,8 @@ export default function TutorialModal({ isOpen, onClose }) {
               </h3>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3 p-3 bg-background rounded-lg">
-                  <Label htmlFor="sound-effects" className="flex-1 min-w-0 flex flex-col gap-1 cursor-pointer">
+                <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+                  <Label htmlFor="sound-effects" className="flex flex-col gap-1 cursor-pointer">
                     <span className="flex items-center gap-2 font-medium">
                       <Volume2 className="w-4 h-4" />
                       المؤثرات الصوتية
@@ -223,8 +200,8 @@ export default function TutorialModal({ isOpen, onClose }) {
                   />
                 </div>
 
-                <div className="flex items-center justify-between gap-3 p-3 bg-background rounded-lg">
-                  <Label htmlFor="animations" className="flex-1 min-w-0 flex flex-col gap-1 cursor-pointer">
+                <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+                  <Label htmlFor="animations" className="flex flex-col gap-1 cursor-pointer">
                     <span className="flex items-center gap-2 font-medium">
                       🌊 تأثير الموجة
                     </span>
@@ -240,8 +217,8 @@ export default function TutorialModal({ isOpen, onClose }) {
                   />
                 </div>
 
-                <div className="flex items-center justify-between gap-3 p-3 bg-background rounded-lg">
-                  <Label htmlFor="confetti" className="flex-1 min-w-0 flex flex-col gap-1 cursor-pointer">
+                <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+                  <Label htmlFor="confetti" className="flex flex-col gap-1 cursor-pointer">
                     <span className="flex items-center gap-2 font-medium">
                       🎉 احتفالات Confetti
                     </span>

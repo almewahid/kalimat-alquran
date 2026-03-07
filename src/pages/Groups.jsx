@@ -676,6 +676,9 @@ const handleSendGroupNotification = async () => {
                   placeholder="مثال: مجموعة حفظ جزء عم"
                   value={newGroup.name}
                   onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                 />
               </div>
               <div>
@@ -731,6 +734,16 @@ const handleSendGroupNotification = async () => {
                   placeholder="مثال: ABC123"
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const text = e.clipboardData.getData('text/plain');
+                    setJoinCode(text.trim().toUpperCase());
+                  }}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  inputMode="text"
                   className="text-center text-2xl tracking-widest font-mono"
                 />
               </div>
