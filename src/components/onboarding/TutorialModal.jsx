@@ -126,23 +126,23 @@ export default function TutorialModal({ isOpen, onClose }) {
               className="level-card-item"
               onClick={() => setSelectedLevel(lv.id)}
               style={{
-                border: chosen ? \`2.5px solid \${lv.accent}\` : "1.5px solid var(--border)",
+                border: chosen ? `2.5px solid ${lv.accent}` : "1.5px solid var(--border)",
                 borderRadius: 16,
                 overflow: "hidden",
                 cursor: "pointer",
                 background: chosen ? lv.accentLight : "var(--card)",
                 transition: "all 0.22s",
-                boxShadow: chosen ? \`0 6px 24px \${lv.accentShadow}\` : "0 1px 4px rgba(0,0,0,0.06)",
+                boxShadow: chosen ? `0 6px 24px ${lv.accentShadow}` : "0 1px 4px rgba(0,0,0,0.06)",
                 transform: chosen ? "translateY(-2px)" : "none",
               }}
             >
               {/* Screenshot — full, no crop */}
               <div className="level-img-wrap">
-                <img src={\`data:image/png;base64,\${lv.img}\`} alt={lv.label} />
+                <img src={`data:image/png;base64,${lv.img}`} alt={lv.label} />
                 {/* Subtle bottom fade */}
                 <div style={{
                   position: "absolute", bottom: 0, left: 0, right: 0, height: 32,
-                  background: \`linear-gradient(transparent, \${chosen ? lv.accentLight : "var(--card)"})\`
+                  background: `linear-gradient(transparent, ${chosen ? lv.accentLight : "var(--card)"})`
                 }} />
               </div>
 
