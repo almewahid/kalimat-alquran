@@ -133,7 +133,7 @@ export default function TutorialModal({ isOpen, onClose }) {
             >
               {/* Screenshot — full, no crop */}
               <div className="level-img-wrap">
-                <img src={lv.img} alt={lv.label} />
+                <img src={`data:image/png;base64,${lv.img}`} alt={lv.label} />
                 {/* Subtle bottom fade */}
                 <div style={{
                   position: "absolute", bottom: 0, left: 0, right: 0, height: 32,
@@ -227,7 +227,7 @@ export default function TutorialModal({ isOpen, onClose }) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -30 }}
       transition={{ duration: 0.28 }}
-      style={{ padding: "1.75rem 1.5rem 1.25rem" }}
+      style={{ padding: "1.25rem 1.5rem 1rem" }}
     >
       {/* Back + header */}
       <button
@@ -236,58 +236,59 @@ export default function TutorialModal({ isOpen, onClose }) {
           background: "none", border: "none", cursor: "pointer",
           color: "var(--muted-foreground)", fontSize: 13,
           display: "flex", alignItems: "center", gap: 4,
-          marginBottom: "1.2rem", padding: 0, fontWeight: 500,
+          marginBottom: "0.9rem", padding: 0, fontWeight: 500,
         }}
       >
         <ChevronRight size={16} /> رجوع
       </button>
 
-      <div style={{ marginBottom: "1.5rem" }}>
+      <div style={{ marginBottom: "1.25rem" }}>
         <div style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
+          display: "inline-flex", alignItems: "center", gap: 8,
           background: "linear-gradient(135deg,#e0e7ff,#ede9fe)",
-          borderRadius: 99, padding: "5px 16px",
-          fontSize: 12, fontWeight: 600, color: "#4338ca", marginBottom: 12,
+          borderRadius: 99, padding: "6px 16px",
+          fontSize: 13, fontWeight: 700, color: "#4338ca", marginBottom: 0,
         }}>
-          <span style={{fontSize:14}}>⚙️</span> خطوة ٢ من ٢
+          <span style={{fontSize:15}}>⚙️</span>
+          <span>خطوة ٢ من ٢</span>
+          <span style={{
+            width: 1, height: 14, background: "#a5b4fc", margin: "0 2px",
+            display: "inline-block", borderRadius: 2,
+          }} />
+          <span style={{ fontWeight: 800, color: "#3730a3", fontSize: 14 }}>الإعدادات</span>
         </div>
-        <h2 style={{ fontSize: 24, fontWeight: 800, color: "var(--foreground)", margin: "0 0 6px", letterSpacing: "-0.3px" }}>
-          الإعدادات
-        </h2>
-        <p style={{ fontSize: 14, color: "var(--muted-foreground)", margin: 0 }}>
-          اضبط تجربتك حسب ما يناسبك
-        </p>
       </div>
 
       {/* Daily Goals Card */}
       <div style={{
         background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
         border: "1px solid #bbf7d0",
-        borderRadius: 18, padding: "16px 18px", marginBottom: 14,
+        borderRadius: 16, padding: "12px 14px", marginBottom: 10,
       }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
-          fontSize: 14, fontWeight: 700, color: "#15803d", marginBottom: 14,
+          fontSize: 13, fontWeight: 700, color: "#15803d", marginBottom: 10,
         }}>
           <div style={{
-            width: 30, height: 30, borderRadius: 10,
+            width: 26, height: 26, borderRadius: 8,
             background: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <Zap size={16} color="#fff" />
+            <Zap size={13} color="#fff" />
           </div>
           الأهداف اليومية
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {[
             { key: "daily_new_words_goal", emoji: "🆕", label: "كلمات جديدة", max: 50 },
             { key: "daily_review_words_goal", emoji: "🔁", label: "مراجعة يومية", max: 100 },
           ].map(item => (
             <div key={item.key} style={{
-              background: "#fff", borderRadius: 12, padding: "12px 10px", textAlign: "center",
+              background: "#fff", borderRadius: 12, padding: "10px 8px", textAlign: "center",
               border: "1px solid #dcfce7",
+              boxShadow: "0 1px 4px #16a34a10",
             }}>
-              <div style={{ fontSize: 20, marginBottom: 6 }}>{item.emoji}</div>
-              <Label style={{ fontSize: 11, color: "#15803d", fontWeight: 600, display: "block", marginBottom: 8 }}>
+              <div style={{ fontSize: 18, marginBottom: 4 }}>{item.emoji}</div>
+              <Label style={{ fontSize: 11, color: "#15803d", fontWeight: 600, display: "block", marginBottom: 6 }}>
                 {item.label}
               </Label>
               <Input
@@ -295,9 +296,9 @@ export default function TutorialModal({ isOpen, onClose }) {
                 value={userSettings[item.key]}
                 onChange={(e) => setUserSettings(p => ({ ...p, [item.key]: parseInt(e.target.value) || 10 }))}
                 style={{
-                  borderRadius: 10, textAlign: "center", fontSize: 20,
+                  borderRadius: 8, textAlign: "center", fontSize: 18,
                   fontWeight: 800, color: "#16a34a", border: "1.5px solid #bbf7d0",
-                  background: "#f0fdf4", padding: "6px",
+                  background: "#f0fdf4", padding: "4px",
                 }}
               />
             </div>
@@ -308,27 +309,30 @@ export default function TutorialModal({ isOpen, onClose }) {
       {/* Toggles */}
       <div style={{
         background: "var(--card)", border: "1px solid var(--border)",
-        borderRadius: 18, overflow: "hidden", marginBottom: 16,
+        borderRadius: 16, overflow: "hidden", marginBottom: 12,
+        boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
       }}>
         {settingsItems.map((item, i) => (
           <div
             key={item.key}
             style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "12px 16px",
+              padding: "10px 14px",
               borderBottom: i < settingsItems.length - 1 ? "1px solid var(--border)" : "none",
               transition: "background 0.15s",
+              gap: 8,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{
-                width: 38, height: 38, borderRadius: 12,
+                width: 34, height: 34, borderRadius: 10,
                 background: item.colorBg,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 color: item.color, flexShrink: 0,
+                boxShadow: `0 2px 8px ${item.color}25`,
               }}>{item.icon}</div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)", marginBottom: 2 }}>{item.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)", marginBottom: 1 }}>{item.label}</div>
                 <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{item.desc}</div>
               </div>
             </div>
@@ -344,23 +348,21 @@ export default function TutorialModal({ isOpen, onClose }) {
       <button
         onClick={handleFinish}
         style={{
-          width: "100%", padding: "15px 0",
+          width: "100%", padding: "13px 0",
           borderRadius: 14, border: "none",
           background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-          color: "#fff", fontSize: 16, fontWeight: 800,
+          color: "#fff", fontSize: 15, fontWeight: 800,
           cursor: "pointer", letterSpacing: "0.02em",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           boxShadow: "0 6px 20px #6366f135",
           transition: "all 0.2s",
         }}
       >
-        <CheckCircle size={18} strokeWidth={2.5} />
+        <CheckCircle size={17} strokeWidth={2.5} />
         ابدأ التعلم الآن!
       </button>
 
-      <p style={{ textAlign: "center", fontSize: 12, color: "var(--muted-foreground)", marginTop: 10 }}>
-        💡 يمكنك تعديل الإعدادات لاحقاً من القائمة الجانبية
-      </p>
+
     </motion.div>
   );
 
