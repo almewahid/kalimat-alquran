@@ -74,14 +74,8 @@ export default function TutorialModal({ isOpen, onClose }) {
           fontSize: 12, fontWeight: 600, color: "#15803d",
           marginBottom: 12,
         }}>
-          <span style={{fontSize:14}}>🎯</span> خطوة ١ من ٢
+          <span style={{fontSize:14}}>🎯</span> خطوة ١ من ٢ <span style={{fontWeight:800, color:"var(--foreground)", marginInlineStart:8}}>اختر مستوى الطفل</span>
         </div>
-        <h2 style={{ fontSize: 24, fontWeight: 800, color: "var(--foreground)", margin: "0 0 8px", letterSpacing: "-0.3px" }}>
-          اختر مستوى الطفل
-        </h2>
-        <p style={{ fontSize: 14, color: "var(--muted-foreground)", margin: 0, lineHeight: 1.5 }}>
-          سنضبط التطبيق بناءً على المستوى الذي تختاره
-        </p>
       </div>
 
       {/* Cards — row on desktop, column on mobile via CSS class */}
@@ -93,12 +87,13 @@ export default function TutorialModal({ isOpen, onClose }) {
         }
         @media (max-width: 560px) {
           .level-cards-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
           }
         }
         .level-img-wrap {
           width: 100%;
-          aspect-ratio: 16/10;
+          aspect-ratio: 16/12;
           overflow: hidden;
           position: relative;
           background: #f3f4f6;
