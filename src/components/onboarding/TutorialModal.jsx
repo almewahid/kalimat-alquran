@@ -133,7 +133,7 @@ export default function TutorialModal({ isOpen, onClose }) {
             >
               {/* Screenshot — full, no crop */}
               <div className="level-img-wrap">
-                <img src={`data:image/png;base64,${lv.img}`} alt={lv.label} />
+                <img src={lv.img} alt={lv.label} />
                 {/* Subtle bottom fade */}
                 <div style={{
                   position: "absolute", bottom: 0, left: 0, right: 0, height: 32,
