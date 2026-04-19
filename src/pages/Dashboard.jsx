@@ -21,17 +21,14 @@ export default function Dashboard() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboardData"],
     queryFn: async () => {
-      // 1. جلب المستخدم الحالي
       const currentUser = await supabaseClient.auth.me();
 
-      // 2. جلب بيانات التقدم
       const [progressData] = await supabaseClient.entities.UserProgress.filter({
         user_email: currentUser.email
       });
 
       let finalProgress = progressData;
 
-      // 3. إنشاء سجل تقدم جديد إذا لم يوجد
       if (!progressData) {
         finalProgress = await supabaseClient.entities.UserProgress.create({
           user_email: currentUser.email,
@@ -44,7 +41,6 @@ export default function Dashboard() {
           last_login_date: new Date().toISOString().split('T')[0]
         });
       } else {
-        // تحديث تسجيل الدخول اليومي (Streak)
         const today = new Date().toISOString().split('T')[0];
         const lastLogin = progressData.last_login_date;
 
@@ -65,13 +61,11 @@ export default function Dashboard() {
         }
       }
 
-      // 4. جلب الكلمات والاختبارات
       const [allWords, quizSessions] = await Promise.all([
         supabaseClient.entities.QuranicWord.list(),
         supabaseClient.entities.QuizSession.filter({ user_email: currentUser.email })
       ]);
 
-      // 5. إصلاح مشكلة الكلمات المتعلمة (تصفية UUIDs الصحيحة فقط)
       const learnedWordIds = (finalProgress?.learned_words || [])
         .filter(id => id && id.length === 36);
 
@@ -81,17 +75,14 @@ export default function Dashboard() {
         .filter(Boolean)
         .reverse();
 
-      // 6. ترتيب الاختبارات
       const sortedQuizzes = quizSessions.sort((a, b) =>
         new Date(b.created_date) - new Date(a.created_date)
       ).slice(0, 3);
 
-      // 7. حساب نقاط اليوم
       const today = new Date().toISOString().split('T')[0];
       const todayQuizzes = quizSessions.filter(q => q.created_date.startsWith(today));
       const todayXP = todayQuizzes.reduce((sum, q) => sum + (q.xp_earned || 0), 0);
 
-      // 8. جلب الاسم
       const { data: profile } = await supabaseClient.supabase
         .from('user_profiles')
         .select('full_name')
@@ -112,7 +103,6 @@ export default function Dashboard() {
     }
   });
 
-  // التحقق من التتوريال
   useEffect(() => {
     const checkTutorial = async () => {
       if (data?.user && data?.userProgress) {
@@ -133,7 +123,6 @@ export default function Dashboard() {
 
   const { userName, userProgress, dailyXPEarned } = data || {};
 
-  // حساب التقدم نحو المستوى التالي
   const currentLevelXP = userProgress?.total_xp || 0;
   const currentLevel = userProgress?.current_level || 1;
   const xpForCurrentLevel = (currentLevel - 1) * 100;
@@ -204,7 +193,6 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        {/* ① رسالة الترحيب */}
         <div className="mb-5">
           <h1 className="text-3xl md:text-4xl font-black text-foreground mb-1">
             السلام عليكم يا {firstName}! 👋
@@ -214,16 +202,13 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* ② شريط الحماس: أيام السلسلة + الكلمات */}
         <StatsGrid
           wordsLearned={userProgress.words_learned || 0}
           consecutiveLoginDays={userProgress.consecutive_login_days || 1}
         />
 
-        {/* ③ CTA الرئيسي + الزرّان الثانويان */}
         <QuickActions wordsLearned={userProgress.words_learned || 0} />
 
-        {/* ④ بطاقة المستوى */}
         <LevelCard
           level={currentLevel}
           xp={currentLevelXP}
@@ -232,13 +217,11 @@ export default function Dashboard() {
           dailyXP={dailyXPEarned}
         />
 
-        {/* ⑤ آخر الكلمات المتعلمة */}
         <RecentWords
           learnedWordsIds={userProgress.learned_words}
           allWords={data?.allWords || []}
         />
 
-        {/* ⑥ زرّان ثانويان */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -272,7 +255,38 @@ export default function Dashboard() {
           isOpen={showTutorial}
           onClose={async (settings) => {
             setShowTutorial(false);
-            if (settings) refetch();
+            if (settings && data?.user) {
+              try {
+                // جلب الـ preferences الحالية
+                const { data: profile } = await supabaseClient.supabase
+                  .from('user_profiles')
+                  .select('preferences')
+                  .eq('user_id', data.user.id)
+                  .single();
+
+                // حفظ كل الإعدادات مع kids_mode_enabled و tutorial_completed
+                const newPreferences = {
+                  ...profile?.preferences,
+                  tutorial_completed: true,
+                  learning_level: settings.learning_level,
+                  kids_mode_enabled: settings.kids_mode_enabled,
+                  daily_new_words_goal: settings.daily_new_words_goal,
+                  daily_review_words_goal: settings.daily_review_words_goal,
+                  sound_effects_enabled: settings.sound_effects_enabled,
+                  animations_enabled: settings.animations_enabled,
+                  confetti_enabled: settings.confetti_enabled,
+                };
+
+                await supabaseClient.supabase
+                  .from('user_profiles')
+                  .update({ preferences: newPreferences })
+                  .eq('user_id', data.user.id);
+
+                refetch();
+              } catch (err) {
+                console.error("Error saving tutorial settings:", err);
+              }
+            }
           }}
         />
       </motion.div>

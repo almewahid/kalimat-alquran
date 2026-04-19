@@ -21,7 +21,12 @@ export default function TutorialModal({ isOpen, onClose }) {
   });
 
   const handleFinish = () => {
-    onClose({ ...userSettings, learning_level: selectedLevel });
+    const isKidsMode = selectedLevel === "مبتدئ";
+    onClose({ 
+      ...userSettings, 
+      learning_level: selectedLevel,
+      kids_mode_enabled: isKidsMode,
+    });
   };
 
   const levels = [
