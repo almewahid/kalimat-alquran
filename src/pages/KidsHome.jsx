@@ -4,7 +4,7 @@ import { createPageUrl } from "@/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 
-const LOGO_URL = "/logo.webp";
+const LOGO_URL = "/logo.png";
 
 const cards = [
   {
