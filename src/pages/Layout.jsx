@@ -142,14 +142,14 @@ const adminItems = [
 // ── قائمة وضع الأطفال (مبسّطة) ──
 const kidsNavigationItems = [
   
-  { title: "رحلتنا",       img: "/images/kids/2_journey.png", url: createPageUrl("Dashboard"),      color: "from-green-400 to-teal-500"    },
-  { title: "تَعلَّم",         img: "/images/kids/3_learn.png",   url: createPageUrl("Learn"),          color: "from-blue-400 to-cyan-500"     },
-  { title: "مراجعة ممتعة", img: "/images/kids/4_review.png",  url: createPageUrl("SmartReview"),    color: "from-purple-400 to-violet-500" },
-  { title: "مكافآتي",      img: "/images/kids/5_rewards.png", url: createPageUrl("KidsRewards"),    color: "from-pink-400 to-rose-500"     },
+  { title: "رحلتنا",       img: "/images/kids/2_journey.webp", url: createPageUrl("Dashboard"),      color: "from-green-400 to-teal-500"    },
+  { title: "تَعلَّم",         img: "/images/kids/3_learn.webp",   url: createPageUrl("Learn"),          color: "from-blue-400 to-cyan-500"     },
+  { title: "مراجعة ممتعة", img: "/images/kids/4_review.webp",  url: createPageUrl("SmartReview"),    color: "from-purple-400 to-violet-500" },
+  { title: "مكافآتي",      img: "/images/kids/5_rewards.webp", url: createPageUrl("KidsRewards"),    color: "from-pink-400 to-rose-500"     },
 ];
 
 const LOGO_URL      = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68b74ae8214aa5bfcb70e378/6d983cb3c_.png";
-const KIDS_LOGO_URL = "/images/kids/logo2.png";
+const KIDS_LOGO_URL = "/images/kids/logo2.webp";
 
 // زر فتح الشريط الجانبي في الموبايل - يعالج ghost click
 function MobileSidebarTrigger({ className }) {
@@ -362,7 +362,7 @@ export default function Layout({ children }) {
                                 className="flex items-center gap-3 px-4"
                                 onClick={() => isMobile && setSidebarOpen(false)}
                               >
-                                <img src="/images/kids/تحديات.png" alt="التحدي" className="w-12 h-12 object-contain flex-shrink-0" />
+                                <img src="/images/kids/تحديات.webp" alt="التحدي" className="w-12 h-12 object-contain flex-shrink-0" />
                                 <span className="font-bold text-base">التحدي</span>
                                 {/* شارة عدد المجموعات النشطة */}
                                 <span className="absolute top-2 left-2 min-w-[22px] h-[22px] bg-yellow-400 text-purple-900 text-xs font-black rounded-full flex items-center justify-center px-1 shadow-md animate-pulse">

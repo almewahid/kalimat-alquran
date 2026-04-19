@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Volume2, CheckCircle, ChevronLeft, ChevronRight, Zap, Sparkles, Bell, Waves } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const KIDS_IMG   = "/images/kids/KIDS.jpg";
-const MEDIUM_IMG = "/images/kids/MEDIUM.jpg";
+const KIDS_IMG   = "/images/kids/KIDS.webp";
+const MEDIUM_IMG = "/images/kids/MEDIUM.webp";
 
 export default function TutorialModal({ isOpen, onClose }) {
   const [step, setStep] = useState(0);

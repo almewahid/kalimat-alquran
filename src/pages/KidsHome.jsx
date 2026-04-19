@@ -4,12 +4,12 @@ import { createPageUrl } from "@/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 
-const LOGO_URL = "/logo.png";
+const LOGO_URL = "/logo.webp";
 
 const cards = [
   {
     title: "رحلتنا",
-    img: "/images/kids/journey_card.png",
+    img: "/images/kids/journey_card.webp",
     url: createPageUrl("LearningPaths"),
     titleColor: "#1d4ed8",
     titleBg: "linear-gradient(135deg, #dbeafe, #93c5fd)",
@@ -17,7 +17,7 @@ const cards = [
   },
   {
     title: "تعلّم",
-    img: "/images/kids/learn_card.png",
+    img: "/images/kids/learn_card.webp",
     url: createPageUrl("Learn"),
     titleColor: "#065f46",
     titleBg: "linear-gradient(135deg, #d1fae5, #6ee7b7)",
@@ -25,7 +25,7 @@ const cards = [
   },
   {
     title: "مراجعة ممتعة",
-    img: "/images/kids/review_card.png",
+    img: "/images/kids/review_card.webp",
     url: createPageUrl("SmartReview"),
     titleColor: "#92400e",
     titleBg: "linear-gradient(135deg, #fef3c7, #fcd34d)",
@@ -33,7 +33,7 @@ const cards = [
   },
   {
     title: "مكافآتي",
-    img: "/images/kids/rewards_card.png",
+    img: "/images/kids/rewards_card.webp",
     url: createPageUrl("KidsRewards"),
     titleColor: "#9d174d",
     titleBg: "linear-gradient(135deg, #fce7f3, #f9a8d4)",
