@@ -382,13 +382,19 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
                   )}
 
                   {/* المعاني البديلة */}
-                  {Array.isArray(word.alternative_meanings) && word.alternative_meanings.length > 0 && isElementVisible("alternative_meanings") && (
+                  {(Array.isArray(word.alternative_meanings) 
+  ? word.alternative_meanings.length > 0 
+  : !!word.alternative_meanings
+) && isElementVisible("alternative_meanings") && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border border-blue-200 dark:border-blue-800">
                       <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-3">
                         معانٍ بديلة
                       </h3>
                       <ul className="space-y-2">
-                        {word.alternative_meanings.map((meaning, index) => (
+                        {(Array.isArray(word.alternative_meanings) 
+  ? word.alternative_meanings 
+  : word.alternative_meanings.split('\n').filter(Boolean)
+).map((meaning, index) => (
                           <li key={index} className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
                             <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                             <span className="text-lg">{meaning}</span>
