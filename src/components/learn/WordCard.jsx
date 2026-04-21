@@ -382,7 +382,7 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
                   )}
 
                   {/* المعاني البديلة */}
-                  {word.alternative_meanings && word.alternative_meanings.length > 0 && isElementVisible("alternative_meanings") && (
+                  {Array.isArray(word.alternative_meanings) && word.alternative_meanings.length > 0 && isElementVisible("alternative_meanings") && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border border-blue-200 dark:border-blue-800">
                       <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-3">
                         معانٍ بديلة
