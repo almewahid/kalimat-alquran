@@ -56,7 +56,7 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
         // Load note
         const notes = await supabaseClient.entities.UserNote.filter({
           word_id: word.id,
-          created_by: user.email
+          user_email: user.email
         });
         if (notes.length > 0) {
           setUserNote(notes[0].content);
@@ -65,7 +65,7 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
         // Load favorite status
         const favorites = await supabaseClient.entities.FavoriteWord.filter({
           word_id: word.id,
-          created_by: user.email
+          user_email: user.email
         });
         setIsFavorite(favorites.length > 0);
       } catch (error) {
@@ -113,7 +113,7 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
       const user = await supabaseClient.auth.me();
       const favorites = await supabaseClient.entities.FavoriteWord.filter({
         word_id: word.id,
-        created_by: user.email
+        user_email: user.email
       });
 
       if (favorites.length > 0) {
@@ -134,7 +134,7 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
       const user = await supabaseClient.auth.me();
       const existingNotes = await supabaseClient.entities.UserNote.filter({
         word_id: word.id,
-        created_by: user.email
+        user_email: user.email
       });
 
       if (existingNotes.length > 0) {
