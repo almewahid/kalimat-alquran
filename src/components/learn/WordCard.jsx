@@ -172,7 +172,11 @@ export default function WordCard({ word, onMarkLearned, isReviewWord, userLevel 
   const handleSpeakMeaning = () => {
     if (!word?.meaning) return;
     // ✅ سيتم إيقاف جميع الأصوات داخل playMeaning
-    const textToSpeak = `${word.meaning}. ${word.alternative_meanings?.join('، ') || ''}`;
+    const alternatives = Array.isArray(word.alternative_meanings)
+  ? word.alternative_meanings.join('، ')
+  : word.alternative_meanings || '';
+
+const textToSpeak = `${word.meaning}. ${alternatives}`;
     playMeaning(textToSpeak);
   };
 
