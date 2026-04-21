@@ -673,12 +673,15 @@ export default function Learn() {
               {location.search.includes('word_id') && (
                 <Button
                   variant="outline"
-                  size="icon"
-                  onClick={() => navigate('/Search')}
-                  title="العودة للبحث"
-                  className="rounded-full"
+                  onClick={() => {
+                    const params = new URLSearchParams(location.search);
+                    const q = params.get('q') || '';
+                    navigate(`/Search${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+                  }}
+                  className="rounded-xl flex items-center gap-2 px-4 py-2 border-2 border-primary text-primary font-bold text-base hover:bg-primary hover:text-primary-foreground transition-colors"
                 >
                   <ArrowRight className="w-5 h-5" />
+                  العودة للبحث
                 </Button>
               )}
               {isShuffled ? (

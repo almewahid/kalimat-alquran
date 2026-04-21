@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabaseClient } from "@/components/api/supabaseClient";
 import {
   Card,
@@ -144,7 +144,10 @@ function Toast({ message, onClose }) {
 /* ---------- المكون الرئيسي ---------- */
 export default function Search() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+
+  const [searchTerm, setSearchTerm] = useState(urlParams.get('q') || "");
   const [matchMode, setMatchMode] = useState("partial");
   const [allAyahs, setAllAyahs] = useState([]);
   const [allWords, setAllWords] = useState([]);
@@ -369,7 +372,7 @@ export default function Search() {
                       transition={{ duration: 0.2 }}
                     >
                       <Card className="bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all cursor-pointer hover:border-primary/50 hover:scale-[1.01]"
-                        onClick={() => navigate(`/Learn?word_id=${word.id}`)}
+                        onClick={() => navigate(`/Learn?word_id=${word.id}&from=Search&q=${encodeURIComponent(searchTerm)}`)}
                       >
                         <CardHeader>
                           <CardTitle className="text-2xl text-primary arabic-font flex items-center justify-between">
