@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabaseClient } from "@/components/api/supabaseClient";
 import {
   Card,
@@ -142,6 +143,7 @@ function Toast({ message, onClose }) {
 
 /* ---------- المكون الرئيسي ---------- */
 export default function Search() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [matchMode, setMatchMode] = useState("partial");
   const [allAyahs, setAllAyahs] = useState([]);
@@ -153,7 +155,6 @@ export default function Search() {
   const [activeTab, setActiveTab] = useState("words");
   const [selectedSurah, setSelectedSurah] = useState("all");
   const [toastMessage, setToastMessage] = useState("");
-  const [selectedWord, setSelectedWord] = useState(null);
 
   /* ---------- تحميل البيانات ---------- */
   useEffect(() => {
@@ -280,97 +281,6 @@ export default function Search() {
 
   const loadingAll = loadingAyahs || loadingWords;
 
-  /* ---------- صفحة تفاصيل الكلمة (التعليم) ---------- */
-  if (selectedWord) {
-    const relatedAyahs = allAyahs.filter(
-      (a) =>
-        a.surah_name === selectedWord.surah_name &&
-        a.ayah_number === selectedWord.ayah_number
-    );
-    return (
-      <div className="p-6 max-w-3xl mx-auto bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl shadow-inner" dir="rtl">
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}>
-          {/* زر العودة */}
-          <button
-            onClick={() => setSelectedWord(null)}
-            className="mb-6 flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow"
-          >
-            <span>→</span>
-            <span>العودة إلى نتائج البحث</span>
-          </button>
-
-          {/* بطاقة الكلمة */}
-          <Card className="bg-white shadow-xl border border-gray-200 mb-6">
-            <CardHeader className="bg-primary/5 border-b border-gray-100">
-              <CardTitle className="text-4xl text-primary arabic-font text-center py-2">
-                {selectedWord.word}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              {selectedWord.meaning && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-yellow-700 mb-1">المعنى</p>
-                  <p className="text-lg text-foreground">{selectedWord.meaning}</p>
-                </div>
-              )}
-
-              {selectedWord.root && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-blue-700 mb-1">الجذر</p>
-                  <p className="text-2xl text-foreground arabic-font">{selectedWord.root}</p>
-                </div>
-              )}
-
-              {selectedWord.morphology && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-green-700 mb-1">الصرف</p>
-                  <p className="text-foreground">{selectedWord.morphology}</p>
-                </div>
-              )}
-
-              {selectedWord.transliteration && (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-purple-700 mb-1">النطق</p>
-                  <p className="text-foreground">{selectedWord.transliteration}</p>
-                </div>
-              )}
-
-              <div className="flex gap-2 flex-wrap pt-2">
-                <Badge className="bg-primary text-primary-foreground">{selectedWord.surah_name}</Badge>
-                <Badge variant="outline">الآية {selectedWord.ayah_number}</Badge>
-                {selectedWord.position && (
-                  <Badge variant="outline">الموضع {selectedWord.position}</Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* الآية المرتبطة */}
-          {relatedAyahs.length > 0 && (
-            <Card className="bg-white shadow-lg border border-gray-200">
-              <CardHeader>
-                <CardTitle className="text-lg text-primary">الآية الكريمة</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {relatedAyahs.map((ayah) => (
-                  <div key={ayah.id} className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <p className="text-xl arabic-font leading-loose text-right text-foreground mb-3">
-                      {highlightMatch(ayah.ayah_text_simple || ayah.ayah_text, selectedWord.word)}
-                    </p>
-                    <div className="flex gap-2">
-                      <Badge variant="outline">الآية {ayah.ayah_number}</Badge>
-                      {ayah.juz_number && <Badge variant="outline">الجزء {ayah.juz_number}</Badge>}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-        </motion.div>
-      </div>
-    );
-  }
-
   /* ---------- واجهة المستخدم ---------- */
   return (
     <div className="p-6 max-w-6xl mx-auto bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl shadow-inner">
@@ -459,7 +369,7 @@ export default function Search() {
                       transition={{ duration: 0.2 }}
                     >
                       <Card className="bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all cursor-pointer hover:border-primary/50 hover:scale-[1.01]"
-                        onClick={() => setSelectedWord(word)}
+                        onClick={() => navigate(`/Learn?word_id=${word.id}`)}
                       >
                         <CardHeader>
                           <CardTitle className="text-2xl text-primary arabic-font flex items-center justify-between">

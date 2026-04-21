@@ -3,7 +3,7 @@ import { supabaseClient } from "@/components/api/supabaseClient";
 import { getDueCards, updateCardWithSM2 } from "../components/srs/SRSAlgorithm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowRight, ArrowLeft, Brain, Loader2, RotateCcw, Shuffle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +23,8 @@ const createPageUrl = (pageName) => `/${pageName}`;
 
 export default function Learn() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [words, setWords] = useState([]);
   const [originalWords, setOriginalWords] = useState([]); // ✅ حفظ الترتيب الأصلي
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -264,7 +266,31 @@ export default function Learn() {
       
       setWords(sessionWords);
       setOriginalWords(sessionWords);
-      setCurrentIndex(0);
+
+      // ── تحقق من word_id في الـ URL للانتقال المباشر للكلمة ──
+      const wordIdParam = urlParams.get('word_id');
+      if (wordIdParam) {
+        const wordIndex = sessionWords.findIndex(w => String(w.id) === String(wordIdParam));
+        if (wordIndex !== -1) {
+          setCurrentIndex(wordIndex);
+        } else {
+          // الكلمة غير موجودة في الجلسة، نضيفها في الأول
+          try {
+            const targetWordArr = await supabaseClient.entities.QuranicWord.filter({ id: wordIdParam });
+            if (targetWordArr.length > 0) {
+              const targetWord = targetWordArr[0];
+              const merged = [targetWord, ...sessionWords.filter(w => String(w.id) !== String(wordIdParam))];
+              setWords(merged);
+              setOriginalWords(merged);
+              setCurrentIndex(0);
+            }
+          } catch (e) {
+            console.error("خطأ في تحميل الكلمة المحددة:", e);
+          }
+        }
+      } else {
+        setCurrentIndex(0);
+      }
       setIsShuffled(false);
       setLearnedIndices(new Set());
       
@@ -642,8 +668,19 @@ export default function Learn() {
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="flex items-center justify-between mb-6 gap-2">
-            {/* أقصى اليمين: زر الخلط */}
-            <div className="flex-shrink-0">
+            {/* أقصى اليمين: زر الخلط أو زر العودة للبحث */}
+            <div className="flex-shrink-0 flex gap-2">
+              {location.search.includes('word_id') && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigate('/Search')}
+                  title="العودة للبحث"
+                  className="rounded-full"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              )}
               {isShuffled ? (
                 <Button
                   variant="outline"
